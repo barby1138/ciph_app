@@ -3,6 +3,8 @@
 
 #include "data_vectors.h"
 
+typedef void (*on_job_complete_cb_t) (struct Dpdk_cryptodev_data_vector*, uint32_t);
+
 int ciph_agent_init();
 
 int ciph_agent_cleanup();

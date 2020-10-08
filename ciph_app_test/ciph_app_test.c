@@ -1,16 +1,149 @@
-
 ///////////////////////////////////
 // ciph_app_test
 
-#include <stdio.h>
+//#include "ciph_agent.h"
+#include "ciph_agent_c.h"
+#include <thread>
 
-#include "ciph_agent.h"
+uint8_t plaintext[64] = {
+0xff, 0xca, 0xfb, 0xf1, 0x38, 0x20, 0x2f, 0x7b, 0x24, 0x98, 0x26, 0x7d, 0x1d, 0x9f, 0xb3, 0x93,
+0xd9, 0xef, 0xbd, 0xad, 0x4e, 0x40, 0xbd, 0x60, 0xe9, 0x48, 0x59, 0x90, 0x67, 0xd7, 0x2b, 0x7b,
+0x8a, 0xe0, 0x4d, 0xb0, 0x70, 0x38, 0xcc, 0x48, 0x61, 0x7d, 0xee, 0xd6, 0x35, 0x49, 0xae, 0xb4,
+0xaf, 0x6b, 0xdd, 0xe6, 0x21, 0xc0, 0x60, 0xce, 0x0a, 0xf4, 0x1c, 0x2e, 0x1c, 0x8d, 0xe8, 0x7b
+};
 
-void usage()
+/* cipher text */
+uint8_t ciphertext[64] = {
+0x75, 0x95, 0xb3, 0x48, 0x38, 0xf9, 0xe4, 0x88, 0xec, 0xf8, 0x3b, 0x09, 0x40, 0xd4, 0xd6, 0xea,
+0xf1, 0x80, 0x6d, 0xfb, 0xba, 0x9e, 0xee, 0xac, 0x6a, 0xf9, 0x8f, 0xb6, 0xe1, 0xff, 0xea, 0x19,
+0x17, 0xc2, 0x77, 0x8d, 0xc2, 0x8d, 0x6c, 0x89, 0xd1, 0x5f, 0xa6, 0xf3, 0x2c, 0xa7, 0x6a, 0x7f,
+0x50, 0x1b, 0xc9, 0x4d, 0xb4, 0x36, 0x64, 0x6e, 0xa6, 0xd9, 0x39, 0x8b, 0xcf, 0x8e, 0x0c, 0x55
+};
+
+/* iv */
+uint8_t iv[] = {
+0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F
+};
+
+/* cipher key */
+uint8_t cipher_key[] = {
+0xE4, 0x23, 0x33, 0x8A, 0x35, 0x64, 0x61, 0xE2, 0x49, 0x03, 0xDD, 0xC6, 0xB8, 0xCA, 0x55, 0x7A
+};
+
+struct timespec start, end;
+int packet_size = 200;
+int num_pck = 10000000;
+int num_pck_per_batch = 32;
+
+void on_job_complete_cb_0 (struct Dpdk_cryptodev_data_vector* vec, uint32_t size)
 {
-	printf("usage: ciph config.xml");
+    static int g_size = 0;
+    static int g_failed = 0;
+/*
+    for(int j = 0; j < size; ++j)
+    {
+		  if ( 0 != memcmp(plaintext,
+					vec[j].ciphertext.data,
+					vec[j].ciphertext.length))
+          g_failed++;
+    }
+*/
+    g_size += size;
+
+    if (g_size > num_pck)
+    {
+      timespec_get (&end, TIME_UTC);
+      printf ("\n\n");
+      printf ("Pakcet sequence finished!\n");
+      printf ("Seq len: %u\n", g_size);
+      uint64_t t1 = end.tv_sec - start.tv_sec;
+      uint64_t t2;
+      if (end.tv_nsec > start.tv_nsec)
+      {
+        t2 = end.tv_nsec - start.tv_nsec;
+      }
+      else
+      {
+        t2 = start.tv_nsec - end.tv_nsec;
+        t1--;
+      }
+      printf ("Seq time: %lus %luns\n", t1, t2);
+      double tmp = t1;
+      tmp += t2 / 1e+9;
+      tmp = g_size / tmp;
+      printf ("Average pps: %f\n", tmp);
+      printf ("Average TP: %f Mb/s\n", (tmp * packet_size) * 8.0 / 1000000.0);
+
+      printf ("failed %d\n", g_failed);
+    }
 }
 
+int main(int argc, char* argv[])
+{
+    memset (&start, 0, sizeof (start));
+    memset (&end, 0, sizeof (end));
+
+    ciph_agent_init();
+
+    ciph_agent_conn_alloc(0, 0, on_job_complete_cb_0);
+
+    struct Dpdk_cryptodev_data_vector job_sess;
+    memset(&job_sess, 0, sizeof(struct Dpdk_cryptodev_data_vector));
+    // sess
+    job_sess.sess._sess_id = 1;
+    job_sess.sess._sess_op = SESS_OP_CREATE;
+    job_sess.sess._cipher_algo = RTE_CRYPTO_CIPHER_AES_CBC;
+    job_sess.sess._cipher_op = RTE_CRYPTO_CIPHER_OP_DECRYPT;
+    job_sess.cipher_key.data = cipher_key;
+    job_sess.cipher_key.length = 16;
+
+    // open session
+    ciph_agent_send(0, &job_sess, 1);
+
+    struct Dpdk_cryptodev_data_vector job;
+    memset(&job, 0, sizeof(struct Dpdk_cryptodev_data_vector));
+    // sess
+    job.sess._sess_id = 1;
+    job.sess._sess_op = SESS_OP_ATTACH;
+    // data
+    job.ciphertext.data = ciphertext;
+    job.ciphertext.length = 64;
+    job.cipher_iv.data = iv;
+    job.cipher_iv.length = 16;
+
+    // warmup
+    for (int i = 0; i < num_pck_per_batch; ++i)
+    {
+      ciph_agent_send(0, &job, 1);
+    }
+    
+    timespec_get (&start, TIME_UTC);
+
+    int num_batch = num_pck / num_pck_per_batch;
+    
+    for(int c = 0; c < num_batch; ++c)
+    {
+      for (int i = 0; i < num_pck_per_batch; ++i)
+      {
+        ciph_agent_send(0, &job, 1);
+      }
+
+      ciph_agent_poll(0);
+    }
+
+    // flush
+    for(int c = 0; c < 10; ++c)
+      ciph_agent_poll(0);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    ciph_agent_conn_free(0);
+    ciph_agent_cleanup();
+
+    return 0;
+}
+
+/*
 uint8_t plaintext[2048] = {
 	0x71, 0x75, 0x83, 0x98, 0x75, 0x42, 0x51, 0x09, 0x94, 0x02, 0x13, 0x20,
 	0x15, 0x64, 0x46, 0x32, 0x08, 0x18, 0x91, 0x82, 0x86, 0x52, 0x23, 0x93,
@@ -185,7 +318,7 @@ uint8_t plaintext[2048] = {
 	0x66, 0x36, 0x69, 0x68, 0x45, 0x01, 0x11, 0x95
 };
 
-/* cipher text */
+// cipher text 
 uint8_t ciphertext[2048] = {
 	0xE2, 0x19, 0x24, 0x56, 0x13, 0x59, 0xA6, 0x5D, 0xDF, 0xD0, 0x72, 0xAA,
 	0x23, 0xC7, 0x36, 0x3A, 0xBB, 0x3E, 0x8B, 0x64, 0xD5, 0xBF, 0xDE, 0x65,
@@ -360,51 +493,16 @@ uint8_t ciphertext[2048] = {
 	0x25, 0x28, 0x7B, 0x63, 0x2C, 0x19, 0x8F, 0x59
 };
 
-/* iv */
+// iv 
 uint8_t iv[] = {
 	0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B,
 	0x0C, 0x0D, 0x0E, 0x0F
 };
 
-/* cipher key */
+// cipher key 
 uint8_t cipher_key[] = {
 	0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B,
 	0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
 	0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F
 };
-
-int main(int argc, char* argv[])
-{
-	usage();
-
-    Ciph_agent_sngl::instance().init();
-
-    Ciph_comm_agent<Memif_client>::Comm_client_t::Conn_config_t conn_config;
-    conn_config._mode = 0;
-    conn_config._on_recv_cb_fn = Ciph_comm_agent<Memif_client>::on_recv_cb;
-    Ciph_agent_sngl::instance().conn_alloc(0, conn_config);
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    
-    struct cryptodev_job job;
-    job._ctx._data_sz = 64;
-    job._ctx._cipher_key_sz = 32;
-    job._ctx._cipher_iv_sz = 32;
-    job._ctx._digest_sz = 32;
-
-    Ciph_comm_agent<Memif_client>::jobs_t jobs;
-    jobs.push_back(&job);
-
-    Ciph_agent_sngl::instance().send(0, jobs);
-
-    while(1)
-    {
-      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    }
-
-    Ciph_agent_sngl::instance().conn_free(0);
-    Ciph_agent_sngl::instance().cleanup();
-
-    return 0;
-}
-
+*/

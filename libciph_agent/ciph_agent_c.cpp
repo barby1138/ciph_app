@@ -3,8 +3,6 @@
 
 #include "ciph_agent.h"
 
-#include <thread>
-
 struct timespec start, end;
 int packet_size = 200;
 int num_pck = 10000000;

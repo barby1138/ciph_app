@@ -11,7 +11,6 @@ enum Sess_operation {
 	SESS_OP_CLOSE = 3,
 };
 
-
 struct Dpdk_cryptodev_data_vector {
 	struct {
 		uint32_t _sess_id;

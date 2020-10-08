@@ -4,6 +4,9 @@
 #include "options.h"
 #include <map>
 
+//1k ue per vnode 2*2 sess per ue
+// 6xx = 12k
+// 12cc = 24k
 class Dpdk_cryptodev_client
 {
 private:
