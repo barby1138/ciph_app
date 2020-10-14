@@ -10,7 +10,9 @@
 class Dpdk_cryptodev_client
 {
 private:
-typedef std::map<int, struct rte_cryptodev_sym_session*> active_sessions_t;
+enum { MAX_SESS_NUM = 2 * 2 * 4000 };
+
+//typedef std::map<int, struct rte_cryptodev_sym_session*> active_sessions_t;
 
 public:
     int init(int argc, char **argv);
@@ -43,9 +45,9 @@ private:
     int run_jobs_inner(uint8_t dev_id, uint8_t qp_id);
 
     // sessions
-    void create_session(uint8_t dev_id, const struct Dpdk_cryptodev_data_vector *test_vector);
+    int create_session(uint8_t dev_id, const struct Dpdk_cryptodev_data_vector *test_vector, uint32_t* sess_id);
 
-    void remove_session(uint8_t dev_id, const struct Dpdk_cryptodev_data_vector *test_vector);
+    int remove_session(uint8_t dev_id, const struct Dpdk_cryptodev_data_vector *test_vector);
 
     struct rte_cryptodev_sym_session* get_session(uint8_t dev_id, const struct Dpdk_cryptodev_data_vector *test_vector);
 
@@ -67,8 +69,8 @@ private:
     uint8_t* out_data; // out data pool
 
     // sess manager
-    active_sessions_t _active_sessions;
-
+    //active_sessions_t _active_sessions;
+    struct rte_cryptodev_sym_session* _active_sessions_registry[MAX_SESS_NUM];
     // connections ?
 };
 

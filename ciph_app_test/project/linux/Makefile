@@ -19,13 +19,14 @@ TARGET=$(DESTDIR)/ciph_app_test
 
 COMMONLIBS= -lpthread -lrt
 SHAREDLIBS= -lcommon \
-		-lciph_agent -lmemif\
+		-lciph_agent -lmemif_client -lmemif\
 		-lquark -lhyperon -lmeson -lexpat
 
 DEFINE=-D_LINUX -D_REDHAT
 
 INCLUDE=-I$(ROOTDIR) -I$(ROOTDIR)/libciph_agent -I$(ROOTDIR)/libcommon \
 		-I$(ROOTDIR)/libdpdk_cryptodev_client -I$(ROOTDIR)/libmemif_client \
+		-I$(RTE_SDK)/$(RTE_TARGET)/include \
 		-I$(ROOTDIR)/../fwk/fridmon[18-01-2017]/quark_1_0_1 \
 		-I$(ROOTDIR)/../fwk/fridmon[18-01-2017]/meson_1_0_1 \
 		-I$(ROOTDIR)/../fwk/fridmon[18-01-2017]/nucleon_1_0_1 \

@@ -185,6 +185,16 @@ int control_fd_update (int fd, uint8_t events, void *ctx)
 int on_interrupt02 (memif_conn_handle_t conn, void *private_ctx, uint16_t qid)
 {
     long index = *((long *)private_ctx);
+    if (index >= MAX_CONNS)
+    {
+      INFO ("connection array overflow");
+      return 0;
+    }
+    if (index < 0)
+    {
+      INFO ("don't even try...");
+      return 0;
+    }
     memif_connection_t *c = &memif_connection[index];
     if (c->index != index)
     {
@@ -235,42 +245,125 @@ error:
     return 0;
 }
 
-void Memif_client::run()
+int on_interrupt02_poll (long index, uint16_t qid, uint32_t count)
 {
-    printf ("run\n");
-    while (_op_state == RUNNING)
+    if (index >= MAX_CONNS)
     {
-      if (poll_event (-1) < 0)
-        {
-          printf ("poll_event error!\n");
-        }
+      INFO ("connection array overflow");
+      return -1;
+    }
+    if (index < 0)
+    {
+      INFO ("don't even try...");
+      return -1;
+    }
+    memif_connection_t *c = &memif_connection[index];
+    if (c->index != index)
+    {
+      INFO ("invalid context: %ld/%u", index, c->index);
+      return -1;
     }
 
-    printf ("stop\n");
+    int err = MEMIF_ERR_SUCCESS, ret_val;
+    int i;
+    uint16_t rx, tx;
+
+    if (0 == count)
+    {
+      printf ("on_interrupt02_poll 0 == count\n");
+      return 0;
+    }
+
+    do
+    {
+        // receive data from shared memory buffers 
+        err = memif_rx_burst (c->conn, 
+                    qid, 
+                    c->rx_bufs, 
+                    MAX_MEMIF_BUFS > count ? count : MAX_MEMIF_BUFS, 
+                    //MAX_MEMIF_BUFS, 
+                    &rx);
+        ret_val = err;
+        if ((err != MEMIF_ERR_SUCCESS) && (err != MEMIF_ERR_NOBUF))
+        {
+          INFO ("memif_rx_burst: %s", memif_strerror (err));
+          goto error;
+        }
+
+        /*
+        if (count)
+        {
+          printf ("recv count %d\n", count);
+          printf ("recv rx %d\n", rx);
+          printf ("recv ret_val %d\n", ret_val);
+        }
+        */
+
+        if (rx > 0)
+        {
+          c->rx_buf_num += rx;
+          c->rx_counter += rx;
+
+          c->fn(index, c->rx_bufs, rx);
+
+          err = memif_refill_queue (c->conn, qid, rx, ICMPR_HEADROOM);
+          if (err != MEMIF_ERR_SUCCESS)
+              INFO ("memif_buffer_free: %s", memif_strerror (err));
+          c->rx_buf_num -= rx;
+
+          count -= rx;
+        }
+    }
+    while (ret_val == MEMIF_ERR_NOBUF && count);
+
+    //printf ("recv ret_val %d\n", ret_val);
+    //printf ("recv rx %d\n", rx);
+
+    return 0;
+
+error:
+    err = memif_refill_queue (c->conn, qid, rx, ICMPR_HEADROOM);
+    if (err != MEMIF_ERR_SUCCESS)
+        INFO ("memif_buffer_free: %s", memif_strerror (err));
+    c->rx_buf_num -= rx;
+    DBG ("freed %d buffers. %u/%u alloc/free buffers", rx, c->rx_buf_num, MAX_MEMIF_BUFS - c->rx_buf_num);
+
+    return -1;
+}
+
+void Memif_client::run()
+{
+  while (_op_state == RUNNING)
+  {
+    if (poll_event (/*-1*/ 1000) < 0)
+    {
+      printf ("poll_event error!\n");
+    }
+  }
 }
 
 int Memif_client::init()
 {
-    epfd = epoll_create (1);
-    add_epoll_fd (0, EPOLLIN);
+  epfd = epoll_create (1);
+  add_epoll_fd (0, EPOLLIN);
 
-    /* initialize memory interface */
-    int err, i;
+  /* initialize memory interface */
+  int err, i;
     
-    err = memif_init (control_fd_update, APP_NAME, NULL, NULL, NULL);
-    if (err != MEMIF_ERR_SUCCESS)
-    {
-      INFO ("memif_init: %s", memif_strerror (err));
-      cleanup ();
+  err = memif_init (control_fd_update, APP_NAME, NULL, NULL, NULL);
+  if (err != MEMIF_ERR_SUCCESS)
+  {
+    INFO ("memif_init: %s", memif_strerror (err));
+    cleanup ();
 
-      return 0;
-    }
+    return -1;
+  }
 
-    for (i = 0; i < MAX_CONNS; i++)
-    {
-      memset (&memif_connection[i], 0, sizeof (memif_connection_t));
-      ctx[i] = i;
-    }
+  for (i = 0; i < MAX_CONNS; i++)
+  {
+    memset (&memif_connection[i], 0, sizeof (memif_connection_t));
+    ctx[i] = i;
+  }
 
   _op_state = RUNNING;
 	_host_thread = std::thread(&Memif_client::run, this);
@@ -287,11 +380,13 @@ int Memif_client::cleanup ()
   _host_thread.join();
   
   for (i = 0; i < MAX_CONNS; i++)
-    {
+  {
       memif_connection_t *c = &memif_connection[i];
       if (c->conn)
+      {
         memif_delete (i);
-    }
+      }
+  }
 
   err = memif_cleanup ();
   if (err != MEMIF_ERR_SUCCESS)
@@ -305,15 +400,14 @@ int Memif_client::conn_alloc (long index, const Memif_client::Conn_config_t& con
     if (index >= MAX_CONNS)
     {
       INFO ("connection array overflow");
-      return 0;
+      return -1;
     }
 
     if (index < 0)
     {
       INFO ("don't even try...");
-      return 0;
+      return -1;
     }
-
     memif_connection_t *c = &memif_connection[index];
 
     memif_conn_args_t args;
@@ -333,7 +427,7 @@ int Memif_client::conn_alloc (long index, const Memif_client::Conn_config_t& con
     if (err != MEMIF_ERR_SUCCESS)
     {
       INFO ("memif_create: %s", memif_strerror (err));
-      return 0;
+      return -1;
     }
 
     c->index = index;
@@ -358,15 +452,15 @@ int Memif_client::conn_alloc (long index, const Memif_client::Conn_config_t& con
 int Memif_client::conn_free (long index)
 {
   if (index >= MAX_CONNS)
-    {
+  {
       INFO ("connection array overflow");
-      return 0;
-    }
+      return -1;
+  }
   if (index < 0)
-    {
+  {
       INFO ("don't even try...");
-      return 0;
-    }
+      return -1;
+  }
   memif_connection_t *c = &memif_connection[index];
 
   if (c->rx_bufs)
@@ -391,41 +485,40 @@ int Memif_client::conn_free (long index)
 int Memif_client::set_rx_mode (long index, long qid, char *mode)
 {
   if (index >= MAX_CONNS)
-    {
+  {
       INFO ("connection array overflow");
-      return 0;
-    }
+      return -1;
+  }
   if (index < 0)
-    {
+  {
       INFO ("don't even try...");
-      return 0;
-    }
+      return -1;
+  }
   memif_connection_t *c = &memif_connection[index];
 
   if (c->conn == NULL)
-    {
+  {
       INFO ("no connection at index %ld", index);
-      return 0;
-    }
+      return -1;
+  }
 
   if (strncmp (mode, "interrupt", 9) == 0)
-    {
+  {
       memif_set_rx_mode (c->conn, MEMIF_RX_MODE_INTERRUPT, qid);
-    }
-
+  }
   else if (strncmp (mode, "polling", 7) == 0)
-    {
+  {
       memif_set_rx_mode (c->conn, MEMIF_RX_MODE_POLLING, qid);
-    }
+  }
   else
     INFO ("expected rx mode <interrupt|polling>");
 
   return 0;
 }
 
-int Memif_client::poll (long index, long qid)
+int Memif_client::poll (long index, long qid, uint32_t size)
 {
-  return on_interrupt02 (0, &index, qid);
+  return on_interrupt02_poll (index, qid, size);
 }
 
 void Memif_client::print_info ()
@@ -439,7 +532,7 @@ void Memif_client::print_info ()
   printf ("MEMIF DETAILS\n");
   printf ("==============================\n");
   for (i = 0; i < MAX_CONNS; i++)
-    {
+  {
       memif_connection_t *c = &memif_connection[i];
 
       memset (&md, 0, sizeof (md));
@@ -447,11 +540,11 @@ void Memif_client::print_info ()
 
       err = memif_get_details (c->conn, &md, buf, buflen);
       if (err != MEMIF_ERR_SUCCESS)
-        {
+      {
           if (err != MEMIF_ERR_NOCONN)
             INFO ("%s", memif_strerror (err));
           continue;
-        }
+      }
 
       printf ("interface index: %d\n", i);
 
@@ -470,7 +563,7 @@ void Memif_client::print_info ()
         printf ("master\n");
       printf ("\tmode: ");
       switch (md.mode)
-        {
+      {
         case 0:
           printf ("ethernet\n");
           break;
@@ -483,11 +576,11 @@ void Memif_client::print_info ()
         default:
           printf ("unknown\n");
           break;
-        }
+      }
       printf ("\tsocket filename: %s\n", (char *)md.socket_filename);
       printf ("\trx queues:\n");
       for (e = 0; e < md.rx_queues_num; e++)
-        {
+      {
           printf ("\t\tqueue id: %u\n", md.rx_queues[e].qid);
           printf ("\t\tring size: %u\n", md.rx_queues[e].ring_size);
           printf ("\t\tring rx mode: %s\n",
@@ -495,10 +588,10 @@ void Memif_client::print_info ()
           printf ("\t\tring head: %u\n", md.rx_queues[e].head);
           printf ("\t\tring tail: %u\n", md.rx_queues[e].tail);
           printf ("\t\tbuffer size: %u\n", md.rx_queues[e].buffer_size);
-        }
+      }
       printf ("\ttx queues:\n");
       for (e = 0; e < md.tx_queues_num; e++)
-        {
+      {
           printf ("\t\tqueue id: %u\n", md.tx_queues[e].qid);
           printf ("\t\tring size: %u\n", md.tx_queues[e].ring_size);
           printf ("\t\tring rx mode: %s\n",
@@ -506,16 +599,16 @@ void Memif_client::print_info ()
           printf ("\t\tring head: %u\n", md.tx_queues[e].head);
           printf ("\t\tring tail: %u\n", md.tx_queues[e].tail);
           printf ("\t\tbuffer size: %u\n", md.tx_queues[e].buffer_size);
-        }
+      }
       printf ("\tlink: ");
       if (md.link_up_down)
         printf ("up\n");
       else
-        {
+      {
           printf ("down\n");
           printf ("\treason: %s\n", md.error);
-        }
-    }
+      }
+  }
   free (buf);
 }
 
@@ -534,17 +627,21 @@ void Memif_client::send(long index, uint64_t size, IMsg_burst_serializer& ser)
     uint32_t seq = 0;
 
     while (count)
-        {
+    {
           i = 0;
           // qid == 0 - we use only 1 q
           err = memif_buffer_alloc (
-              c->conn, 0, c->tx_bufs,
-              MAX_MEMIF_BUFS > count ? count : MAX_MEMIF_BUFS, &tx, BUFF_SIZE);
+              c->conn, 
+              0, 
+              c->tx_bufs,
+              MAX_MEMIF_BUFS > count ? count : MAX_MEMIF_BUFS, 
+              &tx, 
+              BUFF_SIZE);
           if ((err != MEMIF_ERR_SUCCESS) && (err != MEMIF_ERR_NOBUF_RING))
-            {
-              printf ("memif_buffer_alloc: %s Thread exiting...\n", memif_strerror (err));
+          {
+              printf ("memif_buffer_alloc: failed %s\n", memif_strerror (err));
               return;
-            }
+          }
 
           c->tx_buf_num += tx;
 
@@ -570,15 +667,14 @@ void Memif_client::send(long index, uint64_t size, IMsg_burst_serializer& ser)
           // qid == 0 - we use only 1 q
           err = memif_tx_burst (c->conn, 0, c->tx_bufs, c->tx_buf_num, &tx);
           if (err != MEMIF_ERR_SUCCESS)
-            {
-              printf ("memif_tx_burst: %s Thread exiting...\n",
-                    memif_strerror (err));
+          {
+              printf ("memif_tx_burst failed: %s\n", memif_strerror (err));
               return;
-            }
+          }
           c->tx_buf_num -= tx;
           c->tx_counter += tx;
           count -= tx;
-        }
+    }
 }
 
 int Memif_client::user_input_handler ()
@@ -591,30 +687,30 @@ int Memif_client::user_input_handler ()
     goto done;
   ui = strtok (in, " ");
   if (strncmp (ui, "exit", 4) == 0)
-    {
+  {
       free (in);
       cleanup ();
       exit (EXIT_SUCCESS);
-    }
+  }
   else if (strncmp (ui, "del", 3) == 0)
-    {
+  {
       ui = strtok (NULL, " ");
       if (ui != NULL)
         conn_free (strtol (ui, &end, 10));
       else
         INFO ("expected id");
       goto done;
-    }
+  }
   else if (strncmp (ui, "show", 4) == 0)
-    {
+  {
       print_info ();
       goto done;
-    }
+  }
   else
-    {
+  {
       INFO ("unknown command: %s", ui);
       goto done;
-    }
+  }
 
   return 0;
 done:
@@ -636,16 +732,16 @@ int Memif_client::poll_event (int timeout)
   /* id event polled */
   timespec_get (&start, TIME_UTC);
   if (en < 0)
-    {
+  {
       DBG ("epoll_pwait: %s", strerror (errno));
       return -1;
-    }
+  }
   if (en > 0)
-    {
+  {
       /* this app does not use any other file descriptors than stds and memif
        * control fds */
       if (evt.data.fd > 2)
-        {
+      {
           /* event of memif control fd */
           /* convert epolle events to memif events */
           if (evt.events & EPOLLIN)
@@ -657,28 +753,28 @@ int Memif_client::poll_event (int timeout)
           memif_err = memif_control_fd_handler (evt.data.fd, events);
           if (memif_err != MEMIF_ERR_SUCCESS)
             INFO ("memif_control_fd_handler: %s", memif_strerror (memif_err));
-        }
+      }
       else if (evt.data.fd == 0)
-        {
+      {
           app_err = user_input_handler ();
-        }
+      }
       else
-        {
+      {
           DBG ("unexpected event at memif_epfd. fd %d", evt.data.fd);
-        }
-    }
+      }
+  }
 
   timespec_get (&end, TIME_UTC);
   LOG ("interrupt: %ld", end.tv_nsec - start.tv_nsec);
 
   if ((app_err < 0) || (memif_err < 0))
-    {
+  {
       if (app_err < 0)
         DBG ("user input handler error");
       if (memif_err < 0)
         DBG ("memif control fd handler error");
       return -1;
-    }
+  }
 
   return 0;
 }

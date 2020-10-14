@@ -59,7 +59,6 @@
 
 #define MAX_LIST 32
 
-
 struct Dpdk_cryptodev_options {
 
 	uint32_t pool_sz;
@@ -124,8 +123,7 @@ void
 cperf_options_default(struct Dpdk_cryptodev_options *options);
 
 int
-cperf_options_parse(struct Dpdk_cryptodev_options *options,
-		int argc, char **argv);
+cperf_options_parse(struct Dpdk_cryptodev_options *options, int argc, char **argv);
 
 int
 cperf_options_check(struct Dpdk_cryptodev_options *options);

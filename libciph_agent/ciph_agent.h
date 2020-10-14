@@ -8,33 +8,6 @@
 
 #include <cstring>
 
-// test data
-
-uint8_t plaintext[64] = {
-0xff, 0xca, 0xfb, 0xf1, 0x38, 0x20, 0x2f, 0x7b, 0x24, 0x98, 0x26, 0x7d, 0x1d, 0x9f, 0xb3, 0x93,
-0xd9, 0xef, 0xbd, 0xad, 0x4e, 0x40, 0xbd, 0x60, 0xe9, 0x48, 0x59, 0x90, 0x67, 0xd7, 0x2b, 0x7b,
-0x8a, 0xe0, 0x4d, 0xb0, 0x70, 0x38, 0xcc, 0x48, 0x61, 0x7d, 0xee, 0xd6, 0x35, 0x49, 0xae, 0xb4,
-0xaf, 0x6b, 0xdd, 0xe6, 0x21, 0xc0, 0x60, 0xce, 0x0a, 0xf4, 0x1c, 0x2e, 0x1c, 0x8d, 0xe8, 0x7b
-};
-
-// cipher text
-uint8_t ciphertext[64] = {
-0x75, 0x95, 0xb3, 0x48, 0x38, 0xf9, 0xe4, 0x88, 0xec, 0xf8, 0x3b, 0x09, 0x40, 0xd4, 0xd6, 0xea,
-0xf1, 0x80, 0x6d, 0xfb, 0xba, 0x9e, 0xee, 0xac, 0x6a, 0xf9, 0x8f, 0xb6, 0xe1, 0xff, 0xea, 0x19,
-0x17, 0xc2, 0x77, 0x8d, 0xc2, 0x8d, 0x6c, 0x89, 0xd1, 0x5f, 0xa6, 0xf3, 0x2c, 0xa7, 0x6a, 0x7f,
-0x50, 0x1b, 0xc9, 0x4d, 0xb4, 0x36, 0x64, 0x6e, 0xa6, 0xd9, 0x39, 0x8b, 0xcf, 0x8e, 0x0c, 0x55
-};
-
-// iv 
-uint8_t iv[] = {
-0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F
-};
-
-// cipher key 
-uint8_t cipher_key[] = {
-0xE4, 0x23, 0x33, 0x8A, 0x35, 0x64, 0x61, 0xE2, 0x49, 0x03, 0xDD, 0xC6, 0xB8, 0xCA, 0x55, 0x7A
-};
-
 struct Data_lengths {
     uint32_t ciphertext_length;
     uint32_t cipher_key_length;
@@ -45,12 +18,14 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len, struct Dpdk_cryptodev_
 {
     *len = 0;
 
-    memcpy(buffer, &vec->sess, sizeof(vec->sess));
-    buffer += sizeof(vec->sess);
-    *len += sizeof(vec->sess);
+    memcpy(buffer, &vec->op, sizeof(vec->op));
+    buffer += sizeof(vec->op);
+    *len += sizeof(vec->op);
 
     struct Data_lengths data_lnn;
-    data_lnn.ciphertext_length = vec->ciphertext.length;
+    data_lnn.ciphertext_length = 0;
+    for (int i = 0; i < vec->op._op_in_buff_list_len; i++)
+        data_lnn.ciphertext_length += vec->cipher_buff_list[i].length;
     data_lnn.cipher_key_length = vec->cipher_key.length;
     data_lnn.cipher_iv_length = vec->cipher_iv.length;
 
@@ -58,13 +33,16 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len, struct Dpdk_cryptodev_
     buffer += sizeof(struct Data_lengths);
     *len += sizeof(struct Data_lengths);
 
-    if (vec->ciphertext.length)
+    for (int i = 0; i < vec->op._op_in_buff_list_len; i++)
     {
-        memcpy(buffer, vec->ciphertext.data, vec->ciphertext.length);
-        buffer += vec->ciphertext.length;
-        *len += vec->ciphertext.length;
+        if (vec->cipher_buff_list[i].length)
+        {
+            memcpy(buffer, vec->cipher_buff_list[i].data, vec->cipher_buff_list[i].length);
+            buffer += vec->cipher_buff_list[i].length;
+            *len += vec->cipher_buff_list[i].length;
+        }
     }
-    
+
     if (vec->cipher_key.length)
     {
         memcpy(buffer, vec->cipher_key.data, vec->cipher_key.length);
@@ -79,16 +57,17 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len, struct Dpdk_cryptodev_
 
 void crypto_job_from_buffer(uint8_t* buffer, uint32_t len, struct Dpdk_cryptodev_data_vector* vec)
 {
-    memcpy(&vec->sess, buffer, sizeof(vec->sess));
-    buffer += sizeof(vec->sess);
+    memcpy(&vec->op, buffer, sizeof(vec->op));
+    buffer += sizeof(vec->op);
 
     struct Data_lengths* pData_lnn = (struct Data_lengths*)buffer;
     buffer += sizeof(struct Data_lengths);
 
-    vec->ciphertext.data = buffer;
-    vec->ciphertext.length = pData_lnn->ciphertext_length;
+    vec->cipher_buff_list[0].data = buffer;
+    vec->cipher_buff_list[0].length = pData_lnn->ciphertext_length;
+    vec->op._op_in_buff_list_len = 1;
 
-    buffer += vec->ciphertext.length;
+    buffer += pData_lnn->ciphertext_length;
     vec->cipher_key.data = buffer;
     vec->cipher_key.length = pData_lnn->cipher_key_length;
 
@@ -136,7 +115,7 @@ public:
     static void on_recv_cb (long index, const typename Comm_client::Conn_buffer_t* rx_bufs, uint32_t len);
 
     int set_rx_mode(long index, long qid, char *mode);
-    int poll(long index, long qid);
+    int poll(long index, long qid, uint32_t size);
 
 private:
     static void jobs_2_buffs(struct Dpdk_cryptodev_data_vector* vecs, uint32_t size, typename Comm_client::Conn_buffer_t* buffs)
@@ -239,9 +218,9 @@ int Ciph_comm_agent<Comm_client>::set_rx_mode(long index, long qid, char *mode)
 }
 
 template<class Comm_client> 
-int Ciph_comm_agent<Comm_client>::poll(long index, long qid)
+int Ciph_comm_agent<Comm_client>::poll(long index, long qid, uint32_t size)
 {
-    return _client.poll(index, qid);
+    return _client.poll(index, qid, size);
 }
 
 typedef singleton_holder<Ciph_comm_agent<Memif_client> > Ciph_agent_sngl;

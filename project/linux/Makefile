@@ -6,8 +6,8 @@ all: \
 	libciph_agent \
 	libmemif_client \
 	libdpdk_cryptodev_client \
-	ciph_app 
-#	ciph_app_test
+	ciph_app \
+	ciph_app_test
 
 .PHONY: libcommon
 libcommon:
@@ -31,7 +31,7 @@ ciph_app: libcommon libmemif_client libdpdk_cryptodev_client
 
 .PHONY: ciph_app_test
 ciph_app_test: libcommon libmemif_client libciph_agent
-	$(MAKE) -C ../../ciph_app_test/project/linux -f ciph_app_test.mak
+	$(MAKE) -C ../../ciph_app_test/project/linux -f Makefile
 
 .PHONY: libcommon_clean
 libcommon_clean:
@@ -46,19 +46,19 @@ libdpdk_cryptodev_client_clean:
 	$(MAKE) -C ../../libdpdk_cryptodev_client/project/linux -f Makefile clean
 
 .PHONY: libciph_agent_clean
-libfooid_clean:
+libciph_agent_clean:
 	$(MAKE) -C ../../libciph_agent/project/linux -f Makefile clean
 
 .PHONY: ciph_app_clean
-libFP_clean:
+ciph_app_clean:
 	$(MAKE) -C ../../ciph_app/project/linux -f Makefile clean
 
 .PHONY: ciph_app_test_clean
-libwav_clean:
+ciph_app_test_clean:
 	$(MAKE) -C ../../ciph_app_test/project/linux -f ciph_app_test.mak clean
 
 .PHONY: clean
 clean: libcommon_clean libmemif_client_clean libdpdk_cryptodev_client_clean libciph_agent_clean
 	$(MAKE) -C ../../ciph_app/project/linux -f Makefile clean
-	$(MAKE) -C ../../ciph_app_test/project/linux -f ciph_app_test.mak clean
+	$(MAKE) -C ../../ciph_app_test/project/linux -f Makefile clean
 

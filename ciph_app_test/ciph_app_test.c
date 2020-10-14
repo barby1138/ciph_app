@@ -1,7 +1,35 @@
 ///////////////////////////////////
 // ciph_app_test
 
-//#include "ciph_agent.h"
+// TODO to stdafx.h (pch.h)
+#include <assert.h>
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include <map>
+#include <set>
+#include <memory>
+#include <math.h>
+#include <fstream>
+#include <stdexcept>
+
+#include <cstdint> // uint64_t
+#include <memory>
+
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
+
+// libcommon
+#include "exceptions.h"
+
+#ifdef _LINUX
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#endif
+////////////////////////////
+
 #include "ciph_agent_c.h"
 #include <thread>
 
@@ -30,27 +58,55 @@ uint8_t cipher_key[] = {
 0xE4, 0x23, 0x33, 0x8A, 0x35, 0x64, 0x61, 0xE2, 0x49, 0x03, 0xDD, 0xC6, 0xB8, 0xCA, 0x55, 0x7A
 };
 
+const int packet_size = 200;
+const int num_pck = 10000000;
+const int num_pck_per_batch = 32;
+
+const int MAX_CONN_CLIENT_BURST = 64;
+
+int g_size = 0;
+int g_data_failed = 0;
+int g_op_failed = 0;
+
 struct timespec start, end;
-int packet_size = 200;
-int num_pck = 10000000;
-int num_pck_per_batch = 32;
+
+int g_setup_sess_id = -1;
 
 void on_job_complete_cb_0 (struct Dpdk_cryptodev_data_vector* vec, uint32_t size)
 {
-    static int g_size = 0;
-    static int g_failed = 0;
-/*
-    for(int j = 0; j < size; ++j)
-    {
-		  if ( 0 != memcmp(plaintext,
-					vec[j].ciphertext.data,
-					vec[j].ciphertext.length))
-          g_failed++;
-    }
-*/
-    g_size += size;
+    // TODO dispatch cp and dp
 
-    if (g_size > num_pck)
+    for(uint32_t j = 0; j < size; ++j)
+    {
+      if (vec[j].op._op_status != OP_STATUS_SUCC)
+      {
+          g_op_failed++;
+          continue;
+      }
+
+      // control plain
+      if (vec[j].op._sess_op == SESS_OP_CREATE)
+      {
+        printf ("session created id: %d\n", vec[j].op._sess_id);
+      	g_setup_sess_id = vec[j].op._sess_id;
+      }
+      if (vec[j].op._sess_op == SESS_OP_CLOSE)
+      {
+        printf ("session closed %d\n", vec[j].op._sess_id);
+      }
+
+      // data plain
+      if (vec[j].op._sess_op == SESS_OP_ATTACH)
+		    if ( 0 != memcmp(plaintext,
+					vec[j].cipher_buff_list[0].data,
+					vec[j].cipher_buff_list[0].length))
+          g_data_failed++;
+    }
+
+    g_size += size;
+    //printf ("Seq len: %u\n", g_size);
+
+    if (g_size == num_pck + num_pck_per_batch + 1 /*sess cr*/ + 1 /*sess del*/)
     {
       timespec_get (&end, TIME_UTC);
       printf ("\n\n");
@@ -74,74 +130,94 @@ void on_job_complete_cb_0 (struct Dpdk_cryptodev_data_vector* vec, uint32_t size
       printf ("Average pps: %f\n", tmp);
       printf ("Average TP: %f Mb/s\n", (tmp * packet_size) * 8.0 / 1000000.0);
 
-      printf ("failed %d\n", g_failed);
+      printf ("g_data_failed %d\n", g_data_failed);
+      printf ("g_op_failed %d\n", g_op_failed);
     }
 }
 
 int main(int argc, char* argv[])
 {
+    long conn_id = 0;
+
     memset (&start, 0, sizeof (start));
     memset (&end, 0, sizeof (end));
 
     ciph_agent_init();
 
-    ciph_agent_conn_alloc(0, 0, on_job_complete_cb_0);
+    ciph_agent_conn_alloc(conn_id, CA_MODE_SLAVE, on_job_complete_cb_0);
 
     struct Dpdk_cryptodev_data_vector job_sess;
     memset(&job_sess, 0, sizeof(struct Dpdk_cryptodev_data_vector));
     // sess
-    job_sess.sess._sess_id = 1;
-    job_sess.sess._sess_op = SESS_OP_CREATE;
-    job_sess.sess._cipher_algo = RTE_CRYPTO_CIPHER_AES_CBC;
-    job_sess.sess._cipher_op = RTE_CRYPTO_CIPHER_OP_DECRYPT;
+    job_sess.op._sess_op = SESS_OP_CREATE;
+    job_sess.op._cipher_algo = CRYPTO_CIPHER_AES_CBC;
+    job_sess.op._cipher_op = CRYPTO_CIPHER_OP_DECRYPT;
     job_sess.cipher_key.data = cipher_key;
     job_sess.cipher_key.length = 16;
 
-    // open session
-    ciph_agent_send(0, &job_sess, 1);
+    // create session
+    ciph_agent_send(conn_id, &job_sess, 1);
+    // poll and recv created session id
+    while(g_size < 1 /*sess*/)
+      ciph_agent_poll(conn_id, MAX_CONN_CLIENT_BURST);
 
     struct Dpdk_cryptodev_data_vector job;
     memset(&job, 0, sizeof(struct Dpdk_cryptodev_data_vector));
     // sess
-    job.sess._sess_id = 1;
-    job.sess._sess_op = SESS_OP_ATTACH;
+    job.op._sess_id = g_setup_sess_id;
+    job.op._sess_op = SESS_OP_ATTACH;
     // data
-    job.ciphertext.data = ciphertext;
-    job.ciphertext.length = 64;
+    job.cipher_buff_list[0].data = ciphertext;
+    job.cipher_buff_list[0].length = 32;
+    job.cipher_buff_list[1].data = ciphertext + 32;
+    job.cipher_buff_list[1].length = 32;
+    job.op._op_in_buff_list_len = 2;
+
     job.cipher_iv.data = iv;
     job.cipher_iv.length = 16;
 
     // warmup
     for (int i = 0; i < num_pck_per_batch; ++i)
     {
-      ciph_agent_send(0, &job, 1);
+      ciph_agent_send(conn_id, &job, 1);
     }
-    
+    ciph_agent_poll(conn_id, MAX_CONN_CLIENT_BURST);
+
     timespec_get (&start, TIME_UTC);
 
     int num_batch = num_pck / num_pck_per_batch;
     
+    printf ("run ...\n");
     for(int c = 0; c < num_batch; ++c)
     {
       for (int i = 0; i < num_pck_per_batch; ++i)
       {
-        ciph_agent_send(0, &job, 1);
+        ciph_agent_send(conn_id, &job, 1);
       }
-
-      ciph_agent_poll(0);
+      ciph_agent_poll(conn_id, MAX_CONN_CLIENT_BURST);
     }
 
+    struct Dpdk_cryptodev_data_vector job_sess_del;
+    memset(&job_sess_del, 0, sizeof(struct Dpdk_cryptodev_data_vector));
+    // sess
+    job_sess_del.op._sess_id = g_setup_sess_id;
+    job_sess_del.op._sess_op = SESS_OP_CLOSE;
+
+    // close session
+    ciph_agent_send(conn_id, &job_sess_del, 1);
+
     // flush
-    for(int c = 0; c < 10; ++c)
-      ciph_agent_poll(0);
+    printf ("flush ...\n");
+    while(g_size < num_pck + num_pck_per_batch /*warm up*/ + 1 /*sess cr*/ + 1 /*sess del*/)
+      ciph_agent_poll(conn_id, MAX_CONN_CLIENT_BURST);
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    ciph_agent_conn_free(conn_id);
 
-    ciph_agent_conn_free(0);
     ciph_agent_cleanup();
 
     return 0;
 }
+
 
 /*
 uint8_t plaintext[2048] = {
