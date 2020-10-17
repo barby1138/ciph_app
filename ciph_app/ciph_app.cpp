@@ -15,6 +15,8 @@
 
 #include "ciph_agent.h"
 
+#include <unistd.h> //usleep
+
 typedef tracer
 <
 thread_formatter<>,
@@ -59,10 +61,11 @@ void print_buff(uint8_t* data, int len)
 void on_job_complete_cb (struct Dpdk_cryptodev_data_vector* pjob, uint32_t size)
 {
   Dpdk_cryptodev_client_sngl::instance().run_jobs(pjob, size);
-/*
-  for(int j = 0; j < size; ++j)
-    print_buff(pjob[j].ciphertext.data, pjob[j].ciphertext.length);
-*/
+
+  //for(int j = 0; j < size; ++j)
+    //printf("id %d\n", pjob[j].op._sess_op);
+    //print_buff(pjob[j].cipher_buff_list[0].data, pjob[j].cipher_buff_list[0].length);
+
   Ciph_agent_sngl::instance().send(0, pjob, size);
 }
 
@@ -101,9 +104,17 @@ int main(int argc, char** argv)
 
     Ciph_agent_sngl::instance().conn_alloc(0, 1, on_job_complete_cb);
 
+    // TODO wait correctly
+    std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+
+    // qit == 0 - we use only 1 q
+    Ciph_agent_sngl::instance().set_rx_mode(0, 0, "polling");
+
     while(1)
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        //std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        usleep(100);
+        Ciph_agent_sngl::instance().poll(0, 0, 64);
     }
 
     Ciph_agent_sngl::instance().conn_free(0);

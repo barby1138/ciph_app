@@ -94,7 +94,7 @@ private:
     uint32_t _size;
 };
 
-enum { MAX_CONNECTIONS = 2 };
+enum { MAX_CONNECTIONS = 20 };
 
 typedef void (*on_job_complete_cb_t) (struct Dpdk_cryptodev_data_vector*, uint32_t);
 
@@ -162,17 +162,13 @@ int Ciph_comm_agent<Comm_client> ::init()
         memset(_pool_vecs[i], 0, 256 * sizeof(struct Dpdk_cryptodev_data_vector));
     }
 
-    _client.init();
-
-    return 0;
+    return _client.init();
 }
 
 template<class Comm_client> 
 int Ciph_comm_agent<Comm_client>::cleanup()
 {
-    _client.cleanup();
-
-    return 0;
+    return _client.cleanup();
 }
 
 template<class Comm_client> 
@@ -180,12 +176,14 @@ int Ciph_comm_agent<Comm_client>::conn_alloc(long index, int mode, on_job_comple
 {
     //TODO check index
     // TODO check if already allocated
+    int res;
+
     _cb[index] = cb;
 
     typename Comm_client::Conn_config_t conn_config;
     conn_config._on_recv_cb_fn = Ciph_comm_agent<Comm_client>::on_recv_cb;
-    conn_config._mode = mode; // slave
-    _client.conn_alloc(index, conn_config);
+    conn_config._mode = mode;
+    res = _client.conn_alloc(index, conn_config);
 
     return 0;
 }
@@ -195,9 +193,7 @@ int Ciph_comm_agent<Comm_client>::conn_free(long index)
 {
     _cb[index] = NULL;
 
-    _client.conn_free(index);
-
-    return 0;
+    return _client.conn_free(index);
 }
 
 template<class Comm_client> 
@@ -206,9 +202,7 @@ int Ciph_comm_agent<Comm_client>::send(long index, struct Dpdk_cryptodev_data_ve
     //TODO check index
     Ciph_vec_burst_serializer ser(vecs, size);
 
-    _client.send(index, size, ser);
-
-    return 0;
+    return _client.send(index, size, ser);
 }
 
 template<class Comm_client> 

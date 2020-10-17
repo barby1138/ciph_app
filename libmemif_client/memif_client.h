@@ -51,7 +51,7 @@ public:
     int set_rx_mode (long index, long qid, char *mode);
 
     int poll (long index, long qid, uint32_t size);
-    void send(long index, uint64_t size, IMsg_burst_serializer& ser);
+    int send(long index, uint64_t size, IMsg_burst_serializer& ser);
 
     void print_info ();
 

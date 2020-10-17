@@ -515,7 +515,7 @@ int Dpdk_cryptodev_client::create_session(uint8_t dev_id, const struct Dpdk_cryp
 	cipher_xform.cipher.op = crypto_cipher_op_map[test_vector->op._cipher_op];
 	cipher_xform.cipher.iv.offset = iv_offset;
 
-	printf("%d %d %d\n", cipher_xform.cipher.algo, cipher_xform.cipher.op, cipher_xform.cipher.iv.offset);
+	printf("create_session alg:%d op:%d iv_offset:%d\n", cipher_xform.cipher.algo, cipher_xform.cipher.op, cipher_xform.cipher.iv.offset);
 
 	if (cipher_xform.cipher.algo != RTE_CRYPTO_CIPHER_NULL) {
 		cipher_xform.cipher.key.data = test_vector->cipher_key.data;
@@ -556,6 +556,8 @@ int Dpdk_cryptodev_client::remove_session(uint8_t dev_id, const struct Dpdk_cryp
 		return -1;
 	}
 
+	if (0 != rte_cryptodev_sym_session_clear(dev_id, s))
+		RTE_LOG(ERR, USER1, "rte_cryptodev_sym_session_clear failed\n");
 	if (0 != rte_cryptodev_sym_session_free(s))
 		RTE_LOG(ERR, USER1, "rte_cryptodev_sym_session_free failed\n");
 		

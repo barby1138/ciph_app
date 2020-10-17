@@ -44,8 +44,11 @@ extern "C" {
 #include <libmemif.h>
 }
 
-#define APP_NAME "ICMP_Responder"
+#define APP_NAME "APP"
 #define IF_NAME "memif_connection"
+
+#include <mutex> 
+std::mutex m;
 
 /* maximum tx/rx memif buffers */
 #define MAX_MEMIF_BUFS 64
@@ -149,15 +152,61 @@ int del_epoll_fd (int fd)
    connection (multiple connections WIP) */
 int on_connect (memif_conn_handle_t conn, void *private_ctx)
 {
+  // [OT] is called after create queues
+
   printf ("memif connected!\n");
   memif_refill_queue (conn, 0, -1, ICMPR_HEADROOM);
+
+  long index = *((long *)private_ctx);
+  if (index >= MAX_CONNS)
+  {
+    INFO ("connection array overflow");
+    return -1;
+  }
+  if (index < 0)
+  {
+    INFO ("don't even try...");
+    return -1;
+  }
+  memif_connection_t *c = &memif_connection[index];
+  if (c->index != index)
+  {
+    INFO ("invalid context: %ld/%u", index, c->index);
+    return -1;
+  }
+
+  {
+    std::lock_guard<std::mutex> lk(m);
+    c->connected = true;
+  }
 
   return 0;
 }
 
 int on_disconnect (memif_conn_handle_t conn, void *private_ctx)
 {
+  // [OT] is called before delete queues
+
   printf ("memif disconnected!\n");
+
+  long index = *((long *)private_ctx);
+  if (index >= MAX_CONNS)
+  {
+    INFO ("connection array overflow");
+    return -1;
+  }
+  if (index < 0)
+  {
+    INFO ("don't even try...");
+    return -1;
+  }
+  memif_connection_t *c = &memif_connection[index];
+  if (c->index != index)
+  {
+    INFO ("invalid context: %ld/%u", index, c->index);
+    return -1;
+  }
+
   return 0;
 }
 
@@ -280,41 +329,32 @@ int on_interrupt02_poll (long index, uint16_t qid, uint32_t count)
         err = memif_rx_burst (c->conn, 
                     qid, 
                     c->rx_bufs, 
-                    MAX_MEMIF_BUFS > count ? count : MAX_MEMIF_BUFS, 
-                    //MAX_MEMIF_BUFS, 
+                    //MAX_MEMIF_BUFS > count ? count : MAX_MEMIF_BUFS, 
+                    MAX_MEMIF_BUFS, 
                     &rx);
         ret_val = err;
         if ((err != MEMIF_ERR_SUCCESS) && (err != MEMIF_ERR_NOBUF))
         {
-          INFO ("memif_rx_burst: %s", memif_strerror (err));
+          printf ("memif_rx_burst: %s\n", memif_strerror (err));
           goto error;
         }
 
-        /*
-        if (count)
-        {
-          printf ("recv count %d\n", count);
-          printf ("recv rx %d\n", rx);
-          printf ("recv ret_val %d\n", ret_val);
-        }
-        */
+        c->rx_buf_num += rx;
+        c->rx_counter += rx;
 
         if (rx > 0)
         {
-          c->rx_buf_num += rx;
-          c->rx_counter += rx;
-
           c->fn(index, c->rx_bufs, rx);
-
-          err = memif_refill_queue (c->conn, qid, rx, ICMPR_HEADROOM);
-          if (err != MEMIF_ERR_SUCCESS)
-              INFO ("memif_buffer_free: %s", memif_strerror (err));
-          c->rx_buf_num -= rx;
-
-          count -= rx;
         }
+
+        err = memif_refill_queue (c->conn, qid, rx, ICMPR_HEADROOM);
+        if (err != MEMIF_ERR_SUCCESS)
+            printf ("memif_buffer_free: %s\n", memif_strerror (err));
+        c->rx_buf_num -= rx;
+
+        count -= rx;
     }
-    while (ret_val == MEMIF_ERR_NOBUF && count);
+    while (ret_val == MEMIF_ERR_NOBUF /*&& count*/);
 
     //printf ("recv ret_val %d\n", ret_val);
     //printf ("recv rx %d\n", rx);
@@ -324,7 +364,7 @@ int on_interrupt02_poll (long index, uint16_t qid, uint32_t count)
 error:
     err = memif_refill_queue (c->conn, qid, rx, ICMPR_HEADROOM);
     if (err != MEMIF_ERR_SUCCESS)
-        INFO ("memif_buffer_free: %s", memif_strerror (err));
+        printf ("memif_buffer_free: %s\n", memif_strerror (err));
     c->rx_buf_num -= rx;
     DBG ("freed %d buffers. %u/%u alloc/free buffers", rx, c->rx_buf_num, MAX_MEMIF_BUFS - c->rx_buf_num);
 
@@ -423,7 +463,8 @@ int Memif_client::conn_alloc (long index, const Memif_client::Conn_config_t& con
     args.interface_id = index;
     int err;
   
-    err = memif_create (&c->conn, &args, on_connect, on_disconnect, on_interrupt02, &ctx[index]);
+    // [OT] we use polling mode
+    err = memif_create (&c->conn, &args, on_connect, on_disconnect, /*on_interrupt02*/NULL, &ctx[index]);
     if (err != MEMIF_ERR_SUCCESS)
     {
       INFO ("memif_create: %s", memif_strerror (err));
@@ -548,8 +589,7 @@ void Memif_client::print_info ()
 
       printf ("interface index: %d\n", i);
 
-      printf ("\tinterface ip: %u.%u.%u.%u\n", c->ip_addr[0], c->ip_addr[1],
-              c->ip_addr[2], c->ip_addr[3]);
+      printf ("\tinterface ip: %u.%u.%u.%u\n", c->ip_addr[0], c->ip_addr[1], c->ip_addr[2], c->ip_addr[3]);
       printf ("\tinterface name: %s\n", (char *)md.if_name);
       printf ("\tapp name: %s\n", (char *)md.inst_name);
       printf ("\tremote interface name: %s\n", (char *)md.remote_if_name);
@@ -608,19 +648,30 @@ void Memif_client::print_info ()
           printf ("down\n");
           printf ("\treason: %s\n", md.error);
       }
+      printf ("\tcounters: %u.%u %u.%u\n", c->tx_counter, c->rx_buf_num, c->tx_counter, c->tx_err_counter);
   }
   free (buf);
 }
 
-void Memif_client::send(long index, uint64_t size, IMsg_burst_serializer& ser)
+int Memif_client::send(long index, uint64_t size, IMsg_burst_serializer& ser)
 {
     uint64_t count = size;
 
+    if (index >= MAX_CONNS)
+    {
+      INFO ("connection array overflow");
+      return -1;
+    }
+    if (index < 0)
+    {
+      INFO ("don't even try...");
+      return -1;
+    }
     memif_connection_t *c = &memif_connection[index];
     if (c->conn == NULL)
     {
       printf ("No connection at index %d. Thread exiting...\n", index);
-      return;
+      return -1;
     }
     uint16_t tx, i, ind = 0;
     int err = MEMIF_ERR_SUCCESS;
@@ -640,7 +691,7 @@ void Memif_client::send(long index, uint64_t size, IMsg_burst_serializer& ser)
           if ((err != MEMIF_ERR_SUCCESS) && (err != MEMIF_ERR_NOBUF_RING))
           {
               printf ("memif_buffer_alloc: failed %s\n", memif_strerror (err));
-              return;
+              return -1;
           }
 
           c->tx_buf_num += tx;
@@ -669,12 +720,14 @@ void Memif_client::send(long index, uint64_t size, IMsg_burst_serializer& ser)
           if (err != MEMIF_ERR_SUCCESS)
           {
               printf ("memif_tx_burst failed: %s\n", memif_strerror (err));
-              return;
+              return -1;
           }
           c->tx_buf_num -= tx;
           c->tx_counter += tx;
           count -= tx;
     }
+
+    return 0;
 }
 
 int Memif_client::user_input_handler ()

@@ -39,6 +39,7 @@ struct Dpdk_cryptodev_data_vector {
 		uint8_t* _op_outbuff_ptr;
 		uint32_t _op_outbuff_len;
 		uint32_t _op_in_buff_list_len;
+		uint64_t _seq;
 
 		enum Sess_operation _sess_op;
 		// [in] get / remove [out] create
