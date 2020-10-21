@@ -288,7 +288,7 @@ int Dpdk_cryptodev_client::init(int argc, char **argv)
 		goto err;
 	}
 
-    ////
+    // per connection
 	t_vecs = (struct Dpdk_cryptodev_data_vector *)rte_malloc(NULL, _opts.max_burst_size * sizeof(struct Dpdk_cryptodev_data_vector), 0);
 	if (t_vecs == NULL)
 	{
@@ -314,7 +314,7 @@ err:
 		rte_cryptodev_stop(_enabled_cdevs[i]);
 
 	// TODO
-	//free_test_vector(t_vec, &opts);
+	// free connections
 
 	return EXIT_FAILURE;
 }
@@ -326,11 +326,11 @@ void  Dpdk_cryptodev_client::cleanup()
 	for (i = 0; i < _nb_cryptodevs && i < RTE_CRYPTO_MAX_DEVS; i++)
 		rte_cryptodev_stop(_enabled_cdevs[i]);
 	
-	//rte_free(opts.imix_buffer_sizes);
-
-	//free_test_vector(t_vec, &opts);
+	// TODO
+	// free connections
 }
 
+// TODO to connection
 int Dpdk_cryptodev_client::run_jobs(struct Dpdk_cryptodev_data_vector* jobs, uint32_t size)
 {
 	uint16_t total_nb_qps = 0;
@@ -363,23 +363,27 @@ int Dpdk_cryptodev_client::run_jobs(struct Dpdk_cryptodev_data_vector* jobs, uin
 		}
 		else if (jobs[i].op._sess_op == SESS_OP_CLOSE)
 		{
-			if (0 == remove_session(cdev_id, &jobs[i]))
-				jobs[i].op._op_status = OP_STATUS_SUCC;
-			else
-				jobs[i].op._op_status = OP_STATUS_FAILED;
+			; // postpone remove sess to the end of burst
 		}
 		else if (jobs[i].op._sess_op == SESS_OP_ATTACH)
 		{
 			// init with failde
 			jobs[i].op._op_status = OP_STATUS_FAILED;
 
-			t_vecs[j].op._sess_id = jobs[i].op._sess_id;
-			t_vecs[j].cipher_buff_list[0].data = jobs[i].cipher_buff_list[0].data;
-			t_vecs[j].cipher_buff_list[0].length = _opts.max_buffer_size;
-			t_vecs[j].cipher_iv.data = jobs[i].cipher_iv.data;
-			t_vecs[j].cipher_iv.length = jobs[i].cipher_iv.length;
+			if (NULL == get_session(cdev_id, &jobs[i]))
+			{
+				printf("session == NULL - skip op\n");
+			}
+			else
+			{	
+				t_vecs[j].op._sess_id = jobs[i].op._sess_id;
+				t_vecs[j].cipher_buff_list[0].data = jobs[i].cipher_buff_list[0].data;
+				t_vecs[j].cipher_buff_list[0].length = _opts.max_buffer_size;
+				t_vecs[j].cipher_iv.data = jobs[i].cipher_iv.data;
+				t_vecs[j].cipher_iv.length = jobs[i].cipher_iv.length;
 
-			j++;
+				j++;
+			}
 		}
 		else
 		{
@@ -421,7 +425,10 @@ int Dpdk_cryptodev_client::run_jobs(struct Dpdk_cryptodev_data_vector* jobs, uin
 		}
 		else if (jobs[i].op._sess_op == SESS_OP_CLOSE)
 		{
-			;
+			if (0 == remove_session(cdev_id, &jobs[i]))
+				jobs[i].op._op_status = OP_STATUS_SUCC;
+			else
+				jobs[i].op._op_status = OP_STATUS_FAILED;
 		}
 		else if (jobs[i].op._sess_op == SESS_OP_ATTACH)
 		{
@@ -463,7 +470,7 @@ int Dpdk_cryptodev_client::set_ops_cipher(struct rte_crypto_op **ops,
 		ops[i]->sess_type =  RTE_CRYPTO_OP_WITH_SESSION; 
 
 		struct rte_cryptodev_sym_session* sess = get_session(cdev_id, &test_vectors[i]);
-		// TODO handle not found sess == NULL
+		// [OT] No need handle not found sess == NULL - checked at input
 		rte_crypto_op_attach_sym_session(ops[i], sess);
 
 		sym_op->m_src = (struct rte_mbuf *)((uint8_t *)ops[i] + _src_buf_offset);
@@ -494,7 +501,7 @@ int Dpdk_cryptodev_client::set_ops_cipher(struct rte_crypto_op **ops,
 	return 0;
 }
 
-
+// TODO to connection
 int Dpdk_cryptodev_client::create_session(uint8_t dev_id, const struct Dpdk_cryptodev_data_vector *test_vector, uint32_t* sess_id)
 {
 	uint16_t iv_offset = sizeof(struct rte_crypto_op) + sizeof(struct rte_crypto_sym_op);

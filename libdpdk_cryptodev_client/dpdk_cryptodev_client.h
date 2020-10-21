@@ -56,8 +56,7 @@ private:
     uint8_t _enabled_cdevs[RTE_CRYPTO_MAX_DEVS]; // = { 0 };
     int _nb_cryptodevs; // = 0;
     
-    //Pool_socket pool_socket[RTE_MAX_NUMA_NODES];
-    // per socket
+    // per socket - we have 1
     struct rte_mempool *_sess_mp;
 	struct rte_mempool *_priv_mp;
 	struct rte_mempool *_ops_mp;
@@ -68,10 +67,9 @@ private:
     struct Dpdk_cryptodev_data_vector* t_vecs; // data vec pool
     uint8_t* out_data; // out data pool
 
+    // TODO connections
     // sess manager
-    //active_sessions_t _active_sessions;
     struct rte_cryptodev_sym_session* _active_sessions_registry[MAX_SESS_NUM];
-    // connections ?
 };
 
 #endif // _DPDK_CRYPTODEV_CLIENT_H_

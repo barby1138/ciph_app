@@ -104,15 +104,8 @@ int main(int argc, char** argv)
 
     Ciph_agent_sngl::instance().conn_alloc(0, 1, on_job_complete_cb);
 
-    // TODO wait correctly
-    std::this_thread::sleep_for(std::chrono::milliseconds(10000));
-
-    // qit == 0 - we use only 1 q
-    Ciph_agent_sngl::instance().set_rx_mode(0, 0, "polling");
-
     while(1)
     {
-        //std::this_thread::sleep_for(std::chrono::milliseconds(100));
         usleep(100);
         Ciph_agent_sngl::instance().poll(0, 0, 64);
     }

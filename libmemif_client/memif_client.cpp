@@ -48,6 +48,7 @@ extern "C" {
 #define IF_NAME "memif_connection"
 
 #include <mutex> 
+//std::mutex m;
 std::mutex m;
 
 /* maximum tx/rx memif buffers */
@@ -81,8 +82,10 @@ typedef struct
   uint16_t seq;
   uint64_t tx_counter, rx_counter, tx_err_counter;
   uint64_t t_sec, t_nsec;
-  int tap_fd;
+
   on_recv_cb_fn_t fn;
+
+  int connected;
 } memif_connection_t;
 
 int epfd;
@@ -176,8 +179,9 @@ int on_connect (memif_conn_handle_t conn, void *private_ctx)
   }
 
   {
-    std::lock_guard<std::mutex> lk(m);
-    c->connected = true;
+    std::lock_guard<std::mutex> lock(m);
+    c->connected = 1;
+    printf ("memif connected! %d\n", c->connected);
   }
 
   return 0;
@@ -192,19 +196,25 @@ int on_disconnect (memif_conn_handle_t conn, void *private_ctx)
   long index = *((long *)private_ctx);
   if (index >= MAX_CONNS)
   {
-    INFO ("connection array overflow");
+    printf ("connection array overflow\n");
     return -1;
   }
   if (index < 0)
   {
-    INFO ("don't even try...");
+    printf ("don't even try...\n");
     return -1;
   }
   memif_connection_t *c = &memif_connection[index];
   if (c->index != index)
   {
-    INFO ("invalid context: %ld/%u", index, c->index);
+    printf ("invalid context: %ld/%u\n", index, c->index);
     return -1;
+  }
+
+  {
+    std::lock_guard<std::mutex> lock(m);
+    c->connected = 0;
+    printf ("memif disconnected! %d\n", c->connected);
   }
 
   return 0;
@@ -462,7 +472,9 @@ int Memif_client::conn_alloc (long index, const Memif_client::Conn_config_t& con
 
     args.interface_id = index;
     int err;
-  
+
+    c->connected = 0;
+      
     // [OT] we use polling mode
     err = memif_create (&c->conn, &args, on_connect, on_disconnect, /*on_interrupt02*/NULL, &ctx[index]);
     if (err != MEMIF_ERR_SUCCESS)
@@ -486,6 +498,16 @@ int Memif_client::conn_alloc (long index, const Memif_client::Conn_config_t& con
     c->seq = c->tx_err_counter = c->tx_counter = c->rx_counter = 0;
 
     c->fn = conn_config._on_recv_cb_fn;
+
+    if (!args.is_master)
+      while(c->connected == 0)
+      {
+        // poll
+        usleep(1000000);
+        printf ("memif alloc connected: %d\n", c->connected);
+      }  
+
+//    set_rx_mode(index, 0, "polling");
 
     return 0;
 }
@@ -559,7 +581,39 @@ int Memif_client::set_rx_mode (long index, long qid, char *mode)
 
 int Memif_client::poll (long index, long qid, uint32_t size)
 {
-  return on_interrupt02_poll (index, qid, size);
+  int res;
+
+  {
+    std::lock_guard<std::mutex> lock(m);
+
+    if (index >= MAX_CONNS)
+    {
+      INFO ("connection array overflow");
+      return -1;
+    }
+    if (index < 0)
+    {
+      INFO ("don't even try...");
+      return -1;
+    }
+    memif_connection_t *c = &memif_connection[index];
+    if (c->index != index)
+    {
+      INFO ("invalid context: %ld/%u", index, c->index);
+      return -1;
+    }
+
+    if (c->connected == 0)
+    {
+      usleep(1000000);
+      printf ("not connected\n");
+      return 0;
+    }  
+
+    res = on_interrupt02_poll (index, qid, size);
+  }
+
+  return res;
 }
 
 void Memif_client::print_info ()
@@ -673,6 +727,13 @@ int Memif_client::send(long index, uint64_t size, IMsg_burst_serializer& ser)
       printf ("No connection at index %d. Thread exiting...\n", index);
       return -1;
     }
+
+    if (c->connected == 0)
+    {
+      printf ("send not connected\n");
+      return 0;
+    }  
+    
     uint16_t tx, i, ind = 0;
     int err = MEMIF_ERR_SUCCESS;
     uint32_t seq = 0;
