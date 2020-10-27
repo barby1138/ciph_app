@@ -214,7 +214,9 @@ int Ciph_comm_agent<Comm_client>::set_rx_mode(long index, long qid, char *mode)
 template<class Comm_client> 
 int Ciph_comm_agent<Comm_client>::poll(long index, long qid, uint32_t size)
 {
-    return _client.poll(index, qid, size);
+    int res =_client.poll(index, qid, size);
+
+    return res;
 }
 
 typedef singleton_holder<Ciph_comm_agent<Memif_client> > Ciph_agent_sngl;

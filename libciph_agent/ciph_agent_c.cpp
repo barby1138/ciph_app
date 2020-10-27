@@ -24,7 +24,9 @@ int ciph_agent_conn_alloc(long index, int mode, on_job_complete_cb_t cb)
 int ciph_agent_poll(long index, uint32_t size)
 {
     // qit == 0 - we use only 1 q
-    return Ciph_agent_sngl::instance().poll(index, 0, size);
+    int res = Ciph_agent_sngl::instance().poll(index, 0, size);
+
+    return res;
 }
 
 int ciph_agent_conn_free(long index)
@@ -35,7 +37,6 @@ int ciph_agent_conn_free(long index)
 int ciph_agent_send(long index, struct Dpdk_cryptodev_data_vector* jobs, uint32_t size)
 {
     int res = Ciph_agent_sngl::instance().send(index, jobs, size);
-    if (0 != res)
-      	printf("send error agent\n");
+
     return res;
 }

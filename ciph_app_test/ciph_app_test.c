@@ -154,6 +154,7 @@ void on_job_complete_cb_0 (struct Dpdk_cryptodev_data_vector* vec, uint32_t size
 
 int main(int argc, char* argv[])
 {
+	int res;
 	uint64_t seq;
 
     long conn_id = 0;
@@ -167,6 +168,7 @@ int main(int argc, char* argv[])
 
 	while(1)
 	{
+    printf ("start ...\n");
 	g_size = 0;
     struct Dpdk_cryptodev_data_vector job_sess;
     memset(&job_sess, 0, sizeof(struct Dpdk_cryptodev_data_vector));
@@ -207,7 +209,8 @@ int main(int argc, char* argv[])
     for (int i = 0; i < num_pck_per_batch; ++i)
     {
 		job.op._seq = seq++;
-		ciph_agent_send(conn_id, &job, 1);
+		res = ciph_agent_send(conn_id, &job, 1);
+		if (res == -2) break;
     }
     ciph_agent_poll(conn_id, MAX_CONN_CLIENT_BURST);
 
@@ -221,9 +224,12 @@ int main(int argc, char* argv[])
       	for (int i = 0; i < num_pck_per_batch; ++i)
       	{
 		  	job.op._seq = seq++;
-        	ciph_agent_send(conn_id, &job, 1);
+        	res = ciph_agent_send(conn_id, &job, 1);
+			if (res == -2) break;
       	}
-      	ciph_agent_poll(conn_id, MAX_CONN_CLIENT_BURST);
+
+      	res = ciph_agent_poll(conn_id, MAX_CONN_CLIENT_BURST);
+		if (res == -2) break;
     }
 
     struct Dpdk_cryptodev_data_vector job_sess_del;
@@ -238,9 +244,13 @@ int main(int argc, char* argv[])
 
     // flush
     printf ("flush ...\n");
+	int cnt = 0;
     while(g_size < num_pck + num_pck_per_batch  + 1  + 1 )
 	{
-      	ciph_agent_poll(conn_id, MAX_CONN_CLIENT_BURST);
+    	printf ("poll 2\n");
+
+      	int res = ciph_agent_poll(conn_id, MAX_CONN_CLIENT_BURST);
+		if (res == -2) break;
 	}
 
 	printf ("Seq len: %u\n", g_size);
