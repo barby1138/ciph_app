@@ -1,9 +1,6 @@
 ///////////////////////////////////
 // ciph_app_test
 
-// TODO to stdafx.h (pch.h)
-//#include <assert.h>
-
 #include <iostream>
 #include <string>
 #include <vector>
@@ -155,7 +152,7 @@ void on_job_complete_cb_0 (struct Dpdk_cryptodev_data_vector* vec, uint32_t size
 int main(int argc, char* argv[])
 {
 	int res;
-	uint64_t seq;
+	uint64_t seq = 0;
 
     long conn_id = 0;
 
@@ -244,11 +241,8 @@ int main(int argc, char* argv[])
 
     // flush
     printf ("flush ...\n");
-	int cnt = 0;
     while(g_size < num_pck + num_pck_per_batch  + 1  + 1 )
 	{
-    	printf ("poll 2\n");
-
       	int res = ciph_agent_poll(conn_id, MAX_CONN_CLIENT_BURST);
 		if (res == -2) break;
 	}

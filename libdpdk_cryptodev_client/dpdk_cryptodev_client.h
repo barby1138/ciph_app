@@ -10,9 +10,7 @@
 class Dpdk_cryptodev_client
 {
 private:
-enum { MAX_SESS_NUM = 2 * 2 * 4000 };
-
-//typedef std::map<int, struct rte_cryptodev_sym_session*> active_sessions_t;
+enum { MAX_SESS_NUM = 2 * 2 * 4000, MAX_CONN_NUM = 4 };
 
 public:
     int init(int argc, char **argv);
@@ -68,6 +66,7 @@ private:
     uint8_t* out_data; // out data pool
 
     // TODO connections
+    //struct rte_cryptodev_sym_session* _active_sessions_registry[MAX_CONN_NUM][MAX_SESS_NUM];
     // sess manager
     struct rte_cryptodev_sym_session* _active_sessions_registry[MAX_SESS_NUM];
 };

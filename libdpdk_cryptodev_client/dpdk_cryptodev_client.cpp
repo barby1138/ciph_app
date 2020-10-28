@@ -536,9 +536,6 @@ int Dpdk_cryptodev_client::create_session(uint8_t dev_id, const struct Dpdk_cryp
 	
     rte_cryptodev_sym_session_init(dev_id, s, &cipher_xform, _priv_mp);
 	
-	// TODO handle error
-	//_active_sessions.insert ( active_sessions_t::value_type(test_vector->sess._sess_id, s) );
-
 	for (uint32_t i = 0; i < MAX_SESS_NUM; i++)
 	{
 		if (_active_sessions_registry[i] == NULL)
