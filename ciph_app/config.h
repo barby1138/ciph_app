@@ -11,9 +11,6 @@
 #include <hyperon/properties.h>
 #include <hyperon/storage/expat_storage.h>
 
-using namespace hyperon;
-using namespace quark;
-
 namespace
 {
 	class logger_element : public element

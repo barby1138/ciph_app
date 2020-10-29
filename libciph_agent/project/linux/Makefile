@@ -3,7 +3,7 @@
 CC=gcc
 CFLAGS=-MD
 CXX=g++
-CXXFLAGS=$(CFLAGS) -W -fexceptions -fPIC -fpermissive -w
+CXXFLAGS=$(CFLAGS) -W -fexceptions -fPIC -fpermissive -w -mavx2
 AR=ar
 ARFLAGS=rus
 
@@ -20,6 +20,7 @@ TARGET=$(DESTDIR)/$(LIBNAME).a
 DEFINE=-D_LINUX -D_REDHAT
 
 INCLUDE=-I$(ROOTDIR) -I$(ROOTDIR)/libcommon -I$(ROOTDIR)/libmemif_client -I$(ROOTDIR)/libdpdk_cryptodev_client \
+		-I$(ROOTDIR)/libmemcpy \
 		-I$(ROOTDIR)/../fwk/fridmon[18-01-2017]/quark_1_0_1
 
 ifndef CFG

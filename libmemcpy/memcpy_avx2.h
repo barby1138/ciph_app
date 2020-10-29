@@ -50,7 +50,8 @@
 
 #include <stdint.h>
 #include <x86intrin.h>
-#include <vppinfra/warnings.h>
+
+#include "warnings.h"
 
 /* *INDENT-OFF* */
 WARN_OFF (stringop-overflow)

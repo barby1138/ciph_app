@@ -27,6 +27,8 @@
 #include "ciph_agent_c.h"
 #include <thread>
 
+#include "memcpy_fast.h"
+
 uint8_t plaintext[64] = {
 0xff, 0xca, 0xfb, 0xf1, 0x38, 0x20, 0x2f, 0x7b, 0x24, 0x98, 0x26, 0x7d, 0x1d, 0x9f, 0xb3, 0x93,
 0xd9, 0xef, 0xbd, 0xad, 0x4e, 0x40, 0xbd, 0x60, 0xe9, 0x48, 0x59, 0x90, 0x67, 0xd7, 0x2b, 0x7b,
@@ -68,7 +70,7 @@ int g_setup_sess_id = -1;
 
 int last_rcv_seq = 0;
 
-void on_job_complete_cb_0 (struct Dpdk_cryptodev_data_vector* vec, uint32_t size)
+void on_job_complete_cb_0 (int index, struct Dpdk_cryptodev_data_vector* vec, uint32_t size)
 {
     for(uint32_t j = 0; j < size; ++j)
     {
@@ -99,7 +101,7 @@ void on_job_complete_cb_0 (struct Dpdk_cryptodev_data_vector* vec, uint32_t size
 			}
 			else
 			{
-				memcpy(vec[j].op._op_outbuff_ptr, 
+				clib_memcpy_fast(vec[j].op._op_outbuff_ptr, 
 					vec[j].cipher_buff_list[0].data, 
 					vec[j].cipher_buff_list[0].length);
 
@@ -149,8 +151,80 @@ void on_job_complete_cb_0 (struct Dpdk_cryptodev_data_vector* vec, uint32_t size
     }
 }
 
+
+///////////////////
+// memcpy
+//
+ // the vector unit memcpy variants confuse coverity
+ // so don't let it anywhere near them.
+//
+
+int generate_packet (void* src_buff, uint32_t* out_len,  uint32_t pck_size)
+{
+	clib_memcpy_fast(src_buff, ciphertext, 64);
+	*out_len = 64;
+
+	return 0;
+}
+
+int test_memcpy (int a_pck_size)
+{
+#if __AVX512F__ //__AVX512BITALG__
+printf("memcpy __AVX512F__\n");
+#elif __AVX2__
+printf("memcpy __AVX2__\n");
+#elif __SSSE3__
+printf("memcpy __SSSE3__\n");
+#else
+printf("memcpy default\n");
+#endif
+
+  	char dst_buff[2048];
+  	char src_buff[2048];
+  	uint32_t len;
+  	int i;
+
+  	int seq_len = 1000 * 1000000;
+  	int pck_size = a_pck_size;
+
+  	generate_packet ((void *)src_buff, &len,  pck_size);
+
+  	struct timespec start, end;
+  	memset (&start, 0, sizeof (start));
+  	memset (&end, 0, sizeof (end));
+
+  	timespec_get (&start, TIME_UTC);
+  	for (i = 0; i < seq_len; i++)
+  	{
+    	clib_memcpy_fast(dst_buff, src_buff, len);
+  	}
+  	timespec_get (&end, TIME_UTC);
+  	printf ("\n\n");
+  	printf ("Pakcet sequence copied!\n");
+  	printf ("Seq len: %u\n", seq_len);
+  	printf ("Pck size: %u\n", pck_size);
+  	uint64_t t1 = end.tv_sec - start.tv_sec;
+  	uint64_t t2;
+  	if (end.tv_nsec > start.tv_nsec)
+	{
+      t2 = end.tv_nsec - start.tv_nsec;
+    }
+  	else
+    {
+      t2 = start.tv_nsec - end.tv_nsec;
+      t1--;
+    }
+
+  	printf ("Seq time: %lus %luns\n", t1, t2);
+
+  	return 0;
+}
+///////////////////////////
+
 int main(int argc, char* argv[])
 {
+	test_memcpy(64);
+
 	int res;
 	uint64_t seq = 0;
 
@@ -181,7 +255,7 @@ int main(int argc, char* argv[])
     ciph_agent_send(conn_id, &job_sess, 1);
 
     // poll and recv created session id
-    while(g_size < 1 /*sess*/)
+    while(g_size < 1 )
       ciph_agent_poll(conn_id, MAX_CONN_CLIENT_BURST);
 
     struct Dpdk_cryptodev_data_vector job;

@@ -1,6 +1,5 @@
 ///////////////////////////////////
 // Ciph_agent
-
 #include "ciph_agent.h"
 #include "ciph_agent_c.h"
 

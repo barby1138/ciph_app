@@ -31,4 +31,4 @@
 #include <quark/config.h>
 #include <quark/singleton.h>
 
-using namespace quark;
+//using namespace quark;

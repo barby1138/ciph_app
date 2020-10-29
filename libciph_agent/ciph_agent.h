@@ -8,6 +8,12 @@
 
 #include <cstring>
 
+#include "memcpy_fast.h"
+
+//enum { CA_MODE_SLAVE = 0, CA_MODE_MASTER = 1 };
+
+typedef void (*on_job_complete_cb_t) (int, struct Dpdk_cryptodev_data_vector*, uint32_t);
+
 struct Data_lengths {
     uint32_t ciphertext_length;
     uint32_t cipher_key_length;
@@ -18,7 +24,7 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len, struct Dpdk_cryptodev_
 {
     *len = 0;
 
-    memcpy(buffer, &vec->op, sizeof(vec->op));
+    clib_memcpy_fast(buffer, &vec->op, sizeof(vec->op));
     buffer += sizeof(vec->op);
     *len += sizeof(vec->op);
 
@@ -29,7 +35,7 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len, struct Dpdk_cryptodev_
     data_lnn.cipher_key_length = vec->cipher_key.length;
     data_lnn.cipher_iv_length = vec->cipher_iv.length;
 
-    memcpy(buffer, &data_lnn, sizeof(struct Data_lengths));
+    clib_memcpy_fast(buffer, &data_lnn, sizeof(struct Data_lengths));
     buffer += sizeof(struct Data_lengths);
     *len += sizeof(struct Data_lengths);
 
@@ -37,7 +43,7 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len, struct Dpdk_cryptodev_
     {
         if (vec->cipher_buff_list[i].length)
         {
-            memcpy(buffer, vec->cipher_buff_list[i].data, vec->cipher_buff_list[i].length);
+            clib_memcpy_fast(buffer, vec->cipher_buff_list[i].data, vec->cipher_buff_list[i].length);
             buffer += vec->cipher_buff_list[i].length;
             *len += vec->cipher_buff_list[i].length;
         }
@@ -45,19 +51,19 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len, struct Dpdk_cryptodev_
 
     if (vec->cipher_key.length)
     {
-        memcpy(buffer, vec->cipher_key.data, vec->cipher_key.length);
+        clib_memcpy_fast(buffer, vec->cipher_key.data, vec->cipher_key.length);
         buffer += vec->cipher_key.length;
         *len += vec->cipher_key.length;
     }
 
-    memcpy(buffer, vec->cipher_iv.data, vec->cipher_iv.length);
+    clib_memcpy_fast(buffer, vec->cipher_iv.data, vec->cipher_iv.length);
     buffer += vec->cipher_iv.length;
     *len += vec->cipher_iv.length;
 }
 
 void crypto_job_from_buffer(uint8_t* buffer, uint32_t len, struct Dpdk_cryptodev_data_vector* vec)
 {
-    memcpy(&vec->op, buffer, sizeof(vec->op));
+    clib_memcpy_fast(&vec->op, buffer, sizeof(vec->op));
     buffer += sizeof(vec->op);
 
     struct Data_lengths* pData_lnn = (struct Data_lengths*)buffer;
@@ -95,8 +101,6 @@ private:
 };
 
 enum { MAX_CONNECTIONS = 20 };
-
-typedef void (*on_job_complete_cb_t) (struct Dpdk_cryptodev_data_vector*, uint32_t);
 
 template<class Comm_client>
 class Ciph_comm_agent
@@ -149,7 +153,7 @@ static void Ciph_comm_agent<Comm_client>::on_recv_cb (long index, const typename
     buffs_2_jobs(_pool_vecs[index], rx_bufs, len);
 
     if (NULL != _cb[index])
-        _cb[index](_pool_vecs[index], len);
+        _cb[index](index, _pool_vecs[index], len);
 }
 
 template<class Comm_client> 
@@ -219,4 +223,4 @@ int Ciph_comm_agent<Comm_client>::poll(long index, long qid, uint32_t size)
     return res;
 }
 
-typedef singleton_holder<Ciph_comm_agent<Memif_client> > Ciph_agent_sngl;
+typedef quark::singleton_holder<Ciph_comm_agent<Memif_client> > Ciph_agent_sngl;

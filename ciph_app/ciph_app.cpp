@@ -37,36 +37,36 @@ static bool bound = bindTracer<custom_tracer>();
 
 void usage()
 {
-	TRACE_INFO("usage: archiver config.xml");
+  TRACE_INFO("usage: archiver config.xml");
 }
 
 void print_buff(uint8_t* data, int len)
 {
-      fprintf(stdout, "ciph app length %d\n", len);
+  fprintf(stdout, "ciph app length %d\n", len);
 
-      int c = 0;
+  int c = 0;
+  fprintf(stdout, "%03d ", c++);
+
+  for(int i = 0; i < len; ++i)
+  {
+    fprintf(stdout, "%02X%s", data[i], ( i + 1 ) % 16 == 0 ? "\r\n" : " " );
+
+    if (( i + 1 ) % 16 == 0)
       fprintf(stdout, "%03d ", c++);
+  }
 
-      for(int i = 0; i < len; ++i)
-      {
-        fprintf(stdout, "%02X%s", data[i], ( i + 1 ) % 16 == 0 ? "\r\n" : " " );
-
-        if (( i + 1 ) % 16 == 0)
-            fprintf(stdout, "%03d ", c++);
-      }
-
-      fprintf(stdout, "\r\n");
+  fprintf(stdout, "\r\n");
 }
 
-void on_job_complete_cb (struct Dpdk_cryptodev_data_vector* pjob, uint32_t size)
+void on_job_complete_cb (int index, struct Dpdk_cryptodev_data_vector* pjob, uint32_t size)
 {
-  Dpdk_cryptodev_client_sngl::instance().run_jobs(pjob, size);
-  
+  Dpdk_cryptodev_client_sngl::instance().run_jobs(index, pjob, size);
+
   //for(int j = 0; j < size; ++j)
     //printf("id %d\n", pjob[j].op._sess_op);
     //print_buff(pjob[j].cipher_buff_list[0].data, pjob[j].cipher_buff_list[0].length);
 
-  Ciph_agent_sngl::instance().send(0, pjob, size);
+  Ciph_agent_sngl::instance().send(index, pjob, size);
 }
 
 int main(int argc, char** argv)

@@ -5,7 +5,7 @@
 
 enum { CA_MODE_SLAVE = 0, CA_MODE_MASTER = 1 };
 
-typedef void (*on_job_complete_cb_t) (struct Dpdk_cryptodev_data_vector*, uint32_t);
+typedef void (*on_job_complete_cb_t) (int, struct Dpdk_cryptodev_data_vector*, uint32_t);
 
 int ciph_agent_init();
 

@@ -32,7 +32,7 @@
 #include <hyperon/properties.h>
 #include <hyperon/storage/expat_storage.h>
 
-using namespace quark;
+//using namespace quark;
 using namespace meson;
 using namespace hyperon;
 using namespace nucleon;

@@ -3,7 +3,7 @@
 CC=gcc
 CFLAGS=-MD
 CXX=gcc
-CXXFLAGS=$(CFLAGS) -W -fexceptions -fPIC -mssse3
+CXXFLAGS=$(CFLAGS) -W -fexceptions -fPIC -mavx2
 #-fpermissive
 AR=ar
 ARFLAGS=rus
@@ -20,7 +20,9 @@ TARGET=$(DESTDIR)/$(LIBNAME).a
 
 DEFINE=-D_LINUX
 
-INCLUDE=-I$(ROOTDIR) -I/home/tsis/projects/dpdk_test/dpdk-stable-19.11.3/x86_64-native-linux-gcc/include
+INCLUDE=-I$(ROOTDIR) \
+		-I$(ROOTDIR)/libmemcpy \
+		-I/home/tsis/projects/dpdk_test/dpdk-stable-19.11.3/x86_64-native-linux-gcc/include
 
 ifndef CFG
 CFG=debug

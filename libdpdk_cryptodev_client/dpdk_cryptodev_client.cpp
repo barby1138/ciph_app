@@ -15,6 +15,8 @@
 #include "data_vectors.h"
 #include "dpdk_cryptodev_client.h"
 
+#include "memcpy_fast.h"
+
 rte_crypto_cipher_algorithm crypto_cipher_algo_map[CRYPTO_CIPHER_ALGO_LAST];
 rte_crypto_cipher_operation crypto_cipher_op_map[CRYPTO_CIPHER_OP_LAST];
 
@@ -331,7 +333,7 @@ void  Dpdk_cryptodev_client::cleanup()
 }
 
 // TODO to connection
-int Dpdk_cryptodev_client::run_jobs(struct Dpdk_cryptodev_data_vector* jobs, uint32_t size)
+int Dpdk_cryptodev_client::run_jobs(int channel_index, struct Dpdk_cryptodev_data_vector* jobs, uint32_t size)
 {
 	uint16_t total_nb_qps = 0;
 	uint8_t cdev_id;
@@ -350,7 +352,7 @@ int Dpdk_cryptodev_client::run_jobs(struct Dpdk_cryptodev_data_vector* jobs, uin
 		if (jobs[i].op._sess_op == SESS_OP_CREATE)
 		{
 			uint32_t sess_id = -1;
-			if (0 == create_session(cdev_id, &jobs[i], &sess_id))
+			if (0 == create_session(channel_index, cdev_id, &jobs[i], &sess_id))
 			{
 				jobs[i].op._op_status = OP_STATUS_SUCC;
 				jobs[i].op._sess_id = sess_id;
@@ -370,7 +372,7 @@ int Dpdk_cryptodev_client::run_jobs(struct Dpdk_cryptodev_data_vector* jobs, uin
 			// init with failde
 			jobs[i].op._op_status = OP_STATUS_FAILED;
 
-			if (NULL == get_session(cdev_id, &jobs[i]))
+			if (NULL == get_session(channel_index, cdev_id, &jobs[i]))
 			{
 				printf("session == NULL - skip op\n");
 			}
@@ -403,7 +405,7 @@ int Dpdk_cryptodev_client::run_jobs(struct Dpdk_cryptodev_data_vector* jobs, uin
 
 	while (_opts.test_buffer_size <= _opts.max_buffer_size) 
 	{
-		run_jobs_inner(cdev_id, qp_id);
+		run_jobs_inner(channel_index, cdev_id, qp_id);
 		
 		/* Get next size from range or list */
 		if (_opts.inc_buffer_size != 0)
@@ -425,7 +427,7 @@ int Dpdk_cryptodev_client::run_jobs(struct Dpdk_cryptodev_data_vector* jobs, uin
 		}
 		else if (jobs[i].op._sess_op == SESS_OP_CLOSE)
 		{
-			if (0 == remove_session(cdev_id, &jobs[i]))
+			if (0 == remove_session(channel_index, cdev_id, &jobs[i]))
 				jobs[i].op._op_status = OP_STATUS_SUCC;
 			else
 				jobs[i].op._op_status = OP_STATUS_FAILED;
@@ -451,7 +453,9 @@ int Dpdk_cryptodev_client::run_jobs(struct Dpdk_cryptodev_data_vector* jobs, uin
 }
 
 // ops
-int Dpdk_cryptodev_client::set_ops_cipher(struct rte_crypto_op **ops,
+int Dpdk_cryptodev_client::set_ops_cipher(
+		struct rte_crypto_op **ops,
+		int channel_index,
 		const struct Dpdk_cryptodev_data_vector *test_vectors,
 		uint32_t nb_ops)
 {
@@ -469,7 +473,7 @@ int Dpdk_cryptodev_client::set_ops_cipher(struct rte_crypto_op **ops,
 		static int count = 0;
 		ops[i]->sess_type =  RTE_CRYPTO_OP_WITH_SESSION; 
 
-		struct rte_cryptodev_sym_session* sess = get_session(cdev_id, &test_vectors[i]);
+		struct rte_cryptodev_sym_session* sess = get_session(channel_index, cdev_id, &test_vectors[i]);
 		// [OT] No need handle not found sess == NULL - checked at input
 		rte_crypto_op_attach_sym_session(ops[i], sess);
 
@@ -494,7 +498,7 @@ int Dpdk_cryptodev_client::set_ops_cipher(struct rte_crypto_op **ops,
 		if (test_vectors[i].cipher_iv.length)
 		{
 			uint8_t *iv_ptr = rte_crypto_op_ctod_offset(ops[i], uint8_t *, iv_offset);
-			memcpy(iv_ptr, test_vectors[i].cipher_iv.data, test_vectors[i].cipher_iv.length);
+			clib_memcpy_fast(iv_ptr, test_vectors[i].cipher_iv.data, test_vectors[i].cipher_iv.length);
 		}
 	}
 
@@ -502,7 +506,7 @@ int Dpdk_cryptodev_client::set_ops_cipher(struct rte_crypto_op **ops,
 }
 
 // TODO to connection
-int Dpdk_cryptodev_client::create_session(uint8_t dev_id, const struct Dpdk_cryptodev_data_vector *test_vector, uint32_t* sess_id)
+int Dpdk_cryptodev_client::create_session(int channel_index, uint8_t dev_id, const struct Dpdk_cryptodev_data_vector *test_vector, uint32_t* sess_id)
 {
 	uint16_t iv_offset = sizeof(struct rte_crypto_op) + sizeof(struct rte_crypto_sym_op);
 
@@ -538,22 +542,23 @@ int Dpdk_cryptodev_client::create_session(uint8_t dev_id, const struct Dpdk_cryp
 	
 	for (uint32_t i = 0; i < MAX_SESS_NUM; i++)
 	{
-		if (_active_sessions_registry[i] == NULL)
+		if (_active_sessions_registry[channel_index][i] == NULL)
 		{
 			// find empty slot / assign id
-			_active_sessions_registry[i] = s;
+			_active_sessions_registry[channel_index][i] = s;
 			*sess_id = i;
 
 			return 0;
 		}
 	}
 
+	// TODO free sess
 	return -1;
 }
 
-int Dpdk_cryptodev_client::remove_session(uint8_t dev_id, const struct Dpdk_cryptodev_data_vector *test_vector)
+int Dpdk_cryptodev_client::remove_session(int channel_index, uint8_t dev_id, const struct Dpdk_cryptodev_data_vector *test_vector)
 {
-	struct rte_cryptodev_sym_session* s = _active_sessions_registry[test_vector->op._sess_id];
+	struct rte_cryptodev_sym_session* s = _active_sessions_registry[channel_index][test_vector->op._sess_id];
 	if (NULL == s)
 	{
 		RTE_LOG(ERR, USER1, "remove_session s == NULL \n");
@@ -565,14 +570,14 @@ int Dpdk_cryptodev_client::remove_session(uint8_t dev_id, const struct Dpdk_cryp
 	if (0 != rte_cryptodev_sym_session_free(s))
 		RTE_LOG(ERR, USER1, "rte_cryptodev_sym_session_free failed\n");
 		
-	_active_sessions_registry[test_vector->op._sess_id] = NULL;
+	_active_sessions_registry[channel_index][test_vector->op._sess_id] = NULL;
 	
 	return 0;
 }
 
-struct rte_cryptodev_sym_session* Dpdk_cryptodev_client::get_session(uint8_t dev_id, const struct Dpdk_cryptodev_data_vector *test_vector)
+struct rte_cryptodev_sym_session* Dpdk_cryptodev_client::get_session(int channel_index, uint8_t dev_id, const struct Dpdk_cryptodev_data_vector *test_vector)
 {
-	struct rte_cryptodev_sym_session* s = _active_sessions_registry[test_vector->op._sess_id];
+	struct rte_cryptodev_sym_session* s = _active_sessions_registry[channel_index][test_vector->op._sess_id];
 	if (NULL == s)
 	{
 		RTE_LOG(ERR, USER1, "get_session s == NULL \n");
@@ -618,7 +623,7 @@ int Dpdk_cryptodev_client::vec_output_set(struct rte_crypto_op *op,
 	nb_segs = m->nb_segs;
 	len = 0;
 	while (m && nb_segs != 0) {
-		memcpy(data + len, rte_pktmbuf_mtod(m, uint8_t *), m->data_len);
+		clib_memcpy_fast(data + len, rte_pktmbuf_mtod(m, uint8_t *), m->data_len);
 		len += m->data_len;
 		m = m->next;
 		nb_segs--;
@@ -646,11 +651,11 @@ void Dpdk_cryptodev_client::mbuf_set(struct rte_mbuf *mbuf,
 		mbuf_data = rte_pktmbuf_mtod(mbuf, uint8_t *);
 
 		if (remaining_bytes <= segment_sz) {
-			memcpy(mbuf_data, test_data, remaining_bytes);
+			clib_memcpy_fast(mbuf_data, test_data, remaining_bytes);
 			return;
 		}
 
-		memcpy(mbuf_data, test_data, segment_sz);
+		clib_memcpy_fast(mbuf_data, test_data, segment_sz);
 		remaining_bytes -= segment_sz;
 		test_data += segment_sz;
 		mbuf = mbuf->next;
@@ -658,7 +663,7 @@ void Dpdk_cryptodev_client::mbuf_set(struct rte_mbuf *mbuf,
 }
 
 //
-int Dpdk_cryptodev_client::run_jobs_inner(uint8_t dev_id, uint8_t qp_id)
+int Dpdk_cryptodev_client::run_jobs_inner(int channel_index, uint8_t dev_id, uint8_t qp_id)
 {
 	uint64_t ops_enqd = 0, ops_enqd_total = 0, ops_enqd_failed = 0;
 	uint64_t ops_deqd = 0, ops_deqd_total = 0, ops_deqd_failed = 0;
@@ -709,7 +714,7 @@ int Dpdk_cryptodev_client::run_jobs_inner(uint8_t dev_id, uint8_t qp_id)
 		}
 		
 		//populate_ops
-        set_ops_cipher(ops, t_vecs, ops_needed);
+        set_ops_cipher(ops, channel_index, t_vecs, ops_needed);
 
 		// Populate the mbuf with the vector
 		for (i = 0; i < ops_needed; i++)

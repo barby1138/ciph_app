@@ -3,7 +3,7 @@
 CC=gcc
 CFLAGS=-MD
 CXX=g++
-CXXFLAGS=$(CFLAGS) -std=c++11 -Wall -fexceptions -fpermissive -Wattributes
+CXXFLAGS=$(CFLAGS) -std=c++11 -Wall -fexceptions -fpermissive -Wattributes -mavx2
 LD=$(CXX) $(CXXFLAGS)
 LDFLAGS=
 
@@ -26,6 +26,7 @@ DEFINE=-D_LINUX -D_REDHAT
 
 INCLUDE=-I$(ROOTDIR) -I$(ROOTDIR)/libciph_agent -I$(ROOTDIR)/libcommon \
 		-I$(ROOTDIR)/libdpdk_cryptodev_client -I$(ROOTDIR)/libmemif_client \
+		-I$(ROOTDIR)/libmemcpy \
 		-I$(RTE_SDK)/$(RTE_TARGET)/include \
 		-I$(ROOTDIR)/../fwk/fridmon[18-01-2017]/quark_1_0_1 \
 		-I$(ROOTDIR)/../fwk/fridmon[18-01-2017]/meson_1_0_1 \

@@ -31,15 +31,16 @@ CC=gcc
 APP = dpdk-crypto-app
 
 #CFLAGS += $(WERROR_FLAGS) 
-CFLAGS += -DALLOW_EXPERIMENTAL_API -D_LINUX -D_REDHAT -std=gnu++11 -fpermissive -Wno-unused-parameter -Wno-cast-qual -w
-
+CFLAGS += -DALLOW_EXPERIMENTAL_API -D_LINUX -D_REDHAT -std=gnu++11 -fpermissive -Wno-unused-parameter -Wno-cast-qual -w -mavx2
 #CFLAGS += -O3
 
 # all source are stored in SRCS-y
 SRCS-y := ../../ciph_app.cpp
 #SRCS-y += ../../dpdk_cryptodev_client.cpp
 
-INCLUDE = -I$(ROOTDIR) -I$(ROOTDIR)/dpdk -I$(ROOTDIR)/libdpdk_cryptodev_client -I$(ROOTDIR)/libciph_agent -I$(ROOTDIR)/libmemif_client -I$(ROOTDIR)/libcommon \
+INCLUDE = -I$(ROOTDIR) -I$(ROOTDIR)/dpdk -I$(ROOTDIR)/libdpdk_cryptodev_client -I$(ROOTDIR)/libciph_agent \
+		-I$(ROOTDIR)/libmemif_client -I$(ROOTDIR)/libcommon \
+		-I$(ROOTDIR)/libmemcpy \
 		-I/home/tsis/projects/dpdk_test/dpdk-stable-19.11.3/x86_64-native-linux-gcc/include \
 		-I$(ROOTDIR)/../fwk/fridmon[18-01-2017]/quark_1_0_1 \
 		-I$(ROOTDIR)/../fwk/fridmon[18-01-2017]/meson_1_0_1 \
