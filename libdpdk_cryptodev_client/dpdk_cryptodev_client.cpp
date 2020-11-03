@@ -505,7 +505,6 @@ int Dpdk_cryptodev_client::set_ops_cipher(
 	return 0;
 }
 
-// TODO to connection
 int Dpdk_cryptodev_client::create_session(int channel_index, uint8_t dev_id, const struct Dpdk_cryptodev_data_vector *test_vector, uint32_t* sess_id)
 {
 	uint16_t iv_offset = sizeof(struct rte_crypto_op) + sizeof(struct rte_crypto_sym_op);

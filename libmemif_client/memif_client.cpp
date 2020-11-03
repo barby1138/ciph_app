@@ -605,8 +605,8 @@ int Memif_client::poll (long index, long qid, uint32_t size)
 
   if (c->connected == 0)
   {
-    usleep(1000 * 1000);
-    printf ("not connected\n");
+    //usleep(1000 * 1000);
+    //printf ("not connected\n");
     return -2;
   }  
 
@@ -746,7 +746,7 @@ int Memif_client::send(long index, uint64_t size, IMsg_burst_serializer& ser)
     {
           if (retries++ > MAX_SEND_RETRIES)
           {
-              printf ("retries > MAX_SEND_RETRIES - are we disconnected?\n");
+              //printf ("retries > MAX_SEND_RETRIES - are we disconnected?\n");
               m.unlock();
               usleep(100 * 1000);
               m.lock();
