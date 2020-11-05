@@ -1,7 +1,4 @@
 
-
-#tar -xvf 3rdparty/dpdk-19.11.3.tar.xz  -C ./3rdparty
-
 ROOT=$PWD 
 
 echo ============== FRIDMON =====================
@@ -28,4 +25,10 @@ unzip 3rdparty/intel-ipsec-mb-0.54.zip  -d ./3rdparty
 cd 3rdparty/intel-ipsec-mb-0.54
 ./configure
 make
-#make install
+make install
+
+echo ============== DPDK =====================
+cd $ROOT
+tar -xvf 3rdparty/dpdk-19.11.3.tar.xz  -C ./3rdparty
+cd 3rdparty/dpdk-19.11.3
+#TODO patch

@@ -155,10 +155,16 @@ void on_job_complete_cb_0 (int index, struct Dpdk_cryptodev_data_vector* vec, ui
 				vec[j].cipher_buff_list[0].data = NULL;
 				vec[j].cipher_buff_list[0].length = 0;
 	
-				if ( 0 != memcmp(plaintext,
-						vec[j].op._op_outbuff_ptr,
-						vec[j].op._op_outbuff_len))
-          			g_data_failed++;
+				if (thread_data[index].cipher_op == CRYPTO_CIPHER_OP_DECRYPT)
+					if ( 0 != memcmp(plaintext,
+							vec[j].op._op_outbuff_ptr,
+							vec[j].op._op_outbuff_len))
+          				g_data_failed++;
+				else
+					if ( 0 != memcmp(ciphertext,
+							vec[j].op._op_outbuff_ptr,
+							vec[j].op._op_outbuff_len))
+          				g_data_failed++;
 			}
 	  	}
     }

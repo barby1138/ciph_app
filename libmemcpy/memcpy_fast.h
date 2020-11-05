@@ -5,13 +5,13 @@
 
 #ifndef __COVERITY__
 #if __AVX512F__ //__AVX512BITALG__
-#include <vppinfra/memcpy_avx512.h>
+#include "memcpy_avx512.h"
 #pragma message "__AVX512F__"
 #elif __AVX2__
-#include <vppinfra/memcpy_avx2.h>
+#include "memcpy_avx2.h"
 #pragma message "__AVX2__"
 #elif __SSSE3__
-#include <vppinfra/memcpy_sse3.h>
+#include "memcpy_sse3.h"
 #pragma message "__SSSE3__"
 #else
 #define clib_memcpy_fast(a,b,c) memcpy(a,b,c)
