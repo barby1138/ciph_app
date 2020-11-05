@@ -79,6 +79,8 @@ typedef struct
 	struct timespec start;
 	struct timespec end;
 	uint32_t g_size;
+	uint32_t g_data_failed;
+	uint32_t g_op_failed;
 	int g_setup_sess_id;
 
 	Crypto_cipher_algorithm cipher_algo;
@@ -112,15 +114,12 @@ static double get_delta_usec(struct timespec start, struct timespec end)
 }
 
 void on_job_complete_cb_0 (int index, struct Dpdk_cryptodev_data_vector* vec, uint32_t size)
-{
-	static int g_data_failed = 0;
-	static int g_op_failed = 0;
-	
+{	
     for(uint32_t j = 0; j < size; ++j)
     {
       	if (vec[j].op._op_status != OP_STATUS_SUCC)
       	{
-        	g_op_failed++;
+        	thread_data[index].g_op_failed++;
           	continue;
       	}
 
@@ -141,7 +140,7 @@ void on_job_complete_cb_0 (int index, struct Dpdk_cryptodev_data_vector* vec, ui
 			if (vec[j].cipher_buff_list[0].length > vec[j].op._op_outbuff_len)
 			{
 				printf ("outbuff too small\n");	
-				g_data_failed++;
+				thread_data[index].g_data_failed++;
 			}
 			else
 			{
@@ -159,12 +158,13 @@ void on_job_complete_cb_0 (int index, struct Dpdk_cryptodev_data_vector* vec, ui
 					if ( 0 != memcmp(plaintext,
 							vec[j].op._op_outbuff_ptr,
 							vec[j].op._op_outbuff_len))
-          				g_data_failed++;
-				else
+          				thread_data[index].g_data_failed++;
+				else  if (thread_data[index].cipher_op == CRYPTO_CIPHER_OP_ENCRYPT)
 					if ( 0 != memcmp(ciphertext,
 							vec[j].op._op_outbuff_ptr,
 							vec[j].op._op_outbuff_len))
-          				g_data_failed++;
+          				thread_data[index].g_data_failed++;
+				
 			}
 	  	}
     }
@@ -209,8 +209,8 @@ void on_job_complete_cb_0 (int index, struct Dpdk_cryptodev_data_vector* vec, ui
       printf ("Average pps: %f\n", tmp);
       printf ("Average TP: %f Mb/s\n", (tmp * thread_data[index].packet_size) * 8.0 / 1000000.0);
 
-      printf ("g_data_failed %d\n", g_data_failed);
-      printf ("g_op_failed %d\n", g_op_failed);
+      printf ("g_data_failed %d\n", thread_data[index].g_data_failed);
+      printf ("g_op_failed %d\n", thread_data[index].g_op_failed);
     }
 }
 
