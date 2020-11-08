@@ -32,6 +32,7 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len, struct Dpdk_cryptodev_
     data_lnn.ciphertext_length = 0;
     for (int i = 0; i < vec->op._op_in_buff_list_len; i++)
         data_lnn.ciphertext_length += vec->cipher_buff_list[i].length;
+
     data_lnn.cipher_key_length = vec->cipher_key.length;
     data_lnn.cipher_iv_length = vec->cipher_iv.length;
 
@@ -89,7 +90,7 @@ public:
         : _vecs(vecs), _size(size)
     {}
 
-    virtual void serialize(uint8_t* buff, uint32_t* len, uint32_t ind)
+    inline virtual void serialize(uint8_t* buff, uint32_t* len, uint32_t ind)
     {
         // TODO ind > size
         crypto_job_to_buffer((uint8_t*) buff, len, &_vecs[ind]);
@@ -122,12 +123,13 @@ public:
     int poll(long index, long qid, uint32_t size);
 
 private:
+/*
     static void jobs_2_buffs(struct Dpdk_cryptodev_data_vector* vecs, uint32_t size, typename Comm_client::Conn_buffer_t* buffs)
     {
         for(int i = 0; i < size; ++i)
             crypto_job_to_buffer((uint8_t*) buffs[i].data, &buffs[i].len, &vecs[i]);
     }
-
+*/
     static void buffs_2_jobs(struct Dpdk_cryptodev_data_vector* vecs, const typename Comm_client::Conn_buffer_t* buffs, uint32_t buff_size)
     {
         for(int i = 0; i < buff_size; ++i)

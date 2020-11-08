@@ -22,6 +22,8 @@ rte_crypto_cipher_operation crypto_cipher_op_map[CRYPTO_CIPHER_OP_LAST];
 
 enum { MAX_SESS_NUM = 2 * 2 * 4000 };
 
+//#define EXPERIMENTAL_NO_MEMCPY
+
 int Dpdk_cryptodev_client::fill_session_pool_socket(int32_t socket_id, uint32_t session_priv_size, uint32_t nb_sessions)
 {
 	char mp_name[RTE_MEMPOOL_NAMESIZE];
@@ -616,9 +618,15 @@ int Dpdk_cryptodev_client::vec_output_set(struct rte_crypto_op *op,
 	}
 
 	if (op->sym->m_dst)
+	{
+		//printf("dst");
 		m = op->sym->m_dst;
+	}
 	else
+	{
+		//printf("src");
 		m = op->sym->m_src;
+	}
 	nb_segs = m->nb_segs;
 	len = 0;
 	while (m && nb_segs != 0) {
@@ -646,6 +654,20 @@ void Dpdk_cryptodev_client::mbuf_set(struct rte_mbuf *mbuf,
 
 	test_data = test_vector->cipher_buff_list[0].data;
 
+
+#ifdef EXPERIMENTAL_NO_MEMCPY
+	while (remaining_bytes) {
+		mbuf_data = test_data;
+
+		if (remaining_bytes <= segment_sz) {
+			return;
+		}
+
+		remaining_bytes -= segment_sz;
+		test_data += segment_sz;
+		mbuf = mbuf->next;
+	}
+#else
 	while (remaining_bytes) {
 		mbuf_data = rte_pktmbuf_mtod(mbuf, uint8_t *);
 
@@ -659,6 +681,8 @@ void Dpdk_cryptodev_client::mbuf_set(struct rte_mbuf *mbuf,
 		test_data += segment_sz;
 		mbuf = mbuf->next;
 	}
+#endif
+
 }
 
 //
@@ -951,7 +975,12 @@ int Dpdk_cryptodev_client::alloc_common_memory(
 	uint16_t segments_nb = (max_size % _opts.segment_sz) ?
 			(max_size / _opts.segment_sz) + 1 :
 			max_size / _opts.segment_sz;
-	uint32_t obj_size = crypto_op_total_size_padded + (mbuf_size * segments_nb);
+	uint32_t obj_size = crypto_op_total_size_padded 
+//#ifdef EXPERIMENTAL_NO_MEMCPY
+//				;
+//#elif
+				+ (mbuf_size * segments_nb);
+//#endif
 
 	snprintf(pool_name, sizeof(pool_name), "pool_cdev_%u_qp_%u", dev_id, qp_id);
 

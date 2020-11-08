@@ -500,15 +500,16 @@ int Memif_client::conn_alloc (long index, const Memif_client::Conn_config_t& con
 
     c->fn = conn_config._on_recv_cb_fn;
 
+    // TODO review
     if (!args.is_master)
       while(c->connected == 0)
       {
-        // poll
-        usleep(1000000);
-        printf ("memif alloc connected: %d\n", c->connected);
+          // accept connection
+          usleep(1000 * 1000);
+          printf ("memif alloc connected: %d\n", c->connected);
       }  
 
-//    set_rx_mode(index, 0, "polling");
+//  set_rx_mode(index, 0, "polling");
 
     return 0;
 }
@@ -605,7 +606,7 @@ int Memif_client::poll (long index, long qid, uint32_t size)
 
   if (c->connected == 0)
   {
-    //usleep(1000 * 1000);
+    //usleep(100);
     //printf ("not connected\n");
     return -2;
   }  
@@ -767,13 +768,19 @@ int Memif_client::send(long index, uint64_t size, IMsg_burst_serializer& ser)
               &tx, 
               BUFF_SIZE);
           if (log)
-            printf("buff %d %d\n", err, tx);
+              printf("buff %d %d\n", err, tx);
           if ((err != MEMIF_ERR_SUCCESS) && (err != MEMIF_ERR_NOBUF_RING))
           {
               printf ("memif_buffer_alloc: failed %s\n", memif_strerror (err));
               return -1;
           }
-
+/*
+          if (err == MEMIF_ERR_NOBUF_RING)
+          {
+              //printf("sleep\n");
+              continue;
+          }
+*/
           c->tx_buf_num += tx;
 
           while (tx)

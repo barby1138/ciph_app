@@ -20,15 +20,22 @@ echo ============== NASM =====================
 #make install
 
 echo ============== IPSEC =====================
-cd $ROOT
-unzip 3rdparty/intel-ipsec-mb-0.54.zip  -d ./3rdparty
-cd 3rdparty/intel-ipsec-mb-0.54
-./configure
-make
-make install
+#cd $ROOT
+#unzip 3rdparty/intel-ipsec-mb-0.54.zip  -d ./3rdparty
+#cd 3rdparty/intel-ipsec-mb-0.54
+#./configure
+#make
+#make install
 
 echo ============== DPDK =====================
+#cd $ROOT
+#tar -xvf 3rdparty/dpdk-19.11.3.tar.xz  -C ./3rdparty
+#cp 3rdparty/enable_PMD_AESNI_MB.patch 3rdparty/dpdk-stable-19.11.3/config
+#cd 3rdparty/dpdk-stable-19.11.3
+#patch config/common_base < config/enable_PMD_AESNI_MB.patch
+#TODO build dpdk
+
+echo ============== CIPH_APP =====================
 cd $ROOT
-tar -xvf 3rdparty/dpdk-19.11.3.tar.xz  -C ./3rdparty
-cd 3rdparty/dpdk-19.11.3
-#TODO patch
+cd project/linux
+make CFG=release

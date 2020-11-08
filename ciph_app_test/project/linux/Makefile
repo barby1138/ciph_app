@@ -28,15 +28,15 @@ INCLUDE=-I$(ROOTDIR) -I$(ROOTDIR)/libciph_agent -I$(ROOTDIR)/libcommon \
 		-I$(ROOTDIR)/libdpdk_cryptodev_client -I$(ROOTDIR)/libmemif_client \
 		-I$(ROOTDIR)/libmemcpy \
 		-I$(RTE_SDK)/$(RTE_TARGET)/include \
-		-I$(ROOTDIR)/../fwk/fridmon[18-01-2017]/quark_1_0_1 \
-		-I$(ROOTDIR)/../fwk/fridmon[18-01-2017]/meson_1_0_1 \
-		-I$(ROOTDIR)/../fwk/fridmon[18-01-2017]/nucleon_1_0_1 \
-		-I$(ROOTDIR)/../fwk/fridmon[18-01-2017]/hyperon_1_0_1
+		-I$(ROOTDIR)/3rdparty/fridmon-0.1.10/quark_1_0_1 \
+		-I$(ROOTDIR)/3rdparty/fridmon-0-1-10/meson_1_0_1 \
+		-I$(ROOTDIR)/3rdparty/fridmon-0-1-10/nucleon_1_0_1 \
+		-I$(ROOTDIR)/3rdparty/fridmon-0-1-10/hyperon_1_0_1
 
 LDFLAGS+=-L/usr/lib -L$(LIBDESTDIR) \
-	-L$(ROOTDIR)/../fwk/fridmon[18-01-2017]/quark_1_0_1/lib/redhat/$(CFG) \
-	-L$(ROOTDIR)/../fwk/fridmon[18-01-2017]/meson_1_0_1/lib/redhat/$(CFG) \
-	-L$(ROOTDIR)/../fwk/fridmon[18-01-2017]/hyperon_1_0_1/lib/redhat/$(CFG)
+	-L$(ROOTDIR)/3rdparty/fridmon-0.1.10/quark_1_0_1/lib/redhat/$(CFG) \
+	-L$(ROOTDIR)/3rdparty/fridmon-0.1.10/meson_1_0_1/lib/redhat/$(CFG) \
+	-L$(ROOTDIR)/3rdparty/fridmon-0.1.10/hyperon_1_0_1/lib/redhat/$(CFG)
 
 ifndef CFG
 CFG=debug

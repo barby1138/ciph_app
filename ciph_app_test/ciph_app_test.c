@@ -349,6 +349,7 @@ void* send_proc(void* data)
 
     printf ("run ... %d\n", send_to_usec);
 	int32_t to_sleep = 0;
+	uint32_t send_total = 0;
     for(int c = 0; c < num_batch; ++c)
     {
 		memset (&start_send, 0, sizeof (start_send));
@@ -368,6 +369,7 @@ void* send_proc(void* data)
         timespec_get (&end_send, TIME_UTC);
 
 		int32_t send_took = (int32_t) get_delta_usec(start_send, end_send);
+		send_total += send_took;
 		to_sleep += send_to_usec;
 		to_sleep -= send_took;
 		while (to_sleep > send_to_usec * SLEEP_TO_FACTOR)
@@ -380,7 +382,9 @@ void* send_proc(void* data)
 			memset (&end_sleep, 0, sizeof (end_sleep));
         	timespec_get (&end_sleep, TIME_UTC);
 
-			to_sleep -= (int32_t) get_delta_usec(start_sleep, end_sleep);;
+			int32_t slept = (int32_t) get_delta_usec(start_sleep, end_sleep);
+			send_total += slept;
+			to_sleep -= slept;
 		}
     }
 
@@ -403,6 +407,8 @@ void* send_proc(void* data)
 	}
 
 	printf ("Seq len: %u\n", thread_data[conn_id].g_size);
+
+	printf ("send_total: %u\n", send_total);
 
     ciph_agent_conn_free(conn_id);
 

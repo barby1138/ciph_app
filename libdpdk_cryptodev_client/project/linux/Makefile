@@ -22,7 +22,7 @@ DEFINE=-D_LINUX
 
 INCLUDE=-I$(ROOTDIR) \
 		-I$(ROOTDIR)/libmemcpy \
-		-I/home/tsis/projects/dpdk_test/dpdk-stable-19.11.3/x86_64-native-linux-gcc/include
+		-I$(ROOTDIR)/3rdparty/dpdk-stable-19.11.3/x86_64-native-linux-gcc/include
 
 ifndef CFG
 CFG=debug

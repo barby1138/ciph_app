@@ -21,7 +21,7 @@ DEFINE=-D_LINUX -D_REDHAT
 
 INCLUDE=-I$(ROOTDIR) -I$(ROOTDIR)/libcommon -I$(ROOTDIR)/libmemif_client -I$(ROOTDIR)/libdpdk_cryptodev_client \
 		-I$(ROOTDIR)/libmemcpy \
-		-I$(ROOTDIR)/../fwk/fridmon[18-01-2017]/quark_1_0_1
+		-I$(ROOTDIR)/3rdparty/fridmon-0.1.10/quark_1_0_1
 
 ifndef CFG
 CFG=debug

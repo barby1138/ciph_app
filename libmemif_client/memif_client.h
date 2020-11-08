@@ -34,6 +34,7 @@ public:
     virtual void print_info() = 0;
 };
 */
+
 class Memif_client
 {
 public:
@@ -47,9 +48,6 @@ public:
     int conn_alloc(long index, const Memif_client::Conn_config_t& conn_config);
     int conn_free(long index);
 
-    // priv?
-    int set_rx_mode (long index, long qid, char *mode);
-
     int poll (long index, long qid, uint32_t size);
     int send(long index, uint64_t size, IMsg_burst_serializer& ser);
 
@@ -60,6 +58,8 @@ private:
     int poll_event(int timeout);
 
     int user_input_handler();
+    
+    int set_rx_mode (long index, long qid, char *mode);
 
 private:
     enum op_state_e { IDLE, RUNNING };
