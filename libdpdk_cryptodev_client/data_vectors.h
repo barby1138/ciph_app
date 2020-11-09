@@ -2,6 +2,8 @@
 #ifndef _CPERF_TEST_VECTRORS_
 #define _CPERF_TEST_VECTRORS_
 
+/*
+*/
 enum Sess_operation 
 {
 	SESS_OP_ATTACH = 0,
@@ -10,6 +12,8 @@ enum Sess_operation
 	SESS_OP_CLOSE = 3,
 };
 
+/*
+*/
 enum Operation_status 
 {
 	OP_STATUS_NOT_PROCESSED = 0,
@@ -17,12 +21,16 @@ enum Operation_status
 	OP_STATUS_FAILED = 2
 };
 
+/*
+*/
 enum Crypto_cipher_algorithm
 {
 	CRYPTO_CIPHER_AES_CBC = 0,
 	CRYPTO_CIPHER_ALGO_LAST
 };
 
+/*
+*/
 enum Crypto_cipher_operation
 {
 	CRYPTO_CIPHER_OP_ENCRYPT = 0,
@@ -42,12 +50,12 @@ struct Dpdk_cryptodev_data_vector {
 		uint64_t _seq;
 
 		enum Sess_operation _sess_op;
-		// [in] get / remove [out] create
+		// [in] for SESS_OP_ATTACH / SESS_OP_CLOSE [out] for SESS_OP_CREATE
 		uint32_t _sess_id;
-		// [in] create
+		// used only for SESS_OP_CREATE
 		enum Crypto_cipher_algorithm _cipher_algo;
 		enum Crypto_cipher_operation _cipher_op;
-	} op; // TODO rename
+	} op;
 
 	struct {
 		uint8_t *data;
