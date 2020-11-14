@@ -26,6 +26,7 @@ enum Operation_status
 enum Crypto_cipher_algorithm
 {
 	CRYPTO_CIPHER_AES_CBC = 0,
+	CRYPTO_CIPHER_SNOW3G_UEA2,
 	CRYPTO_CIPHER_ALGO_LAST
 };
 
@@ -34,11 +35,11 @@ enum Crypto_cipher_algorithm
 enum Crypto_cipher_operation
 {
 	CRYPTO_CIPHER_OP_ENCRYPT = 0,
-	CRYPTO_CIPHER_OP_DECRYPT = 1,
+	CRYPTO_CIPHER_OP_DECRYPT,
 	CRYPTO_CIPHER_OP_LAST
 };
 
-enum { MAX_BUFF_LIST = 10 };
+enum { MAX_BUFF_LIST = 100 };
 
 struct Dpdk_cryptodev_data_vector {
 	struct {

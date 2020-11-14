@@ -173,7 +173,7 @@ int Dpdk_cryptodev_client::init_inner()
 		ret = rte_cryptodev_configure(cdev_id, &conf);
 		if (ret < 0) 
 		{
-			printf("Failed to configure cryptodev %u", cdev_id);
+			RTE_LOG(ERR, USER1, "Failed to configure cryptodev %u\n", cdev_id);
 			return -EINVAL;
 		}
 
@@ -182,7 +182,7 @@ int Dpdk_cryptodev_client::init_inner()
 			ret = rte_cryptodev_queue_pair_setup(cdev_id, j, &qp_conf, socket_id);
 			if (ret < 0) 
 			{
-				printf("Failed to setup queue pair %u on cryptodev %u",	j, cdev_id);
+				RTE_LOG(ERR, USER1, "Failed to setup queue pair %u on cryptodev %u",	j, cdev_id);
 				return -EINVAL;
 			}
 		}
@@ -193,14 +193,14 @@ int Dpdk_cryptodev_client::init_inner()
 			0 // extra_priv
 			) < 0)
 		{
-			printf("Failed to alloc_common_memory\n");
+			RTE_LOG(ERR, USER1, "Failed to alloc_common_memory\n");
 			return -EPERM;
 		}
 
 		ret = rte_cryptodev_start(cdev_id);
 		if (ret < 0) 
 		{
-			printf("Failed to start device %u: error %d\n", cdev_id, ret);
+			RTE_LOG(ERR, USER1, "Failed to start device %u: error %d\n", cdev_id, ret);
 			return -EPERM;
 		}
 	}
@@ -247,6 +247,7 @@ int Dpdk_cryptodev_client::init(int argc, char **argv)
 
 	// TODO review
 	crypto_cipher_algo_map[CRYPTO_CIPHER_AES_CBC] = RTE_CRYPTO_CIPHER_AES_CBC;
+	crypto_cipher_algo_map[CRYPTO_CIPHER_SNOW3G_UEA2] = RTE_CRYPTO_CIPHER_SNOW3G_UEA2;
 
 	crypto_cipher_op_map[CRYPTO_CIPHER_OP_ENCRYPT] = RTE_CRYPTO_CIPHER_OP_ENCRYPT;
 	crypto_cipher_op_map[CRYPTO_CIPHER_OP_DECRYPT] = RTE_CRYPTO_CIPHER_OP_DECRYPT;
@@ -284,14 +285,14 @@ int Dpdk_cryptodev_client::init(int argc, char **argv)
 		_nb_cryptodevs = 0;
 		goto err;
 	}
-
+/*
 	ret = verify_devices_capabilities(&_opts);
 	if (ret) 
 	{
 		RTE_LOG(ERR, USER1, "Crypto device type does not support capabilities requested\n");
 		goto err;
 	}
-
+*/
     // per connection
 	t_vecs = (struct Dpdk_cryptodev_data_vector *)rte_malloc(NULL, _opts.max_burst_size * sizeof(struct Dpdk_cryptodev_data_vector), 0);
 	if (t_vecs == NULL)
@@ -376,7 +377,7 @@ int Dpdk_cryptodev_client::run_jobs(int channel_index, struct Dpdk_cryptodev_dat
 
 			if (NULL == get_session(channel_index, cdev_id, &jobs[i]))
 			{
-				printf("session == NULL - skip op\n");
+				RTE_LOG(WARNING, USER1, "session == NULL - skip op\n");
 			}
 			else
 			{	
@@ -391,14 +392,14 @@ int Dpdk_cryptodev_client::run_jobs(int channel_index, struct Dpdk_cryptodev_dat
 		}
 		else
 		{
-			printf("WARN!!! unknown sess op %d i %d\n", jobs[i].op._sess_op, i);
+			RTE_LOG(WARNING, USER1, "WARN!!! unknown sess op %d i %d\n", jobs[i].op._sess_op, i);
 		}
 
 		i++;
 	}
 
 	_opts.total_ops = j;
-
+	
 	// Get next size from range or list 
 	if (_opts.inc_buffer_size != 0)
 		_opts.test_buffer_size = _opts.min_buffer_size;
@@ -445,7 +446,7 @@ int Dpdk_cryptodev_client::run_jobs(int channel_index, struct Dpdk_cryptodev_dat
 		}
 		else
 		{
-			printf("WARN!!! unknown sess op %d i = %d\n", jobs[i].op._sess_op, i);
+			RTE_LOG(WARNING, USER1, "WARN!!! unknown sess op %d i = %d\n", jobs[i].op._sess_op, i);
 		}
 
 		i++;
@@ -488,13 +489,13 @@ int Dpdk_cryptodev_client::set_ops_cipher(
 			sym_op->m_dst = (struct rte_mbuf *)((uint8_t *)ops[i] + _dst_buf_offset);
 
 		sym_op->cipher.data.length = _opts.test_buffer_size;
-/*
+
 		// TODO cifer algo from session
-		if (options->cipher_algo == RTE_CRYPTO_CIPHER_SNOW3G_UEA2 ||
-				options->cipher_algo == RTE_CRYPTO_CIPHER_KASUMI_F8 ||
-				options->cipher_algo == RTE_CRYPTO_CIPHER_ZUC_EEA3)
-			sym_op->cipher.data.length <<= 3;
-*/
+		//if (options->cipher_algo == RTE_CRYPTO_CIPHER_SNOW3G_UEA2 ||
+		//		options->cipher_algo == RTE_CRYPTO_CIPHER_KASUMI_F8 ||
+		//		options->cipher_algo == RTE_CRYPTO_CIPHER_ZUC_EEA3)
+		//	sym_op->cipher.data.length <<= 3;
+
 		sym_op->cipher.data.offset = 0;
 
 		if (test_vectors[i].cipher_iv.length)
@@ -527,18 +528,18 @@ int Dpdk_cryptodev_client::create_session(int channel_index, uint8_t dev_id, con
 	cipher_xform.cipher.op = crypto_cipher_op_map[test_vector->op._cipher_op];
 	cipher_xform.cipher.iv.offset = iv_offset;
 
-	printf("create_session alg:%d op:%d iv_offset:%d\n", cipher_xform.cipher.algo, cipher_xform.cipher.op, cipher_xform.cipher.iv.offset);
+	RTE_LOG(NOTICE, USER1, "create_session alg:%d op:%d iv_offset:%d\n", cipher_xform.cipher.algo, cipher_xform.cipher.op, cipher_xform.cipher.iv.offset);
 
 	if (cipher_xform.cipher.algo != RTE_CRYPTO_CIPHER_NULL) {
 		cipher_xform.cipher.key.data = test_vector->cipher_key.data;
 		cipher_xform.cipher.key.length = test_vector->cipher_key.length;
-		cipher_xform.cipher.iv.length = test_vector->cipher_iv.length;
+		cipher_xform.cipher.iv.length = 16;//test_vector->cipher_iv.length;
 	} else {
 		cipher_xform.cipher.key.data = NULL;
 		cipher_xform.cipher.key.length = 0;
 		cipher_xform.cipher.iv.length = 0;
 	}
-	
+
     rte_cryptodev_sym_session_init(dev_id, s, &cipher_xform, _priv_mp);
 	
 	for (uint32_t i = 0; i < MAX_SESS_NUM; i++)
@@ -719,13 +720,13 @@ int Dpdk_cryptodev_client::run_jobs_inner(int channel_index, uint8_t dev_id, uin
 #endif /* CPERF_LINEARIZATION_ENABLE */
 
 	while (ops_enqd_total < _opts.total_ops) {
-
+	
 		uint16_t burst_size = ((ops_enqd_total + _opts.max_burst_size) <= _opts.total_ops) ?
 						_opts.max_burst_size :
 						_opts.total_ops - ops_enqd_total;
-
+	
 		uint16_t ops_needed = burst_size - ops_unused;
-
+	
 		if (rte_mempool_get_bulk(_ops_mp, (void **)ops, ops_needed) != 0) 
 		{
 			RTE_LOG(ERR, USER1,
@@ -735,14 +736,14 @@ int Dpdk_cryptodev_client::run_jobs_inner(int channel_index, uint8_t dev_id, uin
 				"with --pool-sz\n");
 			return -1;
 		}
-		
+			
 		//populate_ops
         set_ops_cipher(ops, channel_index, t_vecs, ops_needed);
 
 		// Populate the mbuf with the vector
 		for (i = 0; i < ops_needed; i++)
 			mbuf_set(ops[i]->sym->m_src, t_vecs + i);
-
+	
 #ifdef CPERF_LINEARIZATION_ENABLE
 		if (linearize) {
 			/* PMD doesn't support scatter-gather and source buffer

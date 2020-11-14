@@ -30,7 +30,17 @@
 
 #include "memcpy_fast.h"
 
-uint8_t plaintext[128] = {
+uint8_t plaintext[256] = {
+0xff, 0xca, 0xfb, 0xf1, 0x38, 0x20, 0x2f, 0x7b, 0x24, 0x98, 0x26, 0x7d, 0x1d, 0x9f, 0xb3, 0x93,
+0xd9, 0xef, 0xbd, 0xad, 0x4e, 0x40, 0xbd, 0x60, 0xe9, 0x48, 0x59, 0x90, 0x67, 0xd7, 0x2b, 0x7b,
+0x8a, 0xe0, 0x4d, 0xb0, 0x70, 0x38, 0xcc, 0x48, 0x61, 0x7d, 0xee, 0xd6, 0x35, 0x49, 0xae, 0xb4,
+0xaf, 0x6b, 0xdd, 0xe6, 0x21, 0xc0, 0x60, 0xce, 0x0a, 0xf4, 0x1c, 0x2e, 0x1c, 0x8d, 0xe8, 0x7b,
+
+0xff, 0xca, 0xfb, 0xf1, 0x38, 0x20, 0x2f, 0x7b, 0x24, 0x98, 0x26, 0x7d, 0x1d, 0x9f, 0xb3, 0x93,
+0xd9, 0xef, 0xbd, 0xad, 0x4e, 0x40, 0xbd, 0x60, 0xe9, 0x48, 0x59, 0x90, 0x67, 0xd7, 0x2b, 0x7b,
+0x8a, 0xe0, 0x4d, 0xb0, 0x70, 0x38, 0xcc, 0x48, 0x61, 0x7d, 0xee, 0xd6, 0x35, 0x49, 0xae, 0xb4,
+0xaf, 0x6b, 0xdd, 0xe6, 0x21, 0xc0, 0x60, 0xce, 0x0a, 0xf4, 0x1c, 0x2e, 0x1c, 0x8d, 0xe8, 0x7b,
+
 0xff, 0xca, 0xfb, 0xf1, 0x38, 0x20, 0x2f, 0x7b, 0x24, 0x98, 0x26, 0x7d, 0x1d, 0x9f, 0xb3, 0x93,
 0xd9, 0xef, 0xbd, 0xad, 0x4e, 0x40, 0xbd, 0x60, 0xe9, 0x48, 0x59, 0x90, 0x67, 0xd7, 0x2b, 0x7b,
 0x8a, 0xe0, 0x4d, 0xb0, 0x70, 0x38, 0xcc, 0x48, 0x61, 0x7d, 0xee, 0xd6, 0x35, 0x49, 0xae, 0xb4,
@@ -43,7 +53,17 @@ uint8_t plaintext[128] = {
 
 };
 
-uint8_t ciphertext[128] = {
+uint8_t ciphertext[256] = {
+0x75, 0x95, 0xb3, 0x48, 0x38, 0xf9, 0xe4, 0x88, 0xec, 0xf8, 0x3b, 0x09, 0x40, 0xd4, 0xd6, 0xea,
+0xf1, 0x80, 0x6d, 0xfb, 0xba, 0x9e, 0xee, 0xac, 0x6a, 0xf9, 0x8f, 0xb6, 0xe1, 0xff, 0xea, 0x19,
+0x17, 0xc2, 0x77, 0x8d, 0xc2, 0x8d, 0x6c, 0x89, 0xd1, 0x5f, 0xa6, 0xf3, 0x2c, 0xa7, 0x6a, 0x7f,
+0x50, 0x1b, 0xc9, 0x4d, 0xb4, 0x36, 0x64, 0x6e, 0xa6, 0xd9, 0x39, 0x8b, 0xcf, 0x8e, 0x0c, 0x55,
+
+0x75, 0x95, 0xb3, 0x48, 0x38, 0xf9, 0xe4, 0x88, 0xec, 0xf8, 0x3b, 0x09, 0x40, 0xd4, 0xd6, 0xea,
+0xf1, 0x80, 0x6d, 0xfb, 0xba, 0x9e, 0xee, 0xac, 0x6a, 0xf9, 0x8f, 0xb6, 0xe1, 0xff, 0xea, 0x19,
+0x17, 0xc2, 0x77, 0x8d, 0xc2, 0x8d, 0x6c, 0x89, 0xd1, 0x5f, 0xa6, 0xf3, 0x2c, 0xa7, 0x6a, 0x7f,
+0x50, 0x1b, 0xc9, 0x4d, 0xb4, 0x36, 0x64, 0x6e, 0xa6, 0xd9, 0x39, 0x8b, 0xcf, 0x8e, 0x0c, 0x55,
+
 0x75, 0x95, 0xb3, 0x48, 0x38, 0xf9, 0xe4, 0x88, 0xec, 0xf8, 0x3b, 0x09, 0x40, 0xd4, 0xd6, 0xea,
 0xf1, 0x80, 0x6d, 0xfb, 0xba, 0x9e, 0xee, 0xac, 0x6a, 0xf9, 0x8f, 0xb6, 0xe1, 0xff, 0xea, 0x19,
 0x17, 0xc2, 0x77, 0x8d, 0xc2, 0x8d, 0x6c, 0x89, 0xd1, 0x5f, 0xa6, 0xf3, 0x2c, 0xa7, 0x6a, 0x7f,
@@ -113,7 +133,7 @@ static double get_delta_usec(struct timespec start, struct timespec end)
 	return tmp;
 }
 
-void on_job_complete_cb_0 (int index, struct Dpdk_cryptodev_data_vector* vec, uint32_t size)
+inline void on_job_complete_cb_0 (int index, struct Dpdk_cryptodev_data_vector* vec, uint32_t size)
 {	
     for(uint32_t j = 0; j < size; ++j)
     {
@@ -171,47 +191,15 @@ void on_job_complete_cb_0 (int index, struct Dpdk_cryptodev_data_vector* vec, ui
 
     thread_data[index].g_size += size;
     //printf ("Seq len: %u\n", g_size);
-	// control pps
-	/*
-	static int cc[2] = { 0 };
-	if (thread_data[index].g_size > cc[index] * 100000) 
-	{
-	  cc[index]++;
-      timespec_get (&thread_data[index].end, TIME_UTC);
 
-      double tmp = 1000.0 * thread_data[index].g_size / get_delta_usec(thread_data[index].start, thread_data[index].end);
-	  printf ("Curr pps %d %f\n", index, tmp);
-	}
-*/
     if (thread_data[index].g_size == thread_data[index].num_pck + 
 					thread_data[index].num_pck_per_batch + 
-					1 /*sess cr*/ + 1 /*sess del*/)
+					1  + 1 )
     {
-      timespec_get (&thread_data[index].end, TIME_UTC);
-      printf ("\n\n");
-      printf ("Pakcet sequence finished!\n");
-      printf ("Seq len: %u\n", thread_data[index].g_size);
-      uint64_t t1 = thread_data[index].end.tv_sec - thread_data[index].start.tv_sec;
-      uint64_t t2;
-      if (thread_data[index].end.tv_nsec > thread_data[index].start.tv_nsec)
-      {
-        t2 = thread_data[index].end.tv_nsec - thread_data[index].start.tv_nsec;
-      }
-      else
-      {
-        t2 = thread_data[index].start.tv_nsec - thread_data[index].end.tv_nsec;
-        t1--;
-      }
-      printf ("Seq time: %lus %luns\n", t1, t2);
-      double tmp = t1;
-      tmp += t2 / 1e+9;
-      tmp = thread_data[index].g_size / tmp;
-      printf ("Average pps: %f\n", tmp);
-      printf ("Average TP: %f Mb/s\n", (tmp * thread_data[index].packet_size) * 8.0 / 1000000.0);
-
       printf ("g_data_failed %d\n", thread_data[index].g_data_failed);
       printf ("g_op_failed %d\n", thread_data[index].g_op_failed);
     }
+
 }
 
 ///////////////////
@@ -284,6 +272,8 @@ enum { SLEEP_TO_FACTOR = 4 };
 
 void* send_proc(void* data)
 {
+	int cc = 0;
+
 	int res;
 	uint64_t seq = 0;
 
@@ -303,7 +293,7 @@ void* send_proc(void* data)
     job_sess.op._cipher_op = thread_data[conn_id].cipher_op;
     job_sess.cipher_key.data = cipher_key;
     job_sess.cipher_key.length = 16;
-
+    
     // create session
     ciph_agent_send(conn_id, &job_sess, 1);
 
@@ -317,11 +307,14 @@ void* send_proc(void* data)
     job.op._sess_id = thread_data[conn_id].g_setup_sess_id;
     job.op._sess_op = SESS_OP_ATTACH;
     // data
-    job.cipher_buff_list[0].data = ciphertext;
-    job.cipher_buff_list[0].length = 64;
-    job.cipher_buff_list[1].data = ciphertext + 64;
-    job.cipher_buff_list[1].length = 64;
-    job.op._op_in_buff_list_len = 2;
+	job.op._op_in_buff_list_len = 16;
+	uint32_t total_length = 256;
+	uint32_t step = total_length / job.op._op_in_buff_list_len;
+	for (uint32_t i = 0; i < job.op._op_in_buff_list_len; ++i)
+	{
+    	job.cipher_buff_list[i].data = ciphertext + i*step;
+		job.cipher_buff_list[i].length = step;
+	}
 
     job.cipher_iv.data = iv;
     job.cipher_iv.length = 16;
@@ -342,14 +335,13 @@ void* send_proc(void* data)
 
     int num_batch = num_pck / num_pck_per_batch;
     
-	uint32_t pps = thread_data[conn_id].target_pps / 2;
-	int32_t send_to_usec = (1000.0 * 1000.0 * num_pck_per_batch) / pps;
+	uint32_t pps = thread_data[conn_id].target_pps;
+	int32_t send_to_usec = 2 * (1000.0 * 1000.0 * num_pck_per_batch) / pps;
 	struct timespec start_send, end_send;
 	struct timespec start_sleep, end_sleep;
 
     printf ("run ... %d\n", send_to_usec);
 	int32_t to_sleep = 0;
-	uint32_t send_total = 0;
     for(int c = 0; c < num_batch; ++c)
     {
 		memset (&start_send, 0, sizeof (start_send));
@@ -369,7 +361,6 @@ void* send_proc(void* data)
         timespec_get (&end_send, TIME_UTC);
 
 		int32_t send_took = (int32_t) get_delta_usec(start_send, end_send);
-		send_total += send_took;
 		to_sleep += send_to_usec;
 		to_sleep -= send_took;
 		while (to_sleep > send_to_usec * SLEEP_TO_FACTOR)
@@ -378,14 +369,26 @@ void* send_proc(void* data)
 			timespec_get (&start_sleep, TIME_UTC);
 
 			usleep(send_to_usec * SLEEP_TO_FACTOR);
+			/*
+	  		cc++;
+			// control pps
+			if (cc > 1000) 
+			{
+				cc = 0;
+      			timespec_get (&thread_data[conn_id].end, TIME_UTC);
 
+      			double tmp = 1000.0 * seq / get_delta_usec(thread_data[conn_id].start, thread_data[conn_id].end);
+	  			printf ("Curr pps %d %f\n", conn_id, tmp);
+			}
+			*/
 			memset (&end_sleep, 0, sizeof (end_sleep));
         	timespec_get (&end_sleep, TIME_UTC);
 
 			int32_t slept = (int32_t) get_delta_usec(start_sleep, end_sleep);
-			send_total += slept;
 			to_sleep -= slept;
 		}
+
+    	//printf ("num %ld %ld ...\n", conn_id, send_to_usec);
     }
 
     struct Dpdk_cryptodev_data_vector job_sess_del;
@@ -398,6 +401,15 @@ void* send_proc(void* data)
     // close session
 	ciph_agent_send(conn_id, &job_sess_del, 1);
 
+    timespec_get (&thread_data[conn_id].end, TIME_UTC);
+    printf ("\n\n");
+    printf ("Pakcet sequence finished!\n");
+    printf ("Seq len: %u\n", seq);
+
+    double tmp = 1000.0 * seq / get_delta_usec(thread_data[conn_id].start, thread_data[conn_id].end);
+    printf ("Average pps: %f\n", tmp);
+    printf ("Average TP: %f Mb/s\n", (tmp * thread_data[conn_id].packet_size) * 8.0 / 1000000.0);
+
     // flush
     printf ("flush ...\n");
     while(thread_data[conn_id].g_size < num_pck + num_pck_per_batch  + 1  + 1 )
@@ -407,8 +419,6 @@ void* send_proc(void* data)
 	}
 
 	printf ("Seq len: %u\n", thread_data[conn_id].g_size);
-
-	printf ("send_total: %u\n", send_total);
 
     ciph_agent_conn_free(conn_id);
 
@@ -434,6 +444,7 @@ int main(int argc, char* argv[])
 	thread_data[0].g_size = 0;
 	thread_data[0].g_setup_sess_id = -1;
 	thread_data[0].cb = on_job_complete_cb_0;
+	//thread_data[0].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
 	thread_data[0].cipher_algo = CRYPTO_CIPHER_AES_CBC;
     thread_data[0].cipher_op = CRYPTO_CIPHER_OP_DECRYPT;
 	
@@ -447,7 +458,8 @@ int main(int argc, char* argv[])
 	thread_data[1].g_size = 0;
 	thread_data[1].g_setup_sess_id = -1;
 	thread_data[1].cb = on_job_complete_cb_0;
-	thread_data[1].cipher_algo = CRYPTO_CIPHER_AES_CBC;
+	//thread_data[1].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
+	thread_data[0].cipher_algo = CRYPTO_CIPHER_AES_CBC;
     thread_data[1].cipher_op = CRYPTO_CIPHER_OP_ENCRYPT;
 
 	//int s;

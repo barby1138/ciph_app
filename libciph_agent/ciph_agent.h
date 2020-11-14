@@ -57,9 +57,12 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len, struct Dpdk_cryptodev_
         *len += vec->cipher_key.length;
     }
 
-    clib_memcpy_fast(buffer, vec->cipher_iv.data, vec->cipher_iv.length);
-    buffer += vec->cipher_iv.length;
-    *len += vec->cipher_iv.length;
+    if (vec->cipher_iv.length)
+    {
+        clib_memcpy_fast(buffer, vec->cipher_iv.data, vec->cipher_iv.length);
+        buffer += vec->cipher_iv.length;
+        *len += vec->cipher_iv.length;
+    }
 }
 
 void crypto_job_from_buffer(uint8_t* buffer, uint32_t len, struct Dpdk_cryptodev_data_vector* vec)

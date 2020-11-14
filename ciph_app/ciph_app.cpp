@@ -61,7 +61,7 @@ void print_buff(uint8_t* data, int len)
 void on_job_complete_cb (int index, struct Dpdk_cryptodev_data_vector* pjob, uint32_t size)
 {
   Dpdk_cryptodev_client_sngl::instance().run_jobs(index, pjob, size);
-
+  
   //for(int j = 0; j < size; ++j)
     //printf("id %d\n", pjob[j].op._sess_op);
     //print_buff(pjob[j].cipher_buff_list[0].data, pjob[j].cipher_buff_list[0].length);
@@ -89,10 +89,14 @@ int main(int argc, char** argv)
 	  char* v[] = { "app",
 					"--vdev", 
 					"crypto_aesni_mb_pmd", 
+          //"--vdev", 
+          //"crypto_snow3g",
 					"--no-huge", 
 					"--",
 					"--devtype",
 					"crypto_aesni_mb",
+					//"--devtype",
+					//"crypto_snow3g",
           "--buffer-sz",
           "64"
 					};
@@ -107,7 +111,7 @@ int main(int argc, char** argv)
 
     while(1)
     {
-        usleep(100);
+        usleep(1000);
         Ciph_agent_sngl::instance().poll(0, 0, 64);
         Ciph_agent_sngl::instance().poll(1, 0, 64);
     }

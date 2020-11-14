@@ -6,7 +6,7 @@
 
 ROOTDIR=../../..
 
-RTE_SDK=$(ROOTDIR)/3rdparty/dpdk-stable-19.11.3
+RTE_SDK=$(ROOTDIR)/3rdparty/dpdk-20.05
 RTE_TARGET=x86_64-native-linux-gcc
 
 include $(RTE_SDK)/mk/rte.vars.mk
@@ -52,7 +52,7 @@ INCLUDE = -I$(ROOTDIR) -I$(ROOTDIR)/dpdk -I$(ROOTDIR)/libdpdk_cryptodev_client -
 		-I$(ROOTDIR)/3rdparty/fridmon-0.1.10/hyperon_1_0_1
 
 LDFLAGS +=-L/usr/lib -L$(LIBDESTDIR) \
-	-L/home/tsis/projects/dpdk_test/dpdk-stable-19.11.3/x86_64-native-linux-gcc/lib \
+	-L$(RTE_SDK)/x86_64-native-linux-gcc/lib \
 	-L$(ROOTDIR)/3rdparty/fridmon-0.1.10/quark_1_0_1/lib/redhat/$(CFG) \
 	-L$(ROOTDIR)/3rdparty/fridmon-0.1.10/meson_1_0_1/lib/redhat/$(CFG) \
 	-L$(ROOTDIR)/3rdparty/fridmon-0.1.10/hyperon_1_0_1/lib/redhat/$(CFG)
