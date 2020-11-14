@@ -29,9 +29,9 @@ echo ============== IPSEC =====================
 
 echo ============== DPDK =====================
 #cd $ROOT
-#tar -xvf 3rdparty/dpdk-19.11.3.tar.xz  -C ./3rdparty
-#cp 3rdparty/enable_PMD_AESNI_MB.patch 3rdparty/dpdk-stable-19.11.3/config
-#cd 3rdparty/dpdk-stable-19.11.3
+#tar -xvf 3rdparty/dpdk-20.05.tar.xz  -C ./3rdparty
+#cp 3rdparty/enable_PMD_AESNI_MB.patch 3rdparty/dpdk-20.05/config
+#cd 3rdparty/dpdk-20.05
 #patch config/common_base < config/enable_PMD_AESNI_MB.patch
 #TODO build dpdk
 
