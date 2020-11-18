@@ -112,6 +112,8 @@ pthread_t thread[THR_CNT];
 
 const int MAX_CONN_CLIENT_BURST = 64;
 
+const int BUFFER_SEGMENT_NUM = 16;
+
 static double get_delta_usec(struct timespec start, struct timespec end)
 {
 
@@ -128,7 +130,7 @@ static double get_delta_usec(struct timespec start, struct timespec end)
     }
         
 	double tmp = t1 * 1000 * 1000;
-    tmp += t2 / 1000;
+    tmp += t2 / 1000.0;
 
 	return tmp;
 }
@@ -162,6 +164,7 @@ inline void on_job_complete_cb_0 (int index, struct Dpdk_cryptodev_data_vector* 
 				printf ("outbuff too small\n");	
 				thread_data[index].g_data_failed++;
 			}
+/*
 			else
 			{
 				clib_memcpy_fast(vec[j].op._op_outbuff_ptr, 
@@ -186,6 +189,7 @@ inline void on_job_complete_cb_0 (int index, struct Dpdk_cryptodev_data_vector* 
           				thread_data[index].g_data_failed++;
 				
 			}
+*/
 	  	}
     }
 
@@ -196,8 +200,8 @@ inline void on_job_complete_cb_0 (int index, struct Dpdk_cryptodev_data_vector* 
 					thread_data[index].num_pck_per_batch + 
 					1  + 1 )
     {
-      printf ("g_data_failed %d\n", thread_data[index].g_data_failed);
-      printf ("g_op_failed %d\n", thread_data[index].g_op_failed);
+      	printf ("g_data_failed %d\n", thread_data[index].g_data_failed);
+      	printf ("g_op_failed %d\n", thread_data[index].g_op_failed);
     }
 
 }
@@ -250,19 +254,8 @@ printf("memcpy default\n");
   	printf ("Pakcet sequence copied!\n");
   	printf ("Seq len: %u\n", seq_len);
   	printf ("Pck size: %u\n", pck_size);
-  	uint64_t t1 = end.tv_sec - start.tv_sec;
-  	uint64_t t2;
-  	if (end.tv_nsec > start.tv_nsec)
-	{
-      t2 = end.tv_nsec - start.tv_nsec;
-    }
-  	else
-    {
-      t2 = start.tv_nsec - end.tv_nsec;
-      t1--;
-    }
 
-  	printf ("Seq time: %lus %luns\n", t1, t2);
+	printf ("Seq time: %f us\n", get_delta_usec(start, end));
 
 	return 0;
 }
@@ -307,7 +300,7 @@ void* send_proc(void* data)
     job.op._sess_id = thread_data[conn_id].g_setup_sess_id;
     job.op._sess_op = SESS_OP_ATTACH;
     // data
-	job.op._op_in_buff_list_len = 16;
+	job.op._op_in_buff_list_len = BUFFER_SEGMENT_NUM;
 	uint32_t total_length = 256;
 	uint32_t step = total_length / job.op._op_in_buff_list_len;
 	for (uint32_t i = 0; i < job.op._op_in_buff_list_len; ++i)
@@ -444,8 +437,8 @@ int main(int argc, char* argv[])
 	thread_data[0].g_size = 0;
 	thread_data[0].g_setup_sess_id = -1;
 	thread_data[0].cb = on_job_complete_cb_0;
-	//thread_data[0].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
-	thread_data[0].cipher_algo = CRYPTO_CIPHER_AES_CBC;
+	thread_data[0].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
+	//thread_data[0].cipher_algo = CRYPTO_CIPHER_AES_CBC;
     thread_data[0].cipher_op = CRYPTO_CIPHER_OP_DECRYPT;
 	
 	thread_data[1].index = conn_id_1;
@@ -458,8 +451,8 @@ int main(int argc, char* argv[])
 	thread_data[1].g_size = 0;
 	thread_data[1].g_setup_sess_id = -1;
 	thread_data[1].cb = on_job_complete_cb_0;
-	//thread_data[1].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
-	thread_data[0].cipher_algo = CRYPTO_CIPHER_AES_CBC;
+	thread_data[1].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
+	//thread_data[0].cipher_algo = CRYPTO_CIPHER_AES_CBC;
     thread_data[1].cipher_op = CRYPTO_CIPHER_OP_ENCRYPT;
 
 	//int s;

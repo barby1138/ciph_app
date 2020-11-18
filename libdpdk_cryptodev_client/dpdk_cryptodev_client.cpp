@@ -45,7 +45,7 @@ int Dpdk_cryptodev_client::fill_session_pool_socket(int32_t socket_id, uint32_t 
 					0);
 
 		if (sess_mp == NULL) {
-			printf("Cannot create pool \"%s\" on socket %d\n",mp_name, socket_id);
+			RTE_LOG(ERR, USER1, "Cannot create pool \"%s\" on socket %d\n",mp_name, socket_id);
 			return -ENOMEM;
 		}
 
@@ -62,7 +62,7 @@ int Dpdk_cryptodev_client::fill_session_pool_socket(int32_t socket_id, uint32_t 
 					nb_sessions, 0, 0, 0, socket_id);
 
 		if (sess_mp == NULL) {
-			printf("Cannot create pool \"%s\" on socket %d\n", mp_name, socket_id);
+			RTE_LOG(ERR, USER1, "Cannot create pool \"%s\" on socket %d\n", mp_name, socket_id);
 			return -ENOMEM;
 		}
 
@@ -81,15 +81,28 @@ int Dpdk_cryptodev_client::init_inner()
 	unsigned int i, j;
 	int ret;
 
-	enabled_cdev_count = rte_cryptodev_devices_get(_opts.device_type, _enabled_cdevs, RTE_CRYPTO_MAX_DEVS);
+	printf("init_inner\n");
+	/*
+	//enabled_cdev_count = rte_cryptodev_devices_get(_opts.device_type, _enabled_cdevs, RTE_CRYPTO_MAX_DEVS);
+	enabled_cdev_count = rte_cryptodev_devices_get("crypto_aesni_mb", _enabled_cdevs, RTE_CRYPTO_MAX_DEVS);
 	printf("enabled_cdev_count: %d\n", enabled_cdev_count);
 	if (enabled_cdev_count == 0) 
 	{
 		printf("No crypto devices type %s available\n", _opts.device_type);
 		return -EINVAL;
 	}
-	printf("enabled_cdev[0] id: %d\n", _enabled_cdevs[0]);
-	
+	printf("enabled_cdev id: %d\n", _enabled_cdevs[enabled_cdev_count - 1]);
+	*/
+	enabled_cdev_count += rte_cryptodev_devices_get("crypto_snow3g", _enabled_cdevs + enabled_cdev_count, RTE_CRYPTO_MAX_DEVS);
+	printf("enabled_cdev_count: %d\n", enabled_cdev_count);
+	if (enabled_cdev_count == 0) 
+	{
+		RTE_LOG(ERR, USER1, "No crypto devices type %s available\n", _opts.device_type);
+		return -EINVAL;
+	}
+	printf("enabled_cdev id: %d\n", _enabled_cdevs[enabled_cdev_count - 1]);
+	// TODO enable two devices
+
 	nb_lcores = 1;
 
 	// Create a mempool shared by all the devices 
@@ -128,8 +141,8 @@ int Dpdk_cryptodev_client::init_inner()
 
 		rte_cryptodev_info_get(cdev_id, &cdev_info);
 		if (_opts.nb_qps > cdev_info.max_nb_queue_pairs) {
-			printf("Number of needed queue pairs is higher than the maximum number of queue pairs per device.\n");
-			printf("Lower the number of cores or increase the number of crypto devices\n");
+			RTE_LOG(ERR, USER1, "Number of needed queue pairs is higher than the maximum number of queue pairs per device.\n");
+			RTE_LOG(ERR, USER1, "Lower the number of cores or increase the number of crypto devices\n");
 			return -EINVAL;
 		}
 		struct rte_cryptodev_config conf;
@@ -620,12 +633,10 @@ int Dpdk_cryptodev_client::vec_output_set(struct rte_crypto_op *op,
 
 	if (op->sym->m_dst)
 	{
-		//printf("dst");
 		m = op->sym->m_dst;
 	}
 	else
 	{
-		//printf("src");
 		m = op->sym->m_src;
 	}
 	nb_segs = m->nb_segs;
