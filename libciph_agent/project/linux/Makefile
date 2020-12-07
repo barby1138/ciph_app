@@ -3,7 +3,7 @@
 CC=gcc
 CFLAGS=-MD
 CXX=g++
-CXXFLAGS=$(CFLAGS) -W -fexceptions -fPIC -fpermissive -w -mavx2
+CXXFLAGS=$(CFLAGS) -W -fexceptions -fPIC -fpermissive -w -mavx2 -std=c++11
 AR=ar
 ARFLAGS=rus
 
