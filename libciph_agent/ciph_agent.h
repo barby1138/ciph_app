@@ -12,7 +12,7 @@
 
 //enum { CA_MODE_SLAVE = 0, CA_MODE_MASTER = 1 };
 
-typedef void (*on_job_complete_cb_t) (int, struct Dpdk_cryptodev_data_vector*, uint32_t);
+typedef void (*on_job_complete_cb_t) (uint32_t, struct Dpdk_cryptodev_data_vector*, uint32_t);
 
 struct Data_lengths {
     uint32_t ciphertext_length;
@@ -116,14 +116,14 @@ public:
     int init();
     int cleanup();
 
-    int conn_alloc(long index, int mode, on_job_complete_cb_t cb);
-    int conn_free(long index);
+    int conn_alloc(uint32_t index, uint32_t mode, on_job_complete_cb_t cb);
+    int conn_free(uint32_t index);
 
-    int send(long index, struct Dpdk_cryptodev_data_vector* vecs, uint32_t size);
-    static void on_recv_cb (long index, const typename Comm_client::Conn_buffer_t* rx_bufs, uint32_t len);
+    int send(uint32_t index, struct Dpdk_cryptodev_data_vector* vecs, uint32_t size);
+    static void on_recv_cb (uint32_t index, const typename Comm_client::Conn_buffer_t* rx_bufs, uint32_t len);
 
-    int set_rx_mode(long index, long qid, char *mode);
-    int poll(long index, long qid, uint32_t size);
+    int set_rx_mode(uint32_t index, uint32_t qid, char *mode);
+    int poll(uint32_t index, uint32_t qid, uint32_t size);
 
 private:
 /*
@@ -152,7 +152,7 @@ template<class Comm_client>
 struct Dpdk_cryptodev_data_vector* Ciph_comm_agent<Comm_client>::_pool_vecs[MAX_CONNECTIONS] = { 0 };
 
 template<class Comm_client> 
-static void Ciph_comm_agent<Comm_client>::on_recv_cb (long index, const typename Comm_client::Conn_buffer_t* rx_bufs, uint32_t len)
+static void Ciph_comm_agent<Comm_client>::on_recv_cb (uint32_t index, const typename Comm_client::Conn_buffer_t* rx_bufs, uint32_t len)
 { 
     //TODO check index
     buffs_2_jobs(_pool_vecs[index], rx_bufs, len);
@@ -181,7 +181,7 @@ int Ciph_comm_agent<Comm_client>::cleanup()
 }
 
 template<class Comm_client> 
-int Ciph_comm_agent<Comm_client>::conn_alloc(long index, int mode, on_job_complete_cb_t cb)
+int Ciph_comm_agent<Comm_client>::conn_alloc(uint32_t index, uint32_t mode, on_job_complete_cb_t cb)
 {
     //TODO check index
     // TODO check if already allocated
@@ -198,7 +198,7 @@ int Ciph_comm_agent<Comm_client>::conn_alloc(long index, int mode, on_job_comple
 }
 
 template<class Comm_client> 
-int Ciph_comm_agent<Comm_client>::conn_free(long index)
+int Ciph_comm_agent<Comm_client>::conn_free(uint32_t index)
 {
     _cb[index] = NULL;
 
@@ -206,7 +206,7 @@ int Ciph_comm_agent<Comm_client>::conn_free(long index)
 }
 
 template<class Comm_client> 
-int Ciph_comm_agent<Comm_client>::send(long index, struct Dpdk_cryptodev_data_vector* vecs, uint32_t size)
+int Ciph_comm_agent<Comm_client>::send(uint32_t index, struct Dpdk_cryptodev_data_vector* vecs, uint32_t size)
 {
     //TODO check index
     Ciph_vec_burst_serializer ser(vecs, size);
@@ -215,13 +215,13 @@ int Ciph_comm_agent<Comm_client>::send(long index, struct Dpdk_cryptodev_data_ve
 }
 
 template<class Comm_client> 
-int Ciph_comm_agent<Comm_client>::set_rx_mode(long index, long qid, char *mode)
+int Ciph_comm_agent<Comm_client>::set_rx_mode(uint32_t index, uint32_t qid, char *mode)
 {
     return _client.set_rx_mode(index, qid, mode);
 }
 
 template<class Comm_client> 
-int Ciph_comm_agent<Comm_client>::poll(long index, long qid, uint32_t size)
+int Ciph_comm_agent<Comm_client>::poll(uint32_t index, uint32_t qid, uint32_t size)
 {
     int res =_client.poll(index, qid, size);
 

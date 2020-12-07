@@ -135,7 +135,7 @@ static double get_delta_usec(struct timespec start, struct timespec end)
 	return tmp;
 }
 
-inline void on_job_complete_cb_0 (int index, struct Dpdk_cryptodev_data_vector* vec, uint32_t size)
+inline void on_job_complete_cb_0 (uint32_t index, struct Dpdk_cryptodev_data_vector* vec, uint32_t size)
 {	
     for(uint32_t j = 0; j < size; ++j)
     {
@@ -265,7 +265,7 @@ enum { SLEEP_TO_FACTOR = 1 };
 
 void* send_proc(void* data)
 {
-	int cc = 0;
+	//int cc = 0;
 
 	int res;
 	uint64_t seq = 0;
@@ -293,7 +293,7 @@ void* send_proc(void* data)
     // poll and recv created session id
     while(thread_data[conn_id].g_size < 1 )
 	{
-      ciph_agent_poll(conn_id, MAX_CONN_CLIENT_BURST);
+      res = ciph_agent_poll(conn_id, MAX_CONN_CLIENT_BURST);
 	  if (res == -2) printf ("ciph_agent_poll ERROR\n");;
 	}
 
@@ -323,11 +323,11 @@ void* send_proc(void* data)
     {
 		job.op._seq = seq++;
 		res = ciph_agent_send(conn_id, &job, 1);
-		if (res == -2) ciph_agent_send;
+		if (res == -2) printf ("ciph_agent_send ERROR\n");;
     }
     
 	res = ciph_agent_poll(conn_id, MAX_CONN_CLIENT_BURST);
-	if (res == -2) printf ("ciph_agent_poll ERROR\n");;
+	if (res == -2) printf ("ciph_agent_poll ERROR\n");
 	
     timespec_get (&thread_data[conn_id].start, TIME_UTC);
 
@@ -404,7 +404,7 @@ void* send_proc(void* data)
     timespec_get (&thread_data[conn_id].end, TIME_UTC);
     printf ("\n\n");
     printf ("Pakcet sequence finished!\n");
-    printf ("Seq len: %u\n", seq);
+    printf ("Seq len: %lu\n", seq);
 
     double tmp = 1000.0 * seq / get_delta_usec(thread_data[conn_id].start, thread_data[conn_id].end);
     printf ("Average pps: %f\n", tmp);
@@ -414,7 +414,7 @@ void* send_proc(void* data)
 	printf ("flush ...\n");
     while(thread_data[conn_id].g_size < seq) // num_pck + num_pck_per_batch + 1  + 1
 	{
-      	int res = ciph_agent_poll(conn_id, MAX_CONN_CLIENT_BURST);
+      	res = ciph_agent_poll(conn_id, MAX_CONN_CLIENT_BURST);
 		if (res == -2) printf ("ciph_agent_poll ERROR\n");;
 	}
 
