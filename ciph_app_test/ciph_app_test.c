@@ -87,7 +87,7 @@ uint8_t cipher_key[] = {
 enum { MAX_OUTBUFF_LEN = 1500 };
 uint8_t outbuff[MAX_OUTBUFF_LEN];
 
-enum { THR_CNT = 2 };
+enum { THR_CNT = 4 };
 typedef struct
 {
   	long index;
@@ -194,7 +194,7 @@ inline void on_job_complete_cb_0 (int index, struct Dpdk_cryptodev_data_vector* 
     }
 
     thread_data[index].g_size += size;
-    //printf ("Seq len: %u\n", g_size);
+    //printf ("index %d Seq len: %u\n", index, thread_data[index].g_size);
 
     if (thread_data[index].g_size == thread_data[index].num_pck + 
 					thread_data[index].num_pck_per_batch + 
@@ -261,7 +261,7 @@ printf("memcpy default\n");
 }
 ///////////////////////////
 
-enum { SLEEP_TO_FACTOR = 4 };
+enum { SLEEP_TO_FACTOR = 1 };
 
 void* send_proc(void* data)
 {
@@ -292,7 +292,10 @@ void* send_proc(void* data)
 
     // poll and recv created session id
     while(thread_data[conn_id].g_size < 1 )
+	{
       ciph_agent_poll(conn_id, MAX_CONN_CLIENT_BURST);
+	  if (res == -2) printf ("ciph_agent_poll ERROR\n");;
+	}
 
     struct Dpdk_cryptodev_data_vector job;
     memset(&job, 0, sizeof(struct Dpdk_cryptodev_data_vector));
@@ -320,10 +323,12 @@ void* send_proc(void* data)
     {
 		job.op._seq = seq++;
 		res = ciph_agent_send(conn_id, &job, 1);
-		if (res == -2) break;
+		if (res == -2) ciph_agent_send;
     }
-    ciph_agent_poll(conn_id, MAX_CONN_CLIENT_BURST);
-
+    
+	res = ciph_agent_poll(conn_id, MAX_CONN_CLIENT_BURST);
+	if (res == -2) printf ("ciph_agent_poll ERROR\n");;
+	
     timespec_get (&thread_data[conn_id].start, TIME_UTC);
 
     int num_batch = num_pck / num_pck_per_batch;
@@ -344,11 +349,13 @@ void* send_proc(void* data)
       	{
 		  	job.op._seq = seq++;
         	res = ciph_agent_send(conn_id, &job, 1);
-			if (res == -2) break;
+			if (res == -2) printf ("ciph_agent_send ERROR\n");;
       	}
 
-      	res = ciph_agent_poll(conn_id, MAX_CONN_CLIENT_BURST);
-		if (res == -2) break;
+    	res = ciph_agent_poll(conn_id, MAX_CONN_CLIENT_BURST);
+		if (res == -2) printf ("ciph_agent_poll ERROR\n");
+
+		//printf ("polled ... %d\n", seq);
 
 		memset (&end_send, 0, sizeof (end_send));
         timespec_get (&end_send, TIME_UTC);
@@ -404,11 +411,11 @@ void* send_proc(void* data)
     printf ("Average TP: %f Mb/s\n", (tmp * thread_data[conn_id].packet_size) * 8.0 / 1000000.0);
 
     // flush
-    printf ("flush ...\n");
-    while(thread_data[conn_id].g_size < num_pck + num_pck_per_batch  + 1  + 1 )
+	printf ("flush ...\n");
+    while(thread_data[conn_id].g_size < seq) // num_pck + num_pck_per_batch + 1  + 1
 	{
       	int res = ciph_agent_poll(conn_id, MAX_CONN_CLIENT_BURST);
-		if (res == -2) break;
+		if (res == -2) printf ("ciph_agent_poll ERROR\n");;
 	}
 
 	printf ("Seq len: %u\n", thread_data[conn_id].g_size);
@@ -431,7 +438,7 @@ int main(int argc, char* argv[])
 	thread_data[0].packet_size = 200;
   	thread_data[0].num_pck = 10000000;
 	thread_data[0].target_pps = 160000;
-  	thread_data[0].num_pck_per_batch = 32;
+  	thread_data[0].num_pck_per_batch = 16;
     memset (&thread_data[0].start, 0, sizeof (thread_data[0].start));
     memset (&thread_data[0].end, 0, sizeof (thread_data[0].end));
 	thread_data[0].g_size = 0;
@@ -445,7 +452,7 @@ int main(int argc, char* argv[])
 	thread_data[1].packet_size = 200;
   	thread_data[1].num_pck = 10000000 / 2;
 	thread_data[1].target_pps = 160000 / 2;
-  	thread_data[1].num_pck_per_batch = 32;
+  	thread_data[1].num_pck_per_batch = 16;
     memset (&thread_data[1].start, 0, sizeof (thread_data[1].start));
     memset (&thread_data[1].end, 0, sizeof (thread_data[1].end));
 	thread_data[1].g_size = 0;

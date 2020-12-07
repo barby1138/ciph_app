@@ -745,7 +745,9 @@ int Memif_client::send(long index, uint64_t size, IMsg_burst_serializer& ser)
     int log = 0;
     while (count)
     {
-          if (retries++ > MAX_SEND_RETRIES)
+          retries++;
+
+          if (retries > MAX_SEND_RETRIES)
           {
               //printf ("retries > MAX_SEND_RETRIES - are we disconnected?\n");
               m.unlock();
@@ -774,13 +776,7 @@ int Memif_client::send(long index, uint64_t size, IMsg_burst_serializer& ser)
               printf ("memif_buffer_alloc: failed %s\n", memif_strerror (err));
               return -1;
           }
-/*
-          if (err == MEMIF_ERR_NOBUF_RING)
-          {
-              //printf("sleep\n");
-              continue;
-          }
-*/
+
           c->tx_buf_num += tx;
 
           while (tx)
@@ -815,6 +811,9 @@ int Memif_client::send(long index, uint64_t size, IMsg_burst_serializer& ser)
           c->tx_counter += tx;
           count -= tx;
     }
+
+    //if (retries > 2)
+      //printf("retr %d\n", retries);
 
     return 0;
 }

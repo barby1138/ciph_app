@@ -7,7 +7,7 @@
 ROOTDIR=../../..
 
 RTE_SDK=$(ROOTDIR)/3rdparty/dpdk-20.05
-RTE_TARGET=x86_64-native-linux-gcc
+RTE_TARGET=x86_64-native-linuxapp-gcc
 
 include $(RTE_SDK)/mk/rte.vars.mk
 
@@ -45,14 +45,15 @@ SRCS-y := ../../ciph_app.cpp
 INCLUDE = -I$(ROOTDIR) -I$(ROOTDIR)/dpdk -I$(ROOTDIR)/libdpdk_cryptodev_client -I$(ROOTDIR)/libciph_agent \
 		-I$(ROOTDIR)/libmemif_client -I$(ROOTDIR)/libcommon \
 		-I$(ROOTDIR)/libmemcpy \
-		-I$(RTE_SDK)/x86_64-native-linux-gcc/include \
+		-I$(RTE_SDK)/x86_64-native-linuxapp-gcc/include \
 		-I$(ROOTDIR)/3rdparty/fridmon-0.1.10/quark_1_0_1 \
 		-I$(ROOTDIR)/3rdparty/fridmon-0.1.10/meson_1_0_1 \
 		-I$(ROOTDIR)/3rdparty/fridmon-0.1.10/nucleon_1_0_1 \
 		-I$(ROOTDIR)/3rdparty/fridmon-0.1.10/hyperon_1_0_1
 
+
 LDFLAGS +=-L/usr/lib -L$(LIBDESTDIR) \
-	-L$(RTE_SDK)/x86_64-native-linux-gcc/lib \
+	-L$(RTE_SDK)/x86_64-native-linuxapp-gcc/lib \
 	-L$(ROOTDIR)/3rdparty/fridmon-0.1.10/quark_1_0_1/lib/redhat/$(CFG) \
 	-L$(ROOTDIR)/3rdparty/fridmon-0.1.10/meson_1_0_1/lib/redhat/$(CFG) \
 	-L$(ROOTDIR)/3rdparty/fridmon-0.1.10/hyperon_1_0_1/lib/redhat/$(CFG)

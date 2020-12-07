@@ -28,12 +28,13 @@ echo ============== IPSEC =====================
 #make install
 
 echo ============== DPDK =====================
-#cd $ROOT
-#tar -xvf 3rdparty/dpdk-20.05.tar.xz  -C ./3rdparty
-#cp 3rdparty/enable_PMD_AESNI_MB.patch 3rdparty/dpdk-20.05/config
-#cd 3rdparty/dpdk-20.05
-#patch config/common_base < config/enable_PMD_AESNI_MB.patch
-#TODO build dpdk
+cd $ROOT
+tar -xvf 3rdparty/dpdk-20.05.tar.gz  -C ./3rdparty
+cp 3rdparty/enable_PMD_AESNI_MB.patch 3rdparty/dpdk-20.05/config
+cd 3rdparty/dpdk-20.05
+patch config/common_base < config/enable_PMD_AESNI_MB.patch
+export DESTDIR=$ROOT/3rdparty/dpdk-20.05/distr/x86_64-native-linuxapp-gcc
+make install T=x86_64-native-linuxapp-gcc
 
 echo ============== CIPH_APP =====================
 cd $ROOT

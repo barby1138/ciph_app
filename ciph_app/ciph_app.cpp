@@ -109,11 +109,12 @@ int main(int argc, char** argv)
     Ciph_agent_sngl::instance().conn_alloc(0, 1, on_job_complete_cb);
     Ciph_agent_sngl::instance().conn_alloc(1, 1, on_job_complete_cb);
 
+    int res;
     while(1)
     {
         usleep(1000);
-        Ciph_agent_sngl::instance().poll(0, 0, 64);
-        Ciph_agent_sngl::instance().poll(1, 0, 64);
+        res = Ciph_agent_sngl::instance().poll(0, 0, 64);
+        res = Ciph_agent_sngl::instance().poll(1, 0, 64);     
     }
 
     Ciph_agent_sngl::instance().conn_free(0);
