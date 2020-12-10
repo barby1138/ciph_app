@@ -91,7 +91,7 @@ enum { THR_CNT = 4 };
 typedef struct
 {
   	long index;
-	on_job_complete_cb_t cb;
+	on_jobs_complete_cb_t cb;
   	uint32_t packet_size;
   	uint32_t num_pck;
   	uint32_t num_pck_per_batch;
@@ -135,7 +135,7 @@ static double get_delta_usec(struct timespec start, struct timespec end)
 	return tmp;
 }
 
-inline void on_job_complete_cb_0 (uint32_t index, struct Dpdk_cryptodev_data_vector* vec, uint32_t size)
+inline void on_jobs_complete_cb_0 (uint32_t index, struct Dpdk_cryptodev_data_vector* vec, uint32_t size)
 {	
     for(uint32_t j = 0; j < size; ++j)
     {
@@ -445,7 +445,7 @@ int main(int argc, char* argv[])
     memset (&thread_data[0].end, 0, sizeof (thread_data[0].end));
 	thread_data[0].g_size = 0;
 	thread_data[0].g_setup_sess_id = -1;
-	thread_data[0].cb = on_job_complete_cb_0;
+	thread_data[0].cb = on_jobs_complete_cb_0;
 	thread_data[0].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
 	//thread_data[0].cipher_algo = CRYPTO_CIPHER_AES_CBC;
     thread_data[0].cipher_op = CRYPTO_CIPHER_OP_DECRYPT;
@@ -459,7 +459,7 @@ int main(int argc, char* argv[])
     memset (&thread_data[1].end, 0, sizeof (thread_data[1].end));
 	thread_data[1].g_size = 0;
 	thread_data[1].g_setup_sess_id = -1;
-	thread_data[1].cb = on_job_complete_cb_0;
+	thread_data[1].cb = on_jobs_complete_cb_0;
 	thread_data[1].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
 	//thread_data[0].cipher_algo = CRYPTO_CIPHER_AES_CBC;
     thread_data[1].cipher_op = CRYPTO_CIPHER_OP_ENCRYPT;

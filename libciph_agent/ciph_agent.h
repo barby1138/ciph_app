@@ -12,7 +12,7 @@
 
 //enum { CA_MODE_SLAVE = 0, CA_MODE_MASTER = 1 };
 
-typedef void (*on_job_complete_cb_t) (uint32_t, struct Dpdk_cryptodev_data_vector*, uint32_t);
+typedef void (*on_jobs_complete_cb_t) (uint32_t, struct Dpdk_cryptodev_data_vector*, uint32_t);
 
 struct Data_lengths {
     uint32_t ciphertext_length;
@@ -116,7 +116,7 @@ public:
     int init();
     int cleanup();
 
-    int conn_alloc(uint32_t index, uint32_t mode, on_job_complete_cb_t cb);
+    int conn_alloc(uint32_t index, uint32_t mode, on_jobs_complete_cb_t cb);
     int conn_free(uint32_t index);
 
     int send(uint32_t index, struct Dpdk_cryptodev_data_vector* vecs, uint32_t size);
@@ -140,14 +140,14 @@ private:
     }
 
 private:
-    static on_job_complete_cb_t _cb[MAX_CONNECTIONS];
+    static on_jobs_complete_cb_t _cb[MAX_CONNECTIONS];
     static struct Dpdk_cryptodev_data_vector* _pool_vecs[MAX_CONNECTIONS];
 
     Comm_client _client;
 };
 
 template<class Comm_client> 
-on_job_complete_cb_t Ciph_comm_agent<Comm_client>::_cb[MAX_CONNECTIONS] = { 0 };
+on_jobs_complete_cb_t Ciph_comm_agent<Comm_client>::_cb[MAX_CONNECTIONS] = { 0 };
 template<class Comm_client> 
 struct Dpdk_cryptodev_data_vector* Ciph_comm_agent<Comm_client>::_pool_vecs[MAX_CONNECTIONS] = { 0 };
 
@@ -181,7 +181,7 @@ int Ciph_comm_agent<Comm_client>::cleanup()
 }
 
 template<class Comm_client> 
-int Ciph_comm_agent<Comm_client>::conn_alloc(uint32_t index, uint32_t mode, on_job_complete_cb_t cb)
+int Ciph_comm_agent<Comm_client>::conn_alloc(uint32_t index, uint32_t mode, on_jobs_complete_cb_t cb)
 {
     //TODO check index
     // TODO check if already allocated

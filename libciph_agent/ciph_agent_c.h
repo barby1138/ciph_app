@@ -5,7 +5,7 @@
 
 enum { CA_MODE_SLAVE = 0, CA_MODE_MASTER = 1 };
 
-typedef void (*on_job_complete_cb_t) (uint32_t, struct Dpdk_cryptodev_data_vector*, uint32_t);
+typedef void (*on_jobs_complete_cb_t) (uint32_t, struct Dpdk_cryptodev_data_vector*, uint32_t);
 
 /*
 * initializes communication client
@@ -22,7 +22,7 @@ int32_t ciph_agent_cleanup();
 * id - connection id
 * cb - call back which is called for batch of completed jobs during polling and in polling context
 */
-int32_t ciph_agent_conn_alloc(uint32_t id, uint32_t mode, on_job_complete_cb_t cb);
+int32_t ciph_agent_conn_alloc(uint32_t id, uint32_t mode, on_jobs_complete_cb_t cb);
 
 /*
 * frees connection
