@@ -52,7 +52,7 @@ std::recursive_mutex m;
 typedef std::lock_guard<std::recursive_mutex> LOCK_GUARD;
 
 /* maximum tx/rx memif buffers */
-#define MAX_MEMIF_BUFS 64
+#define MAX_MEMIF_BUFS 128
 #define MAX_CONNS 50
 #define ICMPR_HEADROOM 64
 
@@ -278,18 +278,16 @@ int on_interrupt02 (memif_conn_handle_t conn, void *private_ctx, uint16_t qid)
         }
         //printf ("recv %d\n", rx);
 
-        if (rx > 0)
-        {
-          c->rx_buf_num += rx;
-          c->rx_counter += rx;
+        c->rx_buf_num += rx;
+        c->rx_counter += rx;
 
+        if (rx > 0)
           c->fn(index, c->rx_bufs, rx);
 
-          err = memif_refill_queue (c->conn, qid, rx, ICMPR_HEADROOM);
-          if (err != MEMIF_ERR_SUCCESS)
-              INFO ("memif_buffer_free: %s", memif_strerror (err));
-          c->rx_buf_num -= rx;
-        }
+        err = memif_refill_queue (c->conn, qid, rx, ICMPR_HEADROOM);
+        if (err != MEMIF_ERR_SUCCESS)
+            INFO ("memif_buffer_free: %s", memif_strerror (err));
+        c->rx_buf_num -= rx;
     }
     while (ret_val == MEMIF_ERR_NOBUF);
 
@@ -340,7 +338,6 @@ int on_interrupt02_poll (long index, uint16_t qid, uint32_t count)
         err = memif_rx_burst (c->conn, 
                     qid, 
                     c->rx_bufs, 
-                    //MAX_MEMIF_BUFS > count ? count : MAX_MEMIF_BUFS, 
                     MAX_MEMIF_BUFS, 
                     &rx);
         ret_val = err;
@@ -354,16 +351,14 @@ int on_interrupt02_poll (long index, uint16_t qid, uint32_t count)
         c->rx_counter += rx;
 
         if (rx > 0)
-        {
           c->fn(index, c->rx_bufs, rx);
-        }
 
         err = memif_refill_queue (c->conn, qid, rx, ICMPR_HEADROOM);
         if (err != MEMIF_ERR_SUCCESS)
             printf ("memif_buffer_free: %s\n", memif_strerror (err));
         c->rx_buf_num -= rx;
 
-        count -= rx;
+        //count -= rx;
     }
     while (ret_val == MEMIF_ERR_NOBUF /*&& count*/);
 
@@ -464,7 +459,7 @@ int Memif_client::conn_alloc (long index, const Memif_client::Conn_config_t& con
     memif_conn_args_t args;
     memset (&args, 0, sizeof (args));
     args.is_master = conn_config._mode;
-    args.log2_ring_size = 11;
+    args.log2_ring_size = 13;
     args.buffer_size = 2048;
     args.num_s2m_rings = 1;
     args.num_m2s_rings = 1;
@@ -708,6 +703,8 @@ void Memif_client::print_info ()
 }
 
 enum { MAX_SEND_RETRIES = 1000000 };
+enum { RETRY_WAIT_FACTOR = 2 };
+
 int Memif_client::send(long index, uint64_t size, IMsg_burst_serializer& ser)
 {
     LOCK_GUARD guard(m);
@@ -746,6 +743,11 @@ int Memif_client::send(long index, uint64_t size, IMsg_burst_serializer& ser)
     while (count)
     {
           retries++;
+
+          if (retries == 2 || retries == 4 || retries == 8)
+          {
+            usleep(100);
+          }
 
           if (retries > MAX_SEND_RETRIES)
           {

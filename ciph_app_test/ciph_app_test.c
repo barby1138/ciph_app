@@ -434,11 +434,13 @@ int main(int argc, char* argv[])
 
     ciph_agent_init();
 
+	//while(1)
+	{
 	thread_data[0].index = conn_id_0;
 	thread_data[0].packet_size = 200;
   	thread_data[0].num_pck = 10000000;
 	thread_data[0].target_pps = 160000;
-  	thread_data[0].num_pck_per_batch = 16;
+  	thread_data[0].num_pck_per_batch = 32;
     memset (&thread_data[0].start, 0, sizeof (thread_data[0].start));
     memset (&thread_data[0].end, 0, sizeof (thread_data[0].end));
 	thread_data[0].g_size = 0;
@@ -452,7 +454,7 @@ int main(int argc, char* argv[])
 	thread_data[1].packet_size = 200;
   	thread_data[1].num_pck = 10000000 / 2;
 	thread_data[1].target_pps = 160000 / 2;
-  	thread_data[1].num_pck_per_batch = 16;
+  	thread_data[1].num_pck_per_batch = 32;
     memset (&thread_data[1].start, 0, sizeof (thread_data[1].start));
     memset (&thread_data[1].end, 0, sizeof (thread_data[1].end));
 	thread_data[1].g_size = 0;
@@ -464,11 +466,13 @@ int main(int argc, char* argv[])
 
 	//int s;
 	void *res;
+
     pthread_create (&thread[0], NULL, send_proc, (void *)&conn_id_0);
 	pthread_create (&thread[1], NULL, send_proc, (void *)&conn_id_1);
 	pthread_join(thread[0], &res);
 	pthread_join(thread[1], &res);
-
+	}
+	
     ciph_agent_cleanup();
 
     return 0;
