@@ -14,6 +14,8 @@
 
 typedef void (*on_jobs_complete_cb_t) (uint32_t, struct Dpdk_cryptodev_data_vector*, uint32_t);
 
+#define CIFER_IV_LENGTH 16
+
 struct Data_lengths {
     uint32_t ciphertext_length;
     uint32_t cipher_key_length;
@@ -24,7 +26,18 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len, struct Dpdk_cryptodev_
 {
     *len = 0;
 
-    clib_memcpy_fast(buffer, &vec->op, sizeof(vec->op));
+    struct Operation_t* buffer_op = (struct Operation_t*) buffer;
+	buffer_op->_op_status = vec->op._op_status;
+	buffer_op->_op_ctx_ptr = vec->op._op_ctx_ptr;
+	buffer_op->_op_outbuff_ptr = vec->op._op_outbuff_ptr;
+	buffer_op->_op_outbuff_len = vec->op._op_outbuff_len;
+	buffer_op->_op_in_buff_list_len = vec->op._op_in_buff_list_len;
+	buffer_op->_seq = vec->op._seq;
+	buffer_op->_sess_op = vec->op._sess_op;
+	buffer_op->_sess_id = vec->op._sess_id;
+	buffer_op->_cipher_algo = vec->op._cipher_algo;
+	buffer_op->_cipher_op = vec->op._cipher_op;
+
     buffer += sizeof(vec->op);
     *len += sizeof(vec->op);
 
@@ -36,7 +49,11 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len, struct Dpdk_cryptodev_
     data_lnn.cipher_key_length = vec->cipher_key.length;
     data_lnn.cipher_iv_length = vec->cipher_iv.length;
 
-    clib_memcpy_fast(buffer, &data_lnn, sizeof(struct Data_lengths));
+    struct Data_lengths* buffer_data_lnn = (struct Data_lengths* ) buffer;
+    buffer_data_lnn->ciphertext_length = data_lnn.ciphertext_length;
+    buffer_data_lnn->cipher_key_length = data_lnn.cipher_key_length;
+    buffer_data_lnn->cipher_iv_length = data_lnn.cipher_iv_length;
+
     buffer += sizeof(struct Data_lengths);
     *len += sizeof(struct Data_lengths);
 
@@ -59,7 +76,7 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len, struct Dpdk_cryptodev_
 
     if (vec->cipher_iv.length)
     {
-        clib_memcpy_fast(buffer, vec->cipher_iv.data, vec->cipher_iv.length);
+        clib_memcpy_fast(buffer, vec->cipher_iv.data, CIFER_IV_LENGTH /*vec->cipher_iv.length*/);
         buffer += vec->cipher_iv.length;
         *len += vec->cipher_iv.length;
     }
@@ -67,7 +84,18 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len, struct Dpdk_cryptodev_
 
 void crypto_job_from_buffer(uint8_t* buffer, uint32_t len, struct Dpdk_cryptodev_data_vector* vec)
 {
-    clib_memcpy_fast(&vec->op, buffer, sizeof(vec->op));
+    struct Operation_t* buffer_op = (struct Operation_t*) buffer;
+	vec->op._op_status = buffer_op->_op_status;
+	vec->op._op_ctx_ptr = buffer_op->_op_ctx_ptr;
+	vec->op._op_outbuff_ptr = buffer_op->_op_outbuff_ptr;
+	vec->op._op_outbuff_len = buffer_op->_op_outbuff_len;
+	vec->op._op_in_buff_list_len = buffer_op->_op_in_buff_list_len;
+	vec->op._seq = buffer_op->_seq;
+	vec->op._sess_op = buffer_op->_sess_op;
+	vec->op._sess_id = buffer_op->_sess_id;
+	vec->op._cipher_algo = buffer_op->_cipher_algo;
+	vec->op._cipher_op = buffer_op->_cipher_op;
+
     buffer += sizeof(vec->op);
 
     struct Data_lengths* pData_lnn = (struct Data_lengths*)buffer;

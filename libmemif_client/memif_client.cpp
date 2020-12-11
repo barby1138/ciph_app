@@ -182,7 +182,7 @@ int on_connect (memif_conn_handle_t conn, void *private_ctx)
 
   {
     c->connected = 1;
-    printf ("memif connected! %d\n", c->connected);
+    printf ("memif connected! %d ind %d\n", c->connected, index);
   }
 
   return 0;
@@ -215,7 +215,7 @@ int on_disconnect (memif_conn_handle_t conn, void *private_ctx)
 
   {
     c->connected = 0;
-    printf ("memif disconnected! %d\n", c->connected);
+    printf ("memif disconnected! %d ind %d\n", c->connected, index);
   }
 
   return 0;
@@ -459,7 +459,7 @@ int Memif_client::conn_alloc (long index, const Memif_client::Conn_config_t& con
     memif_conn_args_t args;
     memset (&args, 0, sizeof (args));
     args.is_master = conn_config._mode;
-    args.log2_ring_size = 13;
+    args.log2_ring_size = 14;
     args.buffer_size = 2048;
     args.num_s2m_rings = 1;
     args.num_m2s_rings = 1;
@@ -744,11 +744,13 @@ int Memif_client::send(long index, uint64_t size, IMsg_burst_serializer& ser)
     {
           retries++;
 
-          if (retries == 2 || retries == 4 || retries == 8)
+          //if (retries == 2 || retries == 4 || retries == 8)
+/*
+          if (retries % 4 == 0)
           {
             usleep(100);
           }
-
+*/
           if (retries > MAX_SEND_RETRIES)
           {
               //printf ("retries > MAX_SEND_RETRIES - are we disconnected?\n");

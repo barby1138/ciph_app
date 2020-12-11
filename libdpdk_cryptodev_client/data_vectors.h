@@ -41,8 +41,7 @@ enum Crypto_cipher_operation
 
 enum { MAX_BUFF_LIST = 100 };
 
-struct Dpdk_cryptodev_data_vector {
-	struct {
+struct Operation_t {
 		uint32_t _op_status;
 		uint8_t* _op_ctx_ptr;
 		uint8_t* _op_outbuff_ptr;
@@ -56,22 +55,19 @@ struct Dpdk_cryptodev_data_vector {
 		// used only for SESS_OP_CREATE
 		enum Crypto_cipher_algorithm _cipher_algo;
 		enum Crypto_cipher_operation _cipher_op;
-	} op;
+};
 
-	struct {
+struct Buff_t {
 		uint8_t *data;
 		uint32_t length;
-	} cipher_buff_list[MAX_BUFF_LIST];
+};
 
-	struct {
-		uint8_t *data;
-		uint16_t length;
-	} cipher_key;
+struct Dpdk_cryptodev_data_vector {
+	struct Operation_t op;
 
-	struct {
-		uint8_t *data;
-		uint16_t length;
-	} cipher_iv;
+	struct Buff_t cipher_buff_list[MAX_BUFF_LIST];
+	struct Buff_t cipher_key;
+	struct Buff_t cipher_iv;
 };
 
 #endif // _CPERF_TEST_VECTRORS_

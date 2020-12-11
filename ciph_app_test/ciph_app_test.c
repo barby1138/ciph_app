@@ -112,7 +112,7 @@ pthread_t thread[THR_CNT];
 
 const int MAX_CONN_CLIENT_BURST = 64;
 
-const int BUFFER_SEGMENT_NUM = 16;
+const int BUFFER_SEGMENT_NUM = 4;
 
 static double get_delta_usec(struct timespec start, struct timespec end)
 {
@@ -164,7 +164,7 @@ inline void on_jobs_complete_cb_0 (uint32_t index, struct Dpdk_cryptodev_data_ve
 				printf ("outbuff too small\n");	
 				thread_data[index].g_data_failed++;
 			}
-/*
+
 			else
 			{
 				clib_memcpy_fast(vec[j].op._op_outbuff_ptr, 
@@ -189,7 +189,7 @@ inline void on_jobs_complete_cb_0 (uint32_t index, struct Dpdk_cryptodev_data_ve
           				thread_data[index].g_data_failed++;
 				
 			}
-*/
+
 	  	}
     }
 
@@ -265,7 +265,7 @@ enum { SLEEP_TO_FACTOR = 1 };
 
 void* send_proc(void* data)
 {
-	//int cc = 0;
+	int cc = 0;
 
 	int res;
 	uint64_t seq = 0;
@@ -419,7 +419,7 @@ void* send_proc(void* data)
 	}
 
 	printf ("Seq len: %u\n", thread_data[conn_id].g_size);
-
+	
     ciph_agent_conn_free(conn_id);
 
 	return NULL;
@@ -434,7 +434,7 @@ int main(int argc, char* argv[])
 
     ciph_agent_init();
 
-	//while(1)
+	while(1)
 	{
 	thread_data[0].index = conn_id_0;
 	thread_data[0].packet_size = 200;

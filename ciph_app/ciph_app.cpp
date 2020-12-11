@@ -60,7 +60,6 @@ void print_buff(uint8_t* data, int len)
 
 struct Dpdk_cryptodev_data_vector g_job[2][100000];
 uint32_t g_size[2];
-uint32_t g_index[2] = { 0 };
 uint32_t g_tot_size[2] = { 0 };
 uint32_t g_tot_size_1[2] = { 0 };
 
@@ -72,16 +71,15 @@ void on_job_complete_cb (uint32_t index, struct Dpdk_cryptodev_data_vector* pjob
     //printf("id %d\n", pjob[j].op._sess_op);
     //print_buff(pjob[j].cipher_buff_list[0].data, pjob[j].cipher_buff_list[0].length);
 
+  //usleep(500);
   Ciph_agent_sngl::instance().send(index, pjob, size);
+
   /*
   for (int i = 0; i < size; i++)
   {
-    memcpy(&g_job[index][g_index[index] + i], &pjob[i], sizeof(struct Dpdk_cryptodev_data_vector));
+    memcpy(&g_job[index][i], &pjob[i], sizeof(struct Dpdk_cryptodev_data_vector));
   }
-  g_size[index] += size;
-  g_index[index] += size;
-
-  printf("g_index %d %d\n", g_index[0], g_index[1]);
+  g_size[index] = size;
   */
   //g_tot_size_1[index] += g_size[index];    
   //printf("g_tot_size_1 %d %d\n", g_tot_size_1[0], g_tot_size_1[1]);
@@ -130,16 +128,15 @@ int main(int argc, char** argv)
     int res;
     while(1)
     {
-        usleep(1000);
+        usleep(100);
         res = Ciph_agent_sngl::instance().poll(0, 0, 64);
         /*
         if (res == 0 && g_size[0] > 0)
         {
           g_tot_size[0] += g_size[0];
-          printf("g_size 0 %d\n", g_size[0]);
+          //printf("g_size 0 %d\n", g_size[0]);
           Ciph_agent_sngl::instance().send(0, g_job[0], g_size[0]);
           g_size[0] = 0;
-          g_index[0] = 0;
         }
 */
         res = Ciph_agent_sngl::instance().poll(1, 0, 64);     
@@ -147,12 +144,11 @@ int main(int argc, char** argv)
         if (res == 0 && g_size[1] > 0)
         {
           g_tot_size[1] += g_size[1];
-          printf("g_size 1 %d\n", g_size[1]);
+          //printf("g_size 1 %d\n", g_size[1]);
           Ciph_agent_sngl::instance().send(1, g_job[1], g_size[1]);
           g_size[1] = 0;
-          g_index[1] = 0;
         }
-        */
+  */
         //printf("g_tot_size %d %d\n", g_tot_size[0], g_tot_size[1]);
     }
 

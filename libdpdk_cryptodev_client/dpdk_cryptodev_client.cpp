@@ -93,6 +93,7 @@ int Dpdk_cryptodev_client::init_inner()
 	}
 	printf("enabled_cdev id: %d\n", _enabled_cdevs[enabled_cdev_count - 1]);
 	*/
+
 	enabled_cdev_count += rte_cryptodev_devices_get("crypto_snow3g", _enabled_cdevs + enabled_cdev_count, RTE_CRYPTO_MAX_DEVS);
 	printf("enabled_cdev_count: %d\n", enabled_cdev_count);
 	if (enabled_cdev_count == 0) 
@@ -514,7 +515,7 @@ int Dpdk_cryptodev_client::set_ops_cipher(
 		if (test_vectors[i].cipher_iv.length)
 		{
 			uint8_t *iv_ptr = rte_crypto_op_ctod_offset(ops[i], uint8_t *, iv_offset);
-			clib_memcpy_fast(iv_ptr, test_vectors[i].cipher_iv.data, test_vectors[i].cipher_iv.length);
+			clib_memcpy_fast(iv_ptr, test_vectors[i].cipher_iv.data, /*test_vectors[i].cipher_iv.length*/16);
 		}
 	}
 
