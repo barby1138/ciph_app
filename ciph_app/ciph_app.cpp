@@ -66,10 +66,12 @@ uint32_t g_tot_size_1[2] = { 0 };
 void on_job_complete_cb (uint32_t index, struct Dpdk_cryptodev_data_vector* pjob, uint32_t size)
 {
   Dpdk_cryptodev_client_sngl::instance().run_jobs(index, pjob, size);
-  
-  //for(int j = 0; j < size; ++j)
+
     //printf("id %d\n", pjob[j].op._sess_op);
-    //print_buff(pjob[j].cipher_buff_list[0].data, pjob[j].cipher_buff_list[0].length);
+    //if (pjob[j].cipher_buff_list[0].length == 0)
+    //{
+      //print_buff(pjob[j].cipher_buff_list[0].data, pjob[j].cipher_buff_list[0].length);
+    //}
 
   //usleep(500);
   Ciph_agent_sngl::instance().send(index, pjob, size);
@@ -114,7 +116,7 @@ int main(int argc, char** argv)
 					//"--devtype",
 					//"crypto_snow3g",
           "--buffer-sz",
-          "64"
+          "256"
 					};
     int c = 9;
 

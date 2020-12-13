@@ -38,21 +38,25 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len, struct Dpdk_cryptodev_
 	buffer_op->_cipher_algo = vec->op._cipher_algo;
 	buffer_op->_cipher_op = vec->op._cipher_op;
 
+    //clib_memcpy_fast(buffer, &vec->op, sizeof(struct Operation_t));
+    
     buffer += sizeof(vec->op);
     *len += sizeof(vec->op);
 
-    struct Data_lengths data_lnn;
-    data_lnn.ciphertext_length = 0;
+    struct Data_lengths data_len;
+    data_len.ciphertext_length = 0;
     for (int i = 0; i < vec->op._op_in_buff_list_len; i++)
-        data_lnn.ciphertext_length += vec->cipher_buff_list[i].length;
+        data_len.ciphertext_length += vec->cipher_buff_list[i].length;
 
-    data_lnn.cipher_key_length = vec->cipher_key.length;
-    data_lnn.cipher_iv_length = vec->cipher_iv.length;
+    data_len.cipher_key_length = vec->cipher_key.length;
+    data_len.cipher_iv_length = vec->cipher_iv.length;
 
-    struct Data_lengths* buffer_data_lnn = (struct Data_lengths* ) buffer;
-    buffer_data_lnn->ciphertext_length = data_lnn.ciphertext_length;
-    buffer_data_lnn->cipher_key_length = data_lnn.cipher_key_length;
-    buffer_data_lnn->cipher_iv_length = data_lnn.cipher_iv_length;
+    struct Data_lengths* buffer_data_len = (struct Data_lengths* ) buffer;
+    buffer_data_len->ciphertext_length = data_len.ciphertext_length;
+    buffer_data_len->cipher_key_length = data_len.cipher_key_length;
+    buffer_data_len->cipher_iv_length = data_len.cipher_iv_length;
+
+    //clib_memcpy_fast(buffer, &data_len, sizeof(struct Data_lengths));
 
     buffer += sizeof(struct Data_lengths);
     *len += sizeof(struct Data_lengths);
@@ -96,22 +100,24 @@ void crypto_job_from_buffer(uint8_t* buffer, uint32_t len, struct Dpdk_cryptodev
 	vec->op._cipher_algo = buffer_op->_cipher_algo;
 	vec->op._cipher_op = buffer_op->_cipher_op;
 
+    //clib_memcpy_fast(&vec->op, buffer, sizeof(vec->op));
+
     buffer += sizeof(vec->op);
 
-    struct Data_lengths* pData_lnn = (struct Data_lengths*)buffer;
+    struct Data_lengths* pData_len = (struct Data_lengths*)buffer;
     buffer += sizeof(struct Data_lengths);
 
     vec->cipher_buff_list[0].data = buffer;
-    vec->cipher_buff_list[0].length = pData_lnn->ciphertext_length;
+    vec->cipher_buff_list[0].length = pData_len->ciphertext_length;
     vec->op._op_in_buff_list_len = 1;
 
-    buffer += pData_lnn->ciphertext_length;
+    buffer += pData_len->ciphertext_length;
     vec->cipher_key.data = buffer;
-    vec->cipher_key.length = pData_lnn->cipher_key_length;
+    vec->cipher_key.length = pData_len->cipher_key_length;
 
     buffer += vec->cipher_key.length;
     vec->cipher_iv.data = buffer;
-    vec->cipher_iv.length = pData_lnn->cipher_iv_length;
+    vec->cipher_iv.length = pData_len->cipher_iv_length;
 }
 
 class Ciph_vec_burst_serializer : public IMsg_burst_serializer

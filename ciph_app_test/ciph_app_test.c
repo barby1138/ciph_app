@@ -30,12 +30,12 @@
 
 #include "memcpy_fast.h"
 
-uint8_t plaintext[256] = {
+uint8_t plaintext[64] = {
 0xff, 0xca, 0xfb, 0xf1, 0x38, 0x20, 0x2f, 0x7b, 0x24, 0x98, 0x26, 0x7d, 0x1d, 0x9f, 0xb3, 0x93,
 0xd9, 0xef, 0xbd, 0xad, 0x4e, 0x40, 0xbd, 0x60, 0xe9, 0x48, 0x59, 0x90, 0x67, 0xd7, 0x2b, 0x7b,
 0x8a, 0xe0, 0x4d, 0xb0, 0x70, 0x38, 0xcc, 0x48, 0x61, 0x7d, 0xee, 0xd6, 0x35, 0x49, 0xae, 0xb4,
 0xaf, 0x6b, 0xdd, 0xe6, 0x21, 0xc0, 0x60, 0xce, 0x0a, 0xf4, 0x1c, 0x2e, 0x1c, 0x8d, 0xe8, 0x7b,
-
+/*
 0xff, 0xca, 0xfb, 0xf1, 0x38, 0x20, 0x2f, 0x7b, 0x24, 0x98, 0x26, 0x7d, 0x1d, 0x9f, 0xb3, 0x93,
 0xd9, 0xef, 0xbd, 0xad, 0x4e, 0x40, 0xbd, 0x60, 0xe9, 0x48, 0x59, 0x90, 0x67, 0xd7, 0x2b, 0x7b,
 0x8a, 0xe0, 0x4d, 0xb0, 0x70, 0x38, 0xcc, 0x48, 0x61, 0x7d, 0xee, 0xd6, 0x35, 0x49, 0xae, 0xb4,
@@ -50,15 +50,15 @@ uint8_t plaintext[256] = {
 0xd9, 0xef, 0xbd, 0xad, 0x4e, 0x40, 0xbd, 0x60, 0xe9, 0x48, 0x59, 0x90, 0x67, 0xd7, 0x2b, 0x7b,
 0x8a, 0xe0, 0x4d, 0xb0, 0x70, 0x38, 0xcc, 0x48, 0x61, 0x7d, 0xee, 0xd6, 0x35, 0x49, 0xae, 0xb4,
 0xaf, 0x6b, 0xdd, 0xe6, 0x21, 0xc0, 0x60, 0xce, 0x0a, 0xf4, 0x1c, 0x2e, 0x1c, 0x8d, 0xe8, 0x7b
-
+*/
 };
 
-uint8_t ciphertext[256] = {
+uint8_t ciphertext[64] = {
 0x75, 0x95, 0xb3, 0x48, 0x38, 0xf9, 0xe4, 0x88, 0xec, 0xf8, 0x3b, 0x09, 0x40, 0xd4, 0xd6, 0xea,
 0xf1, 0x80, 0x6d, 0xfb, 0xba, 0x9e, 0xee, 0xac, 0x6a, 0xf9, 0x8f, 0xb6, 0xe1, 0xff, 0xea, 0x19,
 0x17, 0xc2, 0x77, 0x8d, 0xc2, 0x8d, 0x6c, 0x89, 0xd1, 0x5f, 0xa6, 0xf3, 0x2c, 0xa7, 0x6a, 0x7f,
 0x50, 0x1b, 0xc9, 0x4d, 0xb4, 0x36, 0x64, 0x6e, 0xa6, 0xd9, 0x39, 0x8b, 0xcf, 0x8e, 0x0c, 0x55,
-
+/*
 0x75, 0x95, 0xb3, 0x48, 0x38, 0xf9, 0xe4, 0x88, 0xec, 0xf8, 0x3b, 0x09, 0x40, 0xd4, 0xd6, 0xea,
 0xf1, 0x80, 0x6d, 0xfb, 0xba, 0x9e, 0xee, 0xac, 0x6a, 0xf9, 0x8f, 0xb6, 0xe1, 0xff, 0xea, 0x19,
 0x17, 0xc2, 0x77, 0x8d, 0xc2, 0x8d, 0x6c, 0x89, 0xd1, 0x5f, 0xa6, 0xf3, 0x2c, 0xa7, 0x6a, 0x7f,
@@ -73,7 +73,7 @@ uint8_t ciphertext[256] = {
 0xf1, 0x80, 0x6d, 0xfb, 0xba, 0x9e, 0xee, 0xac, 0x6a, 0xf9, 0x8f, 0xb6, 0xe1, 0xff, 0xea, 0x19,
 0x17, 0xc2, 0x77, 0x8d, 0xc2, 0x8d, 0x6c, 0x89, 0xd1, 0x5f, 0xa6, 0xf3, 0x2c, 0xa7, 0x6a, 0x7f,
 0x50, 0x1b, 0xc9, 0x4d, 0xb4, 0x36, 0x64, 0x6e, 0xa6, 0xd9, 0x39, 0x8b, 0xcf, 0x8e, 0x0c, 0x55
-
+*/
 };
 
 uint8_t iv[] = {
@@ -112,8 +112,29 @@ pthread_t thread[THR_CNT];
 
 const int MAX_CONN_CLIENT_BURST = 64;
 
-const int BUFFER_SEGMENT_NUM = 4;
+const int BUFFER_TOTAL_LEN = 64;
+const int BUFFER_SEGMENT_NUM = 1;
 
+const int PCK_NUM = 10000000;
+
+void print_buff(uint8_t* data, int len)
+{
+  fprintf(stdout, "test app length %d\n", len);
+
+  int c = 0;
+  fprintf(stdout, "%03d ", c++);
+
+  for(int i = 0; i < len; ++i)
+  {
+    fprintf(stdout, "%02X%s", data[i], ( i + 1 ) % 16 == 0 ? "\r\n" : " " );
+
+    if (( i + 1 ) % 16 == 0)
+      fprintf(stdout, "%03d ", c++);
+  }
+
+  fprintf(stdout, "\r\n");
+}
+  
 static double get_delta_usec(struct timespec start, struct timespec end)
 {
 
@@ -137,6 +158,8 @@ static double get_delta_usec(struct timespec start, struct timespec end)
 
 inline void on_jobs_complete_cb_0 (uint32_t index, struct Dpdk_cryptodev_data_vector* vec, uint32_t size)
 {	
+	int ccc = 0;
+
     for(uint32_t j = 0; j < size; ++j)
     {
       	if (vec[j].op._op_status != OP_STATUS_SUCC)
@@ -164,32 +187,38 @@ inline void on_jobs_complete_cb_0 (uint32_t index, struct Dpdk_cryptodev_data_ve
 				printf ("outbuff too small\n");	
 				thread_data[index].g_data_failed++;
 			}
-
 			else
 			{
+				/*
 				clib_memcpy_fast(vec[j].op._op_outbuff_ptr, 
 					vec[j].cipher_buff_list[0].data, 
 					vec[j].cipher_buff_list[0].length);
 
 				vec[j].op._op_outbuff_len = vec[j].cipher_buff_list[0].length;
+*/
+    			//print_buff(vec[j].cipher_buff_list[0].data, vec[j].cipher_buff_list[0].length);
 
-				// invalidate memif buffers - will be returned to pool
-				vec[j].cipher_buff_list[0].data = NULL;
-				vec[j].cipher_buff_list[0].length = 0;
-	
 				if (thread_data[index].cipher_op == CRYPTO_CIPHER_OP_DECRYPT)
 					if ( 0 != memcmp(plaintext,
-							vec[j].op._op_outbuff_ptr,
-							vec[j].op._op_outbuff_len))
+							vec[j].cipher_buff_list[0].data,
+							vec[j].cipher_buff_list[0].length))
+					{
           				thread_data[index].g_data_failed++;
+						printf ("g_data_failed %d\n", thread_data[index].g_data_failed);
+					}
 				else  if (thread_data[index].cipher_op == CRYPTO_CIPHER_OP_ENCRYPT)
 					if ( 0 != memcmp(ciphertext,
-							vec[j].op._op_outbuff_ptr,
-							vec[j].op._op_outbuff_len))
+							vec[j].cipher_buff_list[0].data,
+							vec[j].cipher_buff_list[0].length))
+					{
           				thread_data[index].g_data_failed++;
-				
-			}
+						printf ("g_data_failed %d\n", thread_data[index].g_data_failed);
+					}
 
+				// invalidate memif buffers - will be returned to pool
+				//vec[j].cipher_buff_list[0].data = NULL;
+				//vec[j].cipher_buff_list[0].length = 0;
+			}
 	  	}
     }
 
@@ -198,7 +227,7 @@ inline void on_jobs_complete_cb_0 (uint32_t index, struct Dpdk_cryptodev_data_ve
 
     if (thread_data[index].g_size == thread_data[index].num_pck + 
 					thread_data[index].num_pck_per_batch + 
-					1  + 1 )
+					1 + 1 )
     {
       	printf ("g_data_failed %d\n", thread_data[index].g_data_failed);
       	printf ("g_op_failed %d\n", thread_data[index].g_op_failed);
@@ -304,14 +333,19 @@ void* send_proc(void* data)
     job.op._sess_op = SESS_OP_ATTACH;
     // data
 	job.op._op_in_buff_list_len = BUFFER_SEGMENT_NUM;
-	uint32_t total_length = 256;
+	job.op._cipher_op = thread_data[conn_id].cipher_op;
+	/*
+	uint32_t total_length = 64; //256;
 	uint32_t step = total_length / job.op._op_in_buff_list_len;
 	for (uint32_t i = 0; i < job.op._op_in_buff_list_len; ++i)
 	{
     	job.cipher_buff_list[i].data = ciphertext + i*step;
 		job.cipher_buff_list[i].length = step;
 	}
-
+	*/
+    job.cipher_buff_list[0].data = (job.op._cipher_op == CRYPTO_CIPHER_OP_ENCRYPT) ? plaintext : ciphertext;
+	job.cipher_buff_list[0].length = 64;
+	
     job.cipher_iv.data = iv;
     job.cipher_iv.length = 16;
 	// outbuf
@@ -369,7 +403,7 @@ void* send_proc(void* data)
 			timespec_get (&start_sleep, TIME_UTC);
 
 			usleep(send_to_usec * SLEEP_TO_FACTOR);
-			/*
+			
 	  		cc++;
 			// control pps
 			if (cc > 1000) 
@@ -380,7 +414,7 @@ void* send_proc(void* data)
       			double tmp = 1000.0 * seq / get_delta_usec(thread_data[conn_id].start, thread_data[conn_id].end);
 	  			printf ("Curr pps %d %f\n", conn_id, tmp);
 			}
-			*/
+			
 			memset (&end_sleep, 0, sizeof (end_sleep));
         	timespec_get (&end_sleep, TIME_UTC);
 
@@ -434,11 +468,11 @@ int main(int argc, char* argv[])
 
     ciph_agent_init();
 
-	while(1)
+	//while(1)
 	{
 	thread_data[0].index = conn_id_0;
 	thread_data[0].packet_size = 200;
-  	thread_data[0].num_pck = 10000000;
+  	thread_data[0].num_pck = PCK_NUM;
 	thread_data[0].target_pps = 160000;
   	thread_data[0].num_pck_per_batch = 32;
     memset (&thread_data[0].start, 0, sizeof (thread_data[0].start));
@@ -446,13 +480,13 @@ int main(int argc, char* argv[])
 	thread_data[0].g_size = 0;
 	thread_data[0].g_setup_sess_id = -1;
 	thread_data[0].cb = on_jobs_complete_cb_0;
-	thread_data[0].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
-	//thread_data[0].cipher_algo = CRYPTO_CIPHER_AES_CBC;
+	//thread_data[0].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
+	thread_data[0].cipher_algo = CRYPTO_CIPHER_AES_CBC;
     thread_data[0].cipher_op = CRYPTO_CIPHER_OP_DECRYPT;
 	
 	thread_data[1].index = conn_id_1;
 	thread_data[1].packet_size = 200;
-  	thread_data[1].num_pck = 10000000 / 2;
+  	thread_data[1].num_pck = PCK_NUM / 2;
 	thread_data[1].target_pps = 160000 / 2;
   	thread_data[1].num_pck_per_batch = 32;
     memset (&thread_data[1].start, 0, sizeof (thread_data[1].start));
@@ -460,8 +494,8 @@ int main(int argc, char* argv[])
 	thread_data[1].g_size = 0;
 	thread_data[1].g_setup_sess_id = -1;
 	thread_data[1].cb = on_jobs_complete_cb_0;
-	thread_data[1].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
-	//thread_data[0].cipher_algo = CRYPTO_CIPHER_AES_CBC;
+	//thread_data[1].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
+	thread_data[0].cipher_algo = CRYPTO_CIPHER_AES_CBC;
     thread_data[1].cipher_op = CRYPTO_CIPHER_OP_ENCRYPT;
 
 	//int s;
@@ -471,6 +505,12 @@ int main(int argc, char* argv[])
 	pthread_create (&thread[1], NULL, send_proc, (void *)&conn_id_1);
 	pthread_join(thread[0], &res);
 	pthread_join(thread[1], &res);
+
+	printf ("g_data_failed %d\n", thread_data[0].g_data_failed);
+    printf ("g_op_failed %d\n", thread_data[0].g_op_failed);
+
+	printf ("g_data_failed %d\n", thread_data[1].g_data_failed);
+    printf ("g_op_failed %d\n", thread_data[1].g_op_failed);
 	}
 	
     ciph_agent_cleanup();

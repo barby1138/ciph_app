@@ -429,8 +429,8 @@ cperf_options_default(struct Dpdk_cryptodev_options *opts)
 
 	opts->buffer_size_list[0] = 64;
 	opts->buffer_size_count = 1;
-	opts->max_buffer_size = 64;
-	opts->min_buffer_size = 64;
+	opts->max_buffer_size = 2048;
+	opts->min_buffer_size = 2048;
 	opts->inc_buffer_size = 0;
 
 	opts->burst_size_list[0] = 32;

@@ -52,7 +52,7 @@ std::recursive_mutex m;
 typedef std::lock_guard<std::recursive_mutex> LOCK_GUARD;
 
 /* maximum tx/rx memif buffers */
-#define MAX_MEMIF_BUFS 128
+#define MAX_MEMIF_BUFS 64
 #define MAX_CONNS 50
 #define ICMPR_HEADROOM 64
 
