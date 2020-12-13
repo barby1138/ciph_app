@@ -358,7 +358,7 @@ int Dpdk_cryptodev_client::init(int argc, char **argv)
 		goto err;
 	}
 
-	out_data = (uint8_t*) malloc(_opts.max_burst_size * _opts.max_buffer_size);
+	out_data = (uint8_t*) malloc(_opts.max_burst_size * /*_opts.max_buffer_size*/ 2048);
     if (out_data == NULL)
 	{
 		RTE_LOG(ERR, USER1, "out_data alloc failed\n");
@@ -443,6 +443,7 @@ int Dpdk_cryptodev_client::run_jobs(int channel_index, struct Dpdk_cryptodev_dat
 			}
 			else
 			{	
+				/*
 				if ( 0 != memcmp((jobs[i].op._cipher_op == CRYPTO_CIPHER_OP_DECRYPT) ? ciphertext : plaintext,
 					jobs[i].cipher_buff_list[0].data,
 					jobs[i].cipher_buff_list[0].length))
@@ -451,7 +452,7 @@ int Dpdk_cryptodev_client::run_jobs(int channel_index, struct Dpdk_cryptodev_dat
 
 					print_buff1(jobs[i].cipher_buff_list[0].data, jobs[i].cipher_buff_list[0].length);
 				}
-
+*/
 				t_vecs[j].op._sess_id = jobs[i].op._sess_id;
 				t_vecs[j].cipher_buff_list[0].data = jobs[i].cipher_buff_list[0].data;
 				t_vecs[j].cipher_buff_list[0].length = jobs[i].cipher_buff_list[0].length; //_opts.max_buffer_size;
