@@ -58,33 +58,15 @@ void print_buff(uint8_t* data, int len)
   fprintf(stdout, "\r\n");
 }
 
-struct Dpdk_cryptodev_data_vector g_job[2][100000];
-uint32_t g_size[2];
-uint32_t g_tot_size[2] = { 0 };
-uint32_t g_tot_size_1[2] = { 0 };
+struct Dpdk_cryptodev_data_vector* g_job;
+uint32_t g_size;
 
 void on_job_complete_cb (uint32_t index, struct Dpdk_cryptodev_data_vector* pjob, uint32_t size)
 {
   Dpdk_cryptodev_client_sngl::instance().run_jobs(index, pjob, size);
 
-    //printf("id %d\n", pjob[j].op._sess_op);
-    //if (pjob[j].cipher_buff_list[0].length == 0)
-    //{
-      //print_buff(pjob[j].cipher_buff_list[0].data, pjob[j].cipher_buff_list[0].length);
-    //}
-
   //usleep(500);
   Ciph_agent_sngl::instance().send(index, pjob, size);
-
-  /*
-  for (int i = 0; i < size; i++)
-  {
-    memcpy(&g_job[index][i], &pjob[i], sizeof(struct Dpdk_cryptodev_data_vector));
-  }
-  g_size[index] = size;
-  */
-  //g_tot_size_1[index] += g_size[index];    
-  //printf("g_tot_size_1 %d %d\n", g_tot_size_1[0], g_tot_size_1[1]);
 }
 
 int main(int argc, char** argv)
@@ -116,7 +98,7 @@ int main(int argc, char** argv)
 					//"--devtype",
 					//"crypto_snow3g",
           "--buffer-sz",
-          "256"
+          "1024"
 					};
     int c = 9;
 
@@ -133,25 +115,22 @@ int main(int argc, char** argv)
         usleep(100);
         res = Ciph_agent_sngl::instance().poll(0, 0, 64);
         /*
-        if (res == 0 && g_size[0] > 0)
+        if (res == 0 && g_size > 0)
         {
-          g_tot_size[0] += g_size[0];
-          //printf("g_size 0 %d\n", g_size[0]);
-          Ciph_agent_sngl::instance().send(0, g_job[0], g_size[0]);
-          g_size[0] = 0;
+          //printf("g_size 0 %d\n", g_size);
+          Ciph_agent_sngl::instance().send(0, g_job, g_size);
+          g_size = 0;
         }
 */
         res = Ciph_agent_sngl::instance().poll(1, 0, 64);     
         /*
-        if (res == 0 && g_size[1] > 0)
+        if (res == 0 && g_size > 0)
         {
-          g_tot_size[1] += g_size[1];
-          //printf("g_size 1 %d\n", g_size[1]);
-          Ciph_agent_sngl::instance().send(1, g_job[1], g_size[1]);
-          g_size[1] = 0;
+          //printf("g_size 1 %d\n", g_size);
+          Ciph_agent_sngl::instance().send(1, g_job, g_size);
+          g_size = 0;
         }
   */
-        //printf("g_tot_size %d %d\n", g_tot_size[0], g_tot_size[1]);
     }
 
     Ciph_agent_sngl::instance().conn_free(0);

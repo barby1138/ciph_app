@@ -1,12 +1,7 @@
 #include "stdafx.h"
 
-#include <functional>
-#include <thread>
-
 #include "memif_client.h"
 #include "data_vectors.h"
-
-#include <cstring>
 
 #include "memcpy_fast.h"
 
@@ -266,7 +261,6 @@ private:
     Simple_singleton_holder& operator= (const Simple_singleton_holder);
 };
 
-#include <memory>
 template<typename T>
 T& Simple_singleton_holder<T>::instance()
 {

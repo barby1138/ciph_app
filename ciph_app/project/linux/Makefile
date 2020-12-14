@@ -43,7 +43,7 @@ SRCS-y := ../../ciph_app.cpp
 #SRCS-y += ../../dpdk_cryptodev_client.cpp
 
 INCLUDE = -I$(ROOTDIR) -I$(ROOTDIR)/dpdk -I$(ROOTDIR)/libdpdk_cryptodev_client -I$(ROOTDIR)/libciph_agent \
-		-I$(ROOTDIR)/libmemif_client -I$(ROOTDIR)/libcommon \
+		-I$(ROOTDIR)/libmemif_client \
 		-I$(ROOTDIR)/libmemcpy \
 		-I$(RTE_SDK)/x86_64-native-linuxapp-gcc/include \
 		-I$(ROOTDIR)/3rdparty/fridmon-0.1.10/quark_1_0_1 \
@@ -51,6 +51,7 @@ INCLUDE = -I$(ROOTDIR) -I$(ROOTDIR)/dpdk -I$(ROOTDIR)/libdpdk_cryptodev_client -
 		-I$(ROOTDIR)/3rdparty/fridmon-0.1.10/nucleon_1_0_1 \
 		-I$(ROOTDIR)/3rdparty/fridmon-0.1.10/hyperon_1_0_1
 
+#-I$(ROOTDIR)/libcommon
 
 LDFLAGS +=-L/usr/lib -L$(LIBDESTDIR) \
 	-L$(RTE_SDK)/x86_64-native-linuxapp-gcc/lib \

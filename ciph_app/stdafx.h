@@ -15,10 +15,6 @@
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 
-// libcommon
-#include "exceptions.h"
-#include "strings.h"
-
 #include <quark/config.h>
 #include <quark/singleton.h>
 

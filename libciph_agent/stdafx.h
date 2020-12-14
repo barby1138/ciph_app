@@ -16,6 +16,10 @@
 #include <cstdint> // uint64_t
 #include <memory>
 
+#include <functional>
+#include <thread>
+#include <cstring>
+
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 
