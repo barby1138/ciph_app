@@ -19,9 +19,8 @@ TARGET=$(DESTDIR)/$(LIBNAME).a
 
 DEFINE=-D_LINUX -D_REDHAT
 
-INCLUDE=-I$(ROOTDIR) -I$(ROOTDIR)/libcommon -I$(ROOTDIR)/libmemif_client -I$(ROOTDIR)/libdpdk_cryptodev_client \
-		-I$(ROOTDIR)/libmemcpy \
-		-I$(ROOTDIR)/3rdparty/fridmon-0.1.10/quark_1_0_1
+INCLUDE=-I$(ROOTDIR) -I$(ROOTDIR)/libmemif_client -I$(ROOTDIR)/libdpdk_cryptodev_client \
+		-I$(ROOTDIR)/libmemcpy 
 
 ifndef CFG
 CFG=debug

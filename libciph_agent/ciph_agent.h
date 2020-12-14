@@ -37,8 +37,6 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len, struct Dpdk_cryptodev_
 	buffer_op->_sess_id = vec->op._sess_id;
 	buffer_op->_cipher_algo = vec->op._cipher_algo;
 	buffer_op->_cipher_op = vec->op._cipher_op;
-
-    //clib_memcpy_fast(buffer, &vec->op, sizeof(struct Operation_t));
     
     buffer += sizeof(vec->op);
     *len += sizeof(vec->op);
@@ -55,8 +53,6 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len, struct Dpdk_cryptodev_
     buffer_data_len->ciphertext_length = data_len.ciphertext_length;
     buffer_data_len->cipher_key_length = data_len.cipher_key_length;
     buffer_data_len->cipher_iv_length = data_len.cipher_iv_length;
-
-    //clib_memcpy_fast(buffer, &data_len, sizeof(struct Data_lengths));
 
     buffer += sizeof(struct Data_lengths);
     *len += sizeof(struct Data_lengths);
@@ -80,7 +76,7 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len, struct Dpdk_cryptodev_
 
     if (vec->cipher_iv.length)
     {
-        clib_memcpy_fast(buffer, vec->cipher_iv.data, CIFER_IV_LENGTH /*vec->cipher_iv.length*/);
+        clib_memcpy_fast(buffer, vec->cipher_iv.data, vec->cipher_iv.length);
         buffer += vec->cipher_iv.length;
         *len += vec->cipher_iv.length;
     }
@@ -99,8 +95,6 @@ void crypto_job_from_buffer(uint8_t* buffer, uint32_t len, struct Dpdk_cryptodev
 	vec->op._sess_id = buffer_op->_sess_id;
 	vec->op._cipher_algo = buffer_op->_cipher_algo;
 	vec->op._cipher_op = buffer_op->_cipher_op;
-
-    //clib_memcpy_fast(&vec->op, buffer, sizeof(vec->op));
 
     buffer += sizeof(vec->op);
 
@@ -262,4 +256,22 @@ int Ciph_comm_agent<Comm_client>::poll(uint32_t index, uint32_t qid, uint32_t si
     return res;
 }
 
-typedef quark::singleton_holder<Ciph_comm_agent<Memif_client> > Ciph_agent_sngl;
+template<typename T>
+class Simple_singleton_holder {
+public:
+    static T& instance();
+
+private:
+    Simple_singleton_holder(const Simple_singleton_holder&);
+    Simple_singleton_holder& operator= (const Simple_singleton_holder);
+};
+
+#include <memory>
+template<typename T>
+T& Simple_singleton_holder<T>::instance()
+{
+    static T instance;
+    return instance;
+}
+
+typedef Simple_singleton_holder<Ciph_comm_agent<Memif_client> > Ciph_agent_sngl;

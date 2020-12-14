@@ -18,25 +18,16 @@ DESTDIR=$(ROOTDIR)/bin/$(OS)/$(CFG)
 TARGET=$(DESTDIR)/ciph_app_test
 
 COMMONLIBS= -lpthread -lrt
-SHAREDLIBS= -lcommon \
-		-lciph_agent -lmemif_client -lmemif\
-		-lquark -lhyperon -lmeson -lexpat
+SHAREDLIBS= -lciph_agent -lmemif_client -lmemif
 
 DEFINE=-D_LINUX -D_REDHAT
 
-INCLUDE=-I$(ROOTDIR) -I$(ROOTDIR)/libciph_agent -I$(ROOTDIR)/libcommon \
+INCLUDE=-I$(ROOTDIR) -I$(ROOTDIR)/libciph_agent \
 		-I$(ROOTDIR)/libdpdk_cryptodev_client -I$(ROOTDIR)/libmemif_client \
 		-I$(ROOTDIR)/libmemcpy \
-		-I$(RTE_SDK)/$(RTE_TARGET)/include \
-		-I$(ROOTDIR)/3rdparty/fridmon-0.1.10/quark_1_0_1 \
-		-I$(ROOTDIR)/3rdparty/fridmon-0-1-10/meson_1_0_1 \
-		-I$(ROOTDIR)/3rdparty/fridmon-0-1-10/nucleon_1_0_1 \
-		-I$(ROOTDIR)/3rdparty/fridmon-0-1-10/hyperon_1_0_1
+		-I$(RTE_SDK)/$(RTE_TARGET)/include 
 
-LDFLAGS+=-L/usr/lib -L$(LIBDESTDIR) \
-	-L$(ROOTDIR)/3rdparty/fridmon-0.1.10/quark_1_0_1/lib/redhat/$(CFG) \
-	-L$(ROOTDIR)/3rdparty/fridmon-0.1.10/meson_1_0_1/lib/redhat/$(CFG) \
-	-L$(ROOTDIR)/3rdparty/fridmon-0.1.10/hyperon_1_0_1/lib/redhat/$(CFG)
+LDFLAGS+=-L/usr/lib -L$(LIBDESTDIR) 
 
 ifndef CFG
 CFG=debug

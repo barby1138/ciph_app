@@ -19,16 +19,8 @@
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 
-// libcommon
-#include "exceptions.h"
-
 #ifdef _LINUX
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #endif
-
-#include <quark/config.h>
-#include <quark/singleton.h>
-
-//using namespace quark;

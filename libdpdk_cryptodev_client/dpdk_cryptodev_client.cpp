@@ -392,7 +392,6 @@ void  Dpdk_cryptodev_client::cleanup()
 	// free connections
 }
 
-// TODO to connection
 int Dpdk_cryptodev_client::run_jobs(int channel_index, struct Dpdk_cryptodev_data_vector* jobs, uint32_t size)
 {
 	uint16_t total_nb_qps = 0;
@@ -730,15 +729,7 @@ int Dpdk_cryptodev_client::vec_output_set(struct rte_crypto_op *op,
 	}
 
 	if (cipher == 1) {
-		/*
-		static int ccc = 0;
-		if ( 0 == memcmp(vector->cipher_buff_list[0].data,
-					data,
-					len))
-		{
-    		printf("SAME AS CIPH %d\n", ccc++);
-		}
-		*/
+
 		vector->cipher_buff_list[0].data = data;
 		// len the same as input
 		//vector->cipher_buff_list[0].length = len; //_opts.max_buffer_size; // len?
@@ -749,6 +740,7 @@ int Dpdk_cryptodev_client::vec_output_set(struct rte_crypto_op *op,
 	return 0;
 }
 
+//#define EXPERIMENTAL_NO_MEMCPY
 void Dpdk_cryptodev_client::mbuf_set(struct rte_mbuf *mbuf,
 		const struct Dpdk_cryptodev_data_vector *test_vector)
 {
@@ -759,9 +751,10 @@ void Dpdk_cryptodev_client::mbuf_set(struct rte_mbuf *mbuf,
 
 	test_data = test_vector->cipher_buff_list[0].data;
 
-
 #ifdef EXPERIMENTAL_NO_MEMCPY
 	while (remaining_bytes) {
+		mbuf_data = rte_pktmbuf_mtod(mbuf, uint8_t *);
+
 		mbuf_data = test_data;
 
 		if (remaining_bytes <= segment_sz) {

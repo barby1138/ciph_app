@@ -19,7 +19,7 @@
 #include <inttypes.h>
 
 // libcommon
-#include "exceptions.h"
+//#include "exceptions.h"
 
 #include <stdio.h>
 #include <stdlib.h>
