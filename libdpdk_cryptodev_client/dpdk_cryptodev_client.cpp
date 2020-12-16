@@ -710,9 +710,9 @@ int Dpdk_cryptodev_client::set_ops_cipher(
 		//if (options->cipher_algo == RTE_CRYPTO_CIPHER_SNOW3G_UEA2 ||
 		//		options->cipher_algo == RTE_CRYPTO_CIPHER_KASUMI_F8 ||
 		//		options->cipher_algo == RTE_CRYPTO_CIPHER_ZUC_EEA3)
-		//	sym_op->cipher.data.length <<= 3;
+		//sym_op->cipher.data.length <<= 3;
 
-		sym_op->cipher.data.offset = 0;
+		//sym_op->cipher.data.offset = 0;
 
 		if (vecs[i].cipher_iv.length)
 		{
@@ -744,12 +744,12 @@ int Dpdk_cryptodev_client::create_session(int channel_index, uint8_t dev_id, con
 	cipher_xform.cipher.op = crypto_cipher_op_map[test_vector->op._cipher_op];
 	cipher_xform.cipher.iv.offset = iv_offset;
 
-	RTE_LOG(NOTICE, USER1, "create_session alg:%d op:%d iv_offset:%d\n", cipher_xform.cipher.algo, cipher_xform.cipher.op, cipher_xform.cipher.iv.offset);
+	RTE_LOG(NOTICE, USER1, "create_session alg:%d op:%d iv_offset:%d iv len %d\n", cipher_xform.cipher.algo, cipher_xform.cipher.op, cipher_xform.cipher.iv.offset, test_vector->cipher_iv.length);
 
 	if (cipher_xform.cipher.algo != RTE_CRYPTO_CIPHER_NULL) {
 		cipher_xform.cipher.key.data = test_vector->cipher_key.data;
 		cipher_xform.cipher.key.length = test_vector->cipher_key.length;
-		cipher_xform.cipher.iv.length = test_vector->cipher_iv.length;
+		cipher_xform.cipher.iv.length = 16; //test_vector->cipher_iv.length;
 	} else {
 		cipher_xform.cipher.key.data = NULL;
 		cipher_xform.cipher.key.length = 0;

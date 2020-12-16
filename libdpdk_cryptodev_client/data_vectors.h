@@ -2,8 +2,6 @@
 #ifndef _CPERF_TEST_VECTRORS_
 #define _CPERF_TEST_VECTRORS_
 
-/*
-*/
 enum Sess_operation 
 {
 	SESS_OP_ATTACH = 0,
@@ -12,8 +10,6 @@ enum Sess_operation
 	SESS_OP_CLOSE = 3,
 };
 
-/*
-*/
 enum Operation_status 
 {
 	OP_STATUS_NOT_PROCESSED = 0,
@@ -21,8 +17,6 @@ enum Operation_status
 	OP_STATUS_FAILED = 2
 };
 
-/*
-*/
 enum Crypto_cipher_algorithm
 {
 	CRYPTO_CIPHER_AES_CBC = 0,
@@ -30,8 +24,7 @@ enum Crypto_cipher_algorithm
 	CRYPTO_CIPHER_ALGO_LAST
 };
 
-/*
-*/
+
 enum Crypto_cipher_operation
 {
 	CRYPTO_CIPHER_OP_ENCRYPT = 0,

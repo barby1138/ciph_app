@@ -13,7 +13,7 @@ int32_t ciph_agent_cleanup()
     return Ciph_agent_sngl::instance().cleanup();
 }
 
-int32_t ciph_agent_conn_alloc(uint32_t index, uint32_t mode, on_jobs_complete_cb_t cb)
+int32_t ciph_agent_conn_alloc(uint32_t index, uint32_t mode, on_jobs_complete_CallBk_t cb)
 {
     int32_t res = Ciph_agent_sngl::instance().conn_alloc(index, mode, cb);
 
