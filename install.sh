@@ -1,0 +1,4 @@
+
+ROOT=$PWD 
+echo $ROOT
+
