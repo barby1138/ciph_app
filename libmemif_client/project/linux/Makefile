@@ -2,7 +2,7 @@
 
 CC=gcc
 CFLAGS=-MD
-CXX=g++
+CXX=gcc
 CXXFLAGS=$(CFLAGS) -W -fexceptions -fPIC -fpermissive -w -std=c++11
 AR=ar
 ARFLAGS=rus
@@ -19,7 +19,7 @@ TARGET=$(DESTDIR)/$(LIBNAME).a
 
 DEFINE=-D_LINUX
 
-INCLUDE=-I$(ROOTDIR)
+INCLUDE=-I$(ROOTDIR) -I$(ROOTDIR)/libmemif/src
 
 ifndef CFG
 CFG=debug
@@ -38,7 +38,9 @@ CFLAGS+=$(DEFINE) $(INCLUDE)
 
 LIBSRC=  \
 	$(LIBDIR)/*.h \
-	$(LIBDIR)/memif*.c*
+	$(LIBDIR)/memif*.c* \
+	$(ROOTDIR)/libmemif/src/*.h \
+	$(ROOTDIR)/libmemif/src/*.c*
 
 SRCS=$(wildcard $(LIBSRC))
 OBJS=$(patsubst %.cxx,$(OBJDIR)/%.o,$(patsubst %.cpp,%.o,$(patsubst %.cc,%.o,$(patsubst %.c,%.o,$(subst $(ROOTDIR),$(OBJDIR),$(filter %.c %.cc %.cpp %.cxx,$(SRCS)))))))

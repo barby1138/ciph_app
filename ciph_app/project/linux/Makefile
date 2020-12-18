@@ -40,11 +40,11 @@ CFLAGS += -DALLOW_EXPERIMENTAL_API -D_LINUX -D_REDHAT -std=gnu++11 -fpermissive 
 
 # all source are stored in SRCS-y
 SRCS-y := ../../ciph_app.cpp
-#SRCS-y += ../../dpdk_cryptodev_client.cpp
 
 INCLUDE = -I$(ROOTDIR) -I$(ROOTDIR)/dpdk -I$(ROOTDIR)/libdpdk_cryptodev_client -I$(ROOTDIR)/libciph_agent \
 		-I$(ROOTDIR)/libmemif_client \
 		-I$(ROOTDIR)/libmemcpy \
+		-I$(ROOTDIR)/libmemif/src \
 		-I$(RTE_SDK)/x86_64-native-linuxapp-gcc/include \
 		-I$(ROOTDIR)/3rdparty/fridmon-0.1.10/quark_1_0_1 \
 		-I$(ROOTDIR)/3rdparty/fridmon-0.1.10/meson_1_0_1 \
@@ -52,17 +52,20 @@ INCLUDE = -I$(ROOTDIR) -I$(ROOTDIR)/dpdk -I$(ROOTDIR)/libdpdk_cryptodev_client -
 		-I$(ROOTDIR)/3rdparty/fridmon-0.1.10/hyperon_1_0_1
 
 #-I$(ROOTDIR)/libcommon
-
-LDFLAGS +=-L/usr/lib -L$(LIBDESTDIR) \
+#-L/usr/lib
+LDFLAGS +=-L$(LIBDESTDIR) \
 	-L$(RTE_SDK)/x86_64-native-linuxapp-gcc/lib \
 	-L$(ROOTDIR)/3rdparty/fridmon-0.1.10/quark_1_0_1/lib/redhat/$(CFG) \
 	-L$(ROOTDIR)/3rdparty/fridmon-0.1.10/meson_1_0_1/lib/redhat/$(CFG) \
 	-L$(ROOTDIR)/3rdparty/fridmon-0.1.10/hyperon_1_0_1/lib/redhat/$(CFG)
 
 CFLAGS += $(INCLUDE)
+#ifeq ($(CONFIG_RTE_LIBRTE_PMD_CRYPTO_SCHEDULER),y)
+LDLIBS = --exclude-libs,librte_pmd_memif.a -lrte_pmd_crypto_scheduler -ldpdk_cryptodev_client -lmemif_client -lquark -lhyperon -lmeson -lexpat -lstdc++ 
+#endif
+#$(error   LDLIBS is $(LDLIBS))
 
-ifeq ($(CONFIG_RTE_LIBRTE_PMD_CRYPTO_SCHEDULER),y)
-LDLIBS += -lrte_pmd_crypto_scheduler -ldpdk_cryptodev_client -lmemif_client -lmemif -lquark -lhyperon -lmeson -lexpat -lstdc++
-endif
+#-lmemif
 
+CONFIG_RTE_LIBRTE_PMD_MEMIF=n
 include $(RTE_SDK)/mk/rte.app.mk

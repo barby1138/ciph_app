@@ -9,7 +9,7 @@
 #include <thread>
 
 extern "C" {
-#include <libmemif.h>
+#include "libmemif.h"
 }
 
 struct Memif_client_conn_config;
@@ -19,21 +19,6 @@ class IMsg_burst_serializer
 public:
     virtual void serialize(uint8_t* buff, uint32_t* len, uint32_t ind) = 0;
 };
-/*
-class IComm_client
-{
-public:
-    virtual int init() = 0;
-    virtual int cleanup() = 0;
-
-    virtual int conn_alloc(long index, const IComm_client_config_t& conn_config) = 0;
-    virtual int conn_free(long index) = 0;
-
-    virtual void send_buff(int index, uint64_t size, IMsg_burst_serializer& ser) = 0;
-
-    virtual void print_info() = 0;
-};
-*/
 
 class Memif_client
 {

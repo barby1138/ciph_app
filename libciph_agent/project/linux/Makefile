@@ -20,7 +20,7 @@ TARGET=$(DESTDIR)/$(LIBNAME).a
 DEFINE=-D_LINUX -D_REDHAT
 
 INCLUDE=-I$(ROOTDIR) -I$(ROOTDIR)/libmemif_client -I$(ROOTDIR)/libdpdk_cryptodev_client \
-		-I$(ROOTDIR)/libmemcpy 
+		-I$(ROOTDIR)/libmemcpy -I$(ROOTDIR)/libmemif/src
 
 ifndef CFG
 CFG=debug

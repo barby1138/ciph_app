@@ -39,11 +39,11 @@
 #include <stdarg.h>
 
 #include "memif_client.h"
-
+/*
 extern "C" {
-#include <libmemif.h>
+#include "libmemif.h"
 }
-
+*/
 #define APP_NAME "APP"
 #define IF_NAME "memif_connection"
 

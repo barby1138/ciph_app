@@ -32,8 +32,7 @@
 #include <libmemif.h>
 
 #define MEMIF_NAME_LEN 32
-_Static_assert (strlen (MEMIF_DEFAULT_APP_NAME) <= MEMIF_NAME_LEN,
-		"MEMIF_DEFAULT_APP_NAME max length is 32");
+_Static_assert (strlen (MEMIF_DEFAULT_APP_NAME) <= MEMIF_NAME_LEN, "MEMIF_DEFAULT_APP_NAME max length is 32");
 
 #define MEMIF_DEFAULT_SOCKET_PATH "/tmp/memif.sock" //"/run/vpp/memif.sock"
 #define MEMIF_DEFAULT_RING_SIZE 1024

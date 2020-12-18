@@ -139,8 +139,7 @@ typedef struct __attribute__ ((packed, aligned (128)))
   };
 } memif_msg_t;
 
-_Static_assert (sizeof (memif_msg_t) == 128,
-		"Size of memif_msg_t must be 128");
+_Static_assert (sizeof (memif_msg_t) == 128, "Size of memif_msg_t must be 128");
 
 /*
  *  Ring and Descriptor Layout
@@ -156,8 +155,7 @@ typedef struct __attribute__ ((packed))
   uint32_t metadata;
 } memif_desc_t;
 
-_Static_assert (sizeof (memif_desc_t) == 16,
-		"Size of memif_dsct_t must be 16 bytes");
+_Static_assert (sizeof (memif_desc_t) == 16, "Size of memif_dsct_t must be 16 bytes");
 
 #define MEMIF_CACHELINE_ALIGN_MARK(mark) \
   uint8_t mark[0] __attribute__((aligned(MEMIF_CACHELINE_SIZE)))

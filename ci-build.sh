@@ -36,7 +36,7 @@ echo "===================="
 echo $hostname
 cont_id=$( docker run --rm -d -it --hostname ${hostname} -e COMMIT_ID=$GIT_COMMIT_SHORT \
             --mount type=bind,source="$(dirname "$(pwd)")",target=/opt/ciph_app \
-	    --mount type=bind,source="$(dirname "$(pwd)")"/..,target=/opt/ciph_app_old \
+	          --mount type=bind,source="$(dirname "$(pwd)")"/..,target=/opt/ciph_app_old \
             --mount type=bind,source=$homedir,target=/home/$uname/ \
             ${dockerName} )
             #--mount type=bind,source=/stage,target=/stage ${dockerName}
