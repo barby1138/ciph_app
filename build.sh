@@ -7,6 +7,13 @@ cd $ROOT
 mkdir 3rdparty_artifactory
 cp /work/dpdk-20.05-x86_64-native-linuxapp-gcc.tar.gz 3rdparty_artifactory
 cp /work/rootfs_centos-7-amd64.tar.gz 3rdparty_artifactory
+cp /work/libIPSec_MB.0.54.0.tar.gz 3rdparty_artifactory
+
+echo ============== IPSec =====================
+cd $ROOT
+cd 3rdparty_artifactory
+tar zxf libIPSec_MB.0.54.0.tar.gz
+cp -f libIPSec_MB* /usr/lib
 
 echo ============== DPDK =====================
 cd $ROOT

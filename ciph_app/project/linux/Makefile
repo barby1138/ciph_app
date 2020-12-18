@@ -60,12 +60,11 @@ LDFLAGS +=-L$(LIBDESTDIR) \
 	-L$(ROOTDIR)/3rdparty/fridmon-0.1.10/hyperon_1_0_1/lib/redhat/$(CFG)
 
 CFLAGS += $(INCLUDE)
-#ifeq ($(CONFIG_RTE_LIBRTE_PMD_CRYPTO_SCHEDULER),y)
-LDLIBS = --exclude-libs,librte_pmd_memif.a -lrte_pmd_crypto_scheduler -ldpdk_cryptodev_client -lmemif_client -lquark -lhyperon -lmeson -lexpat -lstdc++ 
-#endif
+ifeq ($(CONFIG_RTE_LIBRTE_PMD_CRYPTO_SCHEDULER),y)
+LDLIBS = -lrte_pmd_crypto_scheduler -ldpdk_cryptodev_client -lmemif_client -lquark -lhyperon -lmeson -lexpat -lstdc++ 
+endif
 #$(error   LDLIBS is $(LDLIBS))
 
 #-lmemif
-
 CONFIG_RTE_LIBRTE_PMD_MEMIF=n
 include $(RTE_SDK)/mk/rte.app.mk

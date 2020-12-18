@@ -11,8 +11,8 @@ repo=`basename $(git rev-parse --show-toplevel)`
 hostname=$(hostname)
 homedir=$(getent passwd $uname | cut -d: -f6)
 buildNumber=$BUILD_NUMBER
-dockerName=$uname-$GIT_COMMIT_SHORT-$buildNumber
-dockerName=$uname-$GIT_COMMIT_SHORT
+#dockerName=$uname-$GIT_COMMIT_SHORT-$buildNumber
+dockerName=$uname-ciph-app
 
 trap 'handle_error' ERR
 
@@ -34,7 +34,7 @@ echo "===================="
 
 # RUN THE DOCKER mi#
 echo $hostname
-cont_id=$( docker run --rm -d -it --hostname ${hostname} -e COMMIT_ID=$GIT_COMMIT_SHORT \
+cont_id=$( docker run --rm -d -it --hostname ${dockerName} -e COMMIT_ID=$GIT_COMMIT_SHORT \
             --mount type=bind,source="$(dirname "$(pwd)")",target=/opt/ciph_app \
 	          --mount type=bind,source="$(dirname "$(pwd)")"/..,target=/opt/ciph_app_old \
             --mount type=bind,source=$homedir,target=/home/$uname/ \
