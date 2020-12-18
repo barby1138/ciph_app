@@ -1,4 +1,0 @@
-
-ROOT=$PWD 
-echo $ROOT
-
