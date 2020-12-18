@@ -2,8 +2,10 @@ FROM centos:7.4.1708
 
 #RUN yum update 
 RUN yum install -y wget
-RUN yum group install -y "Development Tools"
+RUN yum install -y rpm-build redhat-rpm-config
+#RUN yum group install -y "Development Tools"
 RUN yum install -y numactl-devel expat-devel
+RUN yum install -y gcc g++ make
 
 RUN mkdir /work && chmod 777 /work
 RUN cd /work && wget https://drive.google.com/file/d/1LsHbeX0M4qLBXPqp9JTF6UwmqmBizJXW/view?usp=sharing
