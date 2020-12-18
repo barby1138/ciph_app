@@ -27,15 +27,6 @@ patch config/common_base < config/enable_PMD_AESNI_MB.patch
 export DESTDIR=$ROOT/3rdparty/dpdk-20.05/distr/x86_64-native-linuxapp-gcc
 make install T=x86_64-native-linuxapp-gcc
 
-echo ============== LIBMEMIF =====================
-cd $ROOT
-cd libmemif
-mkdir build
-cd build
-cmake ..
-make
-make install
-
 echo ============== FRIDMON =====================
 cd $ROOT
 unzip 3rdparty/fridmon-0.1.10.zip -d ./3rdparty

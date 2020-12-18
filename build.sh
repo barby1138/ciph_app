@@ -7,15 +7,6 @@ cd $ROOT
 cd 3rdparty_artifactory
 tar zxf dpdk-20.05-x86_64-native-linuxapp-gcc.tar.gz -C $ROOT/3rdparty
 
-echo ============== LIBMEMIF =====================
-cd $ROOT
-cd libmemif
-mkdir build
-cd build
-cmake ..
-make
-#make install
-
 echo ============== FRIDMON =====================
 cd $ROOT
 unzip 3rdparty/fridmon-0.1.10.zip  -d ./3rdparty

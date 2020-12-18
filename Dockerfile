@@ -7,9 +7,6 @@ RUN yum install -y numactl-devel expat-devel
 
 #RUN mkdir /project && chmod 777 /project
 RUN mkdir /work && chmod 777 /work
-COPY 3rdparty_artifactory/cmake-3.6.0-Linux-x86_64.tar.gz /work
-RUN cd /work && tar zxf cmake-3.6.0-Linux-x86_64.tar.gz && cd cmake-3.6.0-Linux-x86_64
-RUN cd /work/cmake-3.6.0-Linux-x86_64 && cp -r bin /usr && cp -r share /usr
 
 #creating user
 ARG UNAME=parallel
