@@ -48,8 +48,8 @@ echo "Docker run successful- Container created"
 echo "========================================"
 
 # BUILD THE NetCon ROOTFS - mapping local workspace to container #
-docker exec -it ${cont_id} /bin/bash
-#docker exec -it ${cont_id} cd /opt/ciph_app/ciph_app && /bin/bash build.sh
+#docker exec -it ${cont_id} /bin/bash
+docker exec -it ${cont_id} cd /opt/ciph_app/ciph_app && /bin/bash build.sh
 
 #
 ##################### END OF DEVOPS CONTAINER INFORMTION
