@@ -41,10 +41,14 @@ cd $ROOT
 cd 3rdparty_artifactory
 tar zxf rootfs_centos-7-amd64.tar.gz -C $ROOT/lxc/ciph_app
 
-echo =========== INASTALL TO CONT ==============
+echo =========== PREP CONT ==============
 cd $ROOT
-cp ciph_app/project/linux/dpdk-crypto-app $ROOT/lxc/ciph_app/rootfs/root
-cp ciph_app/project/linux/ciph_app.xml $ROOT/lxc/ciph_app/rootfs/root
+mkdir $ROOT/lxc/ciph_app/rootfs/home/ciph_app
+cp ciph_app/project/linux/dpdk-crypto-app $ROOT/lxc/ciph_app/rootfs/home/ciph_app
+cp ciph_app/project/linux/ciph_app.xml $ROOT/lxc/ciph_app/rootfs/home/ciph_app
 cp /usr/lib64/libnuma.so* $ROOT/lxc/ciph_app/rootfs/usr/lib64
 cp 3rdparty_artifactory/libIPSec_MB* $ROOT/lxc/ciph_app/rootfs/usr/lib64
 
+echo =========== PACK CONT ==============
+cd $ROOT/lxc
+tar czf ciph_app.tar-1.0.1.gz ciph_app
