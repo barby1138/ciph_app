@@ -24,22 +24,18 @@ handle_error () {
 
 # BUILD THE DOCKER #
 docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) --build-arg UNAME=$(whoami) -f Dockerfile -t ${dockerName} .
-#sudo docker build -f Dockerfile -t ${dockerName} .
-
-echo 3
 
 echo "===================="
 echo "Docker image created"
 echo "===================="
 
-# RUN THE DOCKER mi#
-echo $hostname
+# RUN THE DOCKER #
 cont_id=$( docker run --rm -d -it --hostname ${dockerName} -e COMMIT_ID=$GIT_COMMIT_SHORT \
             --mount type=bind,source="$(dirname "$(pwd)")",target=/opt/ciph_app \
-	          --mount type=bind,source="$(dirname "$(pwd)")"/..,target=/opt/ciph_app_old \
             --mount type=bind,source=$homedir,target=/home/$uname/ \
             ${dockerName} )
             #--mount type=bind,source=/stage,target=/stage ${dockerName}
+	    #--mount type=bind,source="$(dirname "$(pwd)")"/..,target=/opt/ciph_app_old
 
 echo ${cont_id}
 
@@ -48,8 +44,8 @@ echo "Docker run successful- Container created"
 echo "========================================"
 
 # BUILD THE NetCon ROOTFS - mapping local workspace to container #
-#docker exec -it ${cont_id} /bin/bash
-docker exec -it ${cont_id} cd /opt/ciph_app/ciph_app && /bin/bash build.sh
+docker exec -it ${cont_id} /bin/bash
+#docker exec -it ${cont_id} cd /opt/ciph_app/ciph_app && ./build.sh
 
 #
 ##################### END OF DEVOPS CONTAINER INFORMTION

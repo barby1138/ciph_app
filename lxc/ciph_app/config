@@ -12,8 +12,8 @@ lxc.include = /usr/share/lxc/config/common.conf
 lxc.arch = x86_64
 
 # Container specific configuration
-lxc.rootfs.path = dir:/opt/lib/lxc/ciph-app/rootfs
-lxc.uts.name = ciph-app
+lxc.rootfs.path = dir:/opt/lib/lxc/ciph_app/rootfs
+lxc.uts.name = ciph_app
 
 # Network configuration
 lxc.net.0.type = veth

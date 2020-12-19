@@ -9,11 +9,12 @@ RUN yum install -y rpm-build redhat-rpm-config
 RUN yum install -y numactl-devel expat-devel
 RUN yum install -y gcc gcc-c++ make
 
-RUN mkdir /work && chmod 777 /work
+#RUN mkdir /work 
+##&& chmod 777 /work
 
-RUN cd /work && gdown https://drive.google.com/uc?id=1LtqOrPmxLV1KCNG5H5pU_zzqFPlK69W3
-RUN cd /work && gdown https://drive.google.com/uc?id=1LsHbeX0M4qLBXPqp9JTF6UwmqmBizJXW
-RUN cd /work && gdown https://drive.google.com/uc?id=1ZtRmUM9nZg594LIMMbUL9fFBCLj4OnmL
+RUN cd /tmp && gdown https://drive.google.com/uc?id=1LtqOrPmxLV1KCNG5H5pU_zzqFPlK69W3
+RUN cd /tmp && gdown https://drive.google.com/uc?id=1LsHbeX0M4qLBXPqp9JTF6UwmqmBizJXW
+RUN cd /tmp && gdown https://drive.google.com/uc?id=1ZtRmUM9nZg594LIMMbUL9fFBCLj4OnmL
 
 #creating user
 ARG UNAME=parallel
