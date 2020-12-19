@@ -43,7 +43,8 @@ tar zxf rootfs_centos-7-amd64.tar.gz -C $ROOT/lxc/ciph_app
 
 echo =========== INASTALL TO CONT ==============
 cd $ROOT
-cp ciph_app/project/linux/dpdk-crypto-app $ROOT/lxc/ciph_app/rootfs/tmp
-cp /usr/lib64/libnuma.so* $ROOT/lxc/ciph_app/rootfs/usr/lib
-cp 3rdparty_artifactory/libIPSec_MB* $ROOT/lxc/ciph_app/rootfs/usr/lib
+cp ciph_app/project/linux/dpdk-crypto-app $ROOT/lxc/ciph_app/rootfs/root
+cp ciph_app/project/linux/ciph_app.xml $ROOT/lxc/ciph_app/rootfs/root
+cp /usr/lib64/libnuma.so* $ROOT/lxc/ciph_app/rootfs/usr/lib64
+cp 3rdparty_artifactory/libIPSec_MB* $ROOT/lxc/ciph_app/rootfs/usr/lib64
 
