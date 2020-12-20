@@ -1,7 +1,41 @@
-1. Unpack tar to /opt/lib/lxc
+1. Cleanup (if needed)
+# stop container
+lxc-stop -n ciph_app -k
 
-rm -rf /opt/lib/lxc/ciph_app && lxc-stop -n ciph_app -k
+# cleanup files
+rm -rf /opt/lib/lxc/ciph_app && 
 
-tar zxf lxc/ciph_app.tar-1.0.1.gz -C /opt/lib/lxc && lxc-start -n ciph_app -d && lxc-attach -n ciph_app
+2. Install LXC container and run CIPH_APP inside container 
+# Unpack CIPH_APP container
+tar zxf dist/ciph_app.tar-1.0.1.gz -C /opt/lib/lxc
 
+# start'n'attach to container
+lxc-start -n ciph_app -d && lxc-attach -n ciph_app
+
+# run app inside cintainer
 [root@ciph_app /]# cd /home/ciph_app && taskset 0x1 ./dpdk-crypto-app cfg
+
+3. Build and run CIPH_APP_TEST
+# Unpack DEVEL packadge
+tar zxf dist/ciph_app_devel.tar-1.0.1.gz -C YOUR_WORKING_DIR
+
+YOUR_WORKING_DIR/ciph_app_devel
+    |-- lib
+    |      |-- libciph_agent.a
+    |      |-- libmemif_client.a
+    |
+    |-- include
+    |      |-- ciph_agent_c.h
+    |      |-- data_vectors.h
+    |
+    |-- examoles
+           |-- ciph_app_test.c
+           |-- build.sh         
+
+# build CIPH_APP_TEST
+cd YOUR_WORKING_DIR/ciph_app_devel/examoles && ./build.sh 
+
+# run CIPH_APP_TEST
+./ciph_app_test
+
+4. Enjoy
