@@ -410,11 +410,8 @@ enum { SLEEP_TO_FACTOR = 1 };
 void* send_proc(void* data)
 {
 	int cc = 0;
-
 	int res;
-
 	uint64_t seq = 0;
-
 	uint32_t i;
 
 	long conn_id = *((long*) data);
