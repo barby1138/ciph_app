@@ -368,27 +368,29 @@ void on_jobs_complete_cb_0 (uint32_t index, struct Dpdk_cryptodev_data_vector* v
       	if (vec[j].op._sess_op == SESS_OP_ATTACH)
 	  	{
 			//print_buff(vec[j].op._op_outbuff_ptr, vec[j].cipher_buff_list[0].length);
-
-			if (thread_data[index].cipher_op == CRYPTO_CIPHER_OP_DECRYPT)
+			if (thread_data[index].cipher_algo == CRYPTO_CIPHER_AES_CBC && BUFFER_TOTAL_LEN == 64)
 			{
-				if ( 0 != memcmp(plaintext,
+				if (thread_data[index].cipher_op == CRYPTO_CIPHER_OP_DECRYPT)
+				{
+					if ( 0 != memcmp(plaintext,
 							vec[j].op._op_outbuff_ptr,
 							vec[j].op._op_outbuff_len))
-				{
-          			thread_data[index].g_data_failed++;
-					printf ("g_data_failed %d\n", thread_data[index].g_data_failed);
+					{
+          				thread_data[index].g_data_failed++;
+						printf ("g_data_failed %d %d\n", index, thread_data[index].g_data_failed);
+					}
 				}
-			}
-			else  if (thread_data[index].cipher_op == CRYPTO_CIPHER_OP_ENCRYPT)
-			{
-				if ( 0 != memcmp(ciphertext,
+				else  if (thread_data[index].cipher_op == CRYPTO_CIPHER_OP_ENCRYPT)
+				{
+					if ( 0 != memcmp(ciphertext,
 							vec[j].op._op_outbuff_ptr,
 							vec[j].op._op_outbuff_len))
-				{
-        			thread_data[index].g_data_failed++;
-					printf ("g_data_failed %d\n", thread_data[index].g_data_failed);
+					{
+        				thread_data[index].g_data_failed++;
+						printf ("g_data_failed %d %d\n", index, thread_data[index].g_data_failed);
+					}
 				}
-			}
+		  	}
 	  	}
     }
 
@@ -591,8 +593,8 @@ int main(int argc, char* argv[])
 	thread_data[0].g_size = 0;
 	thread_data[0].g_setup_sess_id = -1;
 	thread_data[0].cb = on_jobs_complete_cb_0;
-	//thread_data[0].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
-	thread_data[0].cipher_algo = CRYPTO_CIPHER_AES_CBC;
+	thread_data[0].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
+	//thread_data[0].cipher_algo = CRYPTO_CIPHER_AES_CBC;
     thread_data[0].cipher_op = CRYPTO_CIPHER_OP_DECRYPT;
 	
 	thread_data[1].index = conn_id_1;
@@ -605,8 +607,8 @@ int main(int argc, char* argv[])
 	thread_data[1].g_size = 0;
 	thread_data[1].g_setup_sess_id = -1;
 	thread_data[1].cb = on_jobs_complete_cb_0;
-	//thread_data[1].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
-	thread_data[1].cipher_algo = CRYPTO_CIPHER_AES_CBC;
+	thread_data[1].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
+	//thread_data[1].cipher_algo = CRYPTO_CIPHER_AES_CBC;
     thread_data[1].cipher_op = CRYPTO_CIPHER_OP_ENCRYPT;
 
 	//int s;
@@ -616,12 +618,6 @@ int main(int argc, char* argv[])
 	pthread_create (&thread[1], NULL, send_proc, (void *)&conn_id_1);
 	pthread_join(thread[0], &res);
 	pthread_join(thread[1], &res);
-
-	printf ("g_data_failed %d\n", thread_data[0].g_data_failed);
-    printf ("g_op_failed %d\n", thread_data[0].g_op_failed);
-
-	printf ("g_data_failed %d\n", thread_data[1].g_data_failed);
-    printf ("g_op_failed %d\n", thread_data[1].g_op_failed);
 	}
 	
     ciph_agent_cleanup();

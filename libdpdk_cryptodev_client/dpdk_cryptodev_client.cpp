@@ -276,8 +276,9 @@ int Dpdk_cryptodev_client::init_inner()
 	int ret;
 
 	printf("init_inner\n");
-	
+
 	//enabled_cdev_count = rte_cryptodev_devices_get(_opts.device_type, _enabled_cdevs, RTE_CRYPTO_MAX_DEVS);
+/*
 	enabled_cdev_count = rte_cryptodev_devices_get("crypto_aesni_mb", _enabled_cdevs, RTE_CRYPTO_MAX_DEVS);
 	printf("enabled_cdev_count: %d\n", enabled_cdev_count);
 	if (enabled_cdev_count == 0) 
@@ -286,8 +287,8 @@ int Dpdk_cryptodev_client::init_inner()
 		return -EINVAL;
 	}
 	printf("enabled_cdev id: %d\n", _enabled_cdevs[enabled_cdev_count - 1]);
-	
-/*
+*/
+
 	enabled_cdev_count += rte_cryptodev_devices_get("crypto_snow3g", _enabled_cdevs + enabled_cdev_count, RTE_CRYPTO_MAX_DEVS);
 	printf("enabled_cdev_count: %d\n", enabled_cdev_count);
 	if (enabled_cdev_count == 0) 
@@ -296,8 +297,8 @@ int Dpdk_cryptodev_client::init_inner()
 		return -EINVAL;
 	}
 	printf("enabled_cdev id: %d\n", _enabled_cdevs[enabled_cdev_count - 1]);
-	// TODO enable two devices
-*/
+	// TODO enable multi devices
+
 	nb_lcores = 1;
 
 	// Create a mempool shared by all the devices 
@@ -710,7 +711,8 @@ int Dpdk_cryptodev_client::set_ops_cipher(
 		//if (options->cipher_algo == RTE_CRYPTO_CIPHER_SNOW3G_UEA2 ||
 		//		options->cipher_algo == RTE_CRYPTO_CIPHER_KASUMI_F8 ||
 		//		options->cipher_algo == RTE_CRYPTO_CIPHER_ZUC_EEA3)
-		//sym_op->cipher.data.length <<= 3;
+		// in bits
+		sym_op->cipher.data.length <<= 3;
 
 		//sym_op->cipher.data.offset = 0;
 
@@ -744,7 +746,12 @@ int Dpdk_cryptodev_client::create_session(int channel_index, uint8_t dev_id, con
 	cipher_xform.cipher.op = crypto_cipher_op_map[test_vector->op._cipher_op];
 	cipher_xform.cipher.iv.offset = iv_offset;
 
-	RTE_LOG(NOTICE, USER1, "create_session alg:%d op:%d iv_offset:%d iv len %d\n", cipher_xform.cipher.algo, cipher_xform.cipher.op, cipher_xform.cipher.iv.offset, test_vector->cipher_iv.length);
+	RTE_LOG(NOTICE, USER1, "create_session alg:%d op:%d iv_offset:%d iv len %d key len %d\n", 
+			cipher_xform.cipher.algo, 
+			cipher_xform.cipher.op, 
+			cipher_xform.cipher.iv.offset, 
+			test_vector->cipher_iv.length,
+			test_vector->cipher_key.length);
 
 	if (cipher_xform.cipher.algo != RTE_CRYPTO_CIPHER_NULL) {
 		cipher_xform.cipher.key.data = test_vector->cipher_key.data;
@@ -757,7 +764,7 @@ int Dpdk_cryptodev_client::create_session(int channel_index, uint8_t dev_id, con
 	}
 
     rte_cryptodev_sym_session_init(dev_id, s, &cipher_xform, _priv_mp);
-	
+
 	for (uint32_t i = 0; i < MAX_SESS_NUM; i++)
 	{
 		if (_active_sessions_registry[channel_index][i] == NULL)
