@@ -304,25 +304,25 @@ const int PCK_NUM = 10000000;
 
 void print_buff(uint8_t* data, int len)
 {
-  fprintf(stdout, "test app length %d\n", len);
+  	fprintf(stdout, "test app length %d\n", len);
+	
+  	int c = 0, i;
 
-  int c = 0;
-  fprintf(stdout, "%03d ", c++);
+  	fprintf(stdout, "%03d ", c++);
 
-  for(int i = 0; i < len; ++i)
-  {
-    fprintf(stdout, "%02X%s", data[i], ( i + 1 ) % 16 == 0 ? "\r\n" : " " );
+  	for (i = 0; i < len; ++i)
+  	{
+    	fprintf(stdout, "%02X%s", data[i], ( i + 1 ) % 16 == 0 ? "\r\n" : " " );
 
-    if (( i + 1 ) % 16 == 0)
-      fprintf(stdout, "%03d ", c++);
-  }
+    	if (( i + 1 ) % 16 == 0)
+      		fprintf(stdout, "%03d ", c++);
+  	}
 
-  fprintf(stdout, "\r\n");
+  	fprintf(stdout, "\r\n");
 }
   
 static double get_delta_usec(struct timespec start, struct timespec end)
 {
-
     uint64_t t1 = end.tv_sec - start.tv_sec;
     uint64_t t2;
     if (end.tv_nsec > start.tv_nsec)
@@ -343,7 +343,9 @@ static double get_delta_usec(struct timespec start, struct timespec end)
 
 void on_jobs_complete_cb_0 (uint32_t index, struct Dpdk_cryptodev_data_vector* vec, uint32_t size)
 {	
-    for(uint32_t j = 0; j < size; ++j)
+	uint32_t j;
+
+    for (j = 0; j < size; ++j)
     {
       	if (vec[j].op._op_status != OP_STATUS_SUCC)
       	{
@@ -410,7 +412,10 @@ void* send_proc(void* data)
 	int cc = 0;
 
 	int res;
+
 	uint64_t seq = 0;
+
+	uint32_t i;
 
 	long conn_id = *((long*) data);
   	uint32_t num_pck = thread_data[conn_id].num_pck;
@@ -433,7 +438,7 @@ void* send_proc(void* data)
     ciph_agent_send(conn_id, &job_sess, 1);
 
     // poll and recv created session id
-    while(thread_data[conn_id].g_size < 1 )
+    while (thread_data[conn_id].g_size < 1)
 	{
       res = ciph_agent_poll(conn_id, MAX_CONN_CLIENT_BURST);
 	  if (res == -2) printf ("ciph_agent_poll ERROR\n");;
@@ -450,7 +455,7 @@ void* send_proc(void* data)
 	
 	uint32_t total_length = BUFFER_TOTAL_LEN; //256;
 	uint32_t step = total_length / job.op._op_in_buff_list_len;
-	for (uint32_t i = 0; i < job.op._op_in_buff_list_len; ++i)
+	for (i = 0; i < job.op._op_in_buff_list_len; ++i)
 	{
     	job.cipher_buff_list[i].data = ((job.op._cipher_op == CRYPTO_CIPHER_OP_ENCRYPT) ? plaintext : ciphertext) + i*step;
 		job.cipher_buff_list[i].length = step;
@@ -463,7 +468,7 @@ void* send_proc(void* data)
 	job.op._op_outbuff_len = MAX_OUTBUFF_LEN;
 	
 	// warmup
-    for (uint32_t i = 0; i < num_pck_per_batch; ++i)
+    for (i = 0; i < num_pck_per_batch; ++i)
     {
 		job.op._seq = seq++;
 		res = ciph_agent_send(conn_id, &job, 1);
@@ -484,12 +489,13 @@ void* send_proc(void* data)
 
     printf ("run ... %d\n", send_to_usec);
 	int32_t to_sleep = 0;
-    for(int c = 0; c < num_batch; ++c)
+	int c;
+    for(c = 0; c < num_batch; ++c)
     {
 		memset (&start_send, 0, sizeof (start_send));
 		timespec_get (&start_send, TIME_UTC);
 
-      	for (uint32_t i = 0; i < num_pck_per_batch; ++i)
+      	for (i = 0; i < num_pck_per_batch; ++i)
       	{
 		  	job.op._seq = seq++;
         	res = ciph_agent_send(conn_id, &job, 1);
@@ -556,7 +562,7 @@ void* send_proc(void* data)
 
     // flush
 	printf ("flush ...\n");
-    while(thread_data[conn_id].g_size < seq) // num_pck + num_pck_per_batch + 1  + 1
+    while (thread_data[conn_id].g_size < seq) // num_pck + num_pck_per_batch + 1  + 1
 	{
       	res = ciph_agent_poll(conn_id, MAX_CONN_CLIENT_BURST);
 		if (res == -2) printf ("ciph_agent_poll ERROR\n");;
