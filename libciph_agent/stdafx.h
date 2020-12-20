@@ -13,11 +13,11 @@
 #include <fstream>
 #include <stdexcept>
 
-#include <cstdint> // uint64_t
+//#include <cstdint> // uint64_t
 #include <memory>
 
 #include <functional>
-#include <thread>
+//#include <thread>
 #include <cstring>
 
 #define __STDC_FORMAT_MACROS

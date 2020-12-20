@@ -1,19 +1,8 @@
 ///////////////////////////////////
 // ciph_app_test
 
-#include <iostream>
-#include <string>
-#include <vector>
-#include <map>
-#include <set>
-#include <memory>
 #include <math.h>
-#include <fstream>
-#include <stdexcept>
-
-#include <cstdint> // uint64_t
-#include <memory>
- #include <unistd.h>
+#include <unistd.h>
 
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
@@ -23,9 +12,8 @@
 #include <string.h>
 
 #include "ciph_agent_c.h"
-#include <thread>
 
-#include "memcpy_fast.h"
+#include <pthread.h>
 
 uint8_t plaintext[1536] = {
 0xff, 0xca, 0xfb, 0xf1, 0x38, 0x20, 0x2f, 0x7b, 0x24, 0x98, 0x26, 0x7d, 0x1d, 0x9f, 0xb3, 0x93,
@@ -300,8 +288,8 @@ typedef struct
 	uint32_t g_op_failed;
 	int g_setup_sess_id;
 
-	Crypto_cipher_algorithm cipher_algo;
-    Crypto_cipher_operation cipher_op;
+	enum Crypto_cipher_algorithm cipher_algo;
+    enum Crypto_cipher_operation cipher_op;
 } thread_data_t;
 
 thread_data_t thread_data[THR_CNT];
@@ -309,7 +297,7 @@ pthread_t thread[THR_CNT];
 
 const int MAX_CONN_CLIENT_BURST = 64;
 
-const int BUFFER_TOTAL_LEN = 1500;
+const int BUFFER_TOTAL_LEN = 64;
 const int BUFFER_SEGMENT_NUM = 4;
 
 const int PCK_NUM = 10000000;
@@ -353,10 +341,8 @@ static double get_delta_usec(struct timespec start, struct timespec end)
 	return tmp;
 }
 
-inline void on_jobs_complete_cb_0 (uint32_t index, struct Dpdk_cryptodev_data_vector* vec, uint32_t size)
+void on_jobs_complete_cb_0 (uint32_t index, struct Dpdk_cryptodev_data_vector* vec, uint32_t size)
 {	
-	int ccc = 0;
-
     for(uint32_t j = 0; j < size; ++j)
     {
       	if (vec[j].op._op_status != OP_STATUS_SUCC)
@@ -379,45 +365,27 @@ inline void on_jobs_complete_cb_0 (uint32_t index, struct Dpdk_cryptodev_data_ve
       	// data plain
       	if (vec[j].op._sess_op == SESS_OP_ATTACH)
 	  	{
-			if (vec[j].cipher_buff_list[0].length > vec[j].op._op_outbuff_len)
+			//print_buff(vec[j].op._op_outbuff_ptr, vec[j].cipher_buff_list[0].length);
+
+			if (thread_data[index].cipher_op == CRYPTO_CIPHER_OP_DECRYPT)
 			{
-				printf ("outbuff too small\n");	
-				thread_data[index].g_data_failed++;
+				if ( 0 != memcmp(plaintext,
+							vec[j].op._op_outbuff_ptr,
+							vec[j].op._op_outbuff_len))
+				{
+          			thread_data[index].g_data_failed++;
+					printf ("g_data_failed %d\n", thread_data[index].g_data_failed);
+				}
 			}
-			else
+			else  if (thread_data[index].cipher_op == CRYPTO_CIPHER_OP_ENCRYPT)
 			{
-				/*
-				clib_memcpy_fast(vec[j].op._op_outbuff_ptr, 
-					vec[j].cipher_buff_list[0].data, 
-					vec[j].cipher_buff_list[0].length);
-
-				vec[j].op._op_outbuff_len = vec[j].cipher_buff_list[0].length;
-*/
-    			//print_buff(vec[j].cipher_buff_list[0].data, vec[j].cipher_buff_list[0].length);
-
-				if (thread_data[index].cipher_op == CRYPTO_CIPHER_OP_DECRYPT)
+				if ( 0 != memcmp(ciphertext,
+							vec[j].op._op_outbuff_ptr,
+							vec[j].op._op_outbuff_len))
 				{
-					if ( 0 != memcmp(plaintext,
-							vec[j].cipher_buff_list[0].data,
-							vec[j].cipher_buff_list[0].length))
-					{
-          				thread_data[index].g_data_failed++;
-						//printf ("g_data_failed %d\n", thread_data[index].g_data_failed);
-					}
+        			thread_data[index].g_data_failed++;
+					printf ("g_data_failed %d\n", thread_data[index].g_data_failed);
 				}
-				else  if (thread_data[index].cipher_op == CRYPTO_CIPHER_OP_ENCRYPT)
-				{
-					if ( 0 != memcmp(ciphertext,
-							vec[j].cipher_buff_list[0].data,
-							vec[j].cipher_buff_list[0].length))
-					{
-          				thread_data[index].g_data_failed++;
-						//printf ("g_data_failed %d\n", thread_data[index].g_data_failed);
-					}
-				}
-				// invalidate memif buffers - will be returned to pool
-				//vec[j].cipher_buff_list[0].data = NULL;
-				//vec[j].cipher_buff_list[0].length = 0;
 			}
 	  	}
     }
@@ -434,61 +402,6 @@ inline void on_jobs_complete_cb_0 (uint32_t index, struct Dpdk_cryptodev_data_ve
     }
 
 }
-
-///////////////////
-// memcpy
-//
-
-int generate_packet (void* src_buff, uint32_t* out_len,  uint32_t pck_size)
-{
-	clib_memcpy_fast(src_buff, ciphertext, 64);
-	*out_len = 64;
-
-	return 0;
-}
-
-int test_memcpy (int a_pck_size)
-{
-#if __AVX512F__ //__AVX512BITALG__
-printf("memcpy __AVX512F__\n");
-#elif __AVX2__
-printf("memcpy __AVX2__\n");
-#elif __SSSE3__
-printf("memcpy __SSSE3__\n");
-#else
-printf("memcpy default\n");
-#endif
-
-  	char dst_buff[2048];
-  	char src_buff[2048];
-  	uint32_t len;
-  	int i;
-
-  	int seq_len = 1000 * 1000000;
-  	int pck_size = a_pck_size;
-
-  	generate_packet ((void *)src_buff, &len,  pck_size);
-
-  	struct timespec start, end;
-  	memset (&start, 0, sizeof (start));
-  	memset (&end, 0, sizeof (end));
-
-  	timespec_get (&start, TIME_UTC);
-  	for (i = 0; i < seq_len; i++)
-  	{
-    	clib_memcpy_fast(dst_buff, src_buff, len);
-  	}
-  	timespec_get (&end, TIME_UTC);
-  	printf ("\n\n");
-  	printf ("Pakcet sequence copied!\n");
-  	printf ("Seq len: %u\n", seq_len);
-  	printf ("Pck size: %u\n", pck_size);
-
-	printf ("Seq time: %f us\n", get_delta_usec(start, end));
-
-	return 0;
-}
-///////////////////////////
 
 enum { SLEEP_TO_FACTOR = 1 };
 
@@ -609,7 +522,7 @@ void* send_proc(void* data)
       			timespec_get (&thread_data[conn_id].end, TIME_UTC);
 
       			double tmp = 1000.0 * seq / get_delta_usec(thread_data[conn_id].start, thread_data[conn_id].end);
-	  			printf ("Curr pps %d %f\n", conn_id, tmp);
+	  			printf ("Curr pps %ld %f\n", conn_id, tmp);
 			}
 			
 			memset (&end_sleep, 0, sizeof (end_sleep));
@@ -658,8 +571,6 @@ void* send_proc(void* data)
 
 int main(int argc, char* argv[])
 {
-	test_memcpy(64);
-
     long conn_id_0 = 0;
     long conn_id_1 = 1;
 

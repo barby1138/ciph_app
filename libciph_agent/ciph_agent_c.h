@@ -7,6 +7,10 @@ enum { CA_MODE_SLAVE = 0, CA_MODE_MASTER = 1 };
 
 typedef void (*on_jobs_complete_CallBk_t) (uint32_t, struct Dpdk_cryptodev_data_vector*, uint32_t);
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 /*
 * initializes communication client
 */
@@ -44,5 +48,10 @@ int32_t ciph_agent_send(uint32_t id, struct Dpdk_cryptodev_data_vector* jobs, ui
 * size - max size of completed jobs to return
 */
 int32_t ciph_agent_poll(uint32_t id, uint32_t size);
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _CIPH_AGENT_C_H_

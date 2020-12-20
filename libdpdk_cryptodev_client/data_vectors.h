@@ -5,16 +5,15 @@
 enum Sess_operation 
 {
 	SESS_OP_ATTACH = 0,
-	SESS_OP_CREATE = 1,
-	SESS_OP_CREATE_AND_ATTACH = 2,
-	SESS_OP_CLOSE = 3,
+	SESS_OP_CREATE,
+	SESS_OP_CLOSE,
 };
 
 enum Operation_status 
 {
 	OP_STATUS_NOT_PROCESSED = 0,
-	OP_STATUS_SUCC = 1,
-	OP_STATUS_FAILED = 2
+	OP_STATUS_SUCC,
+	OP_STATUS_FAILED
 };
 
 enum Crypto_cipher_algorithm
@@ -23,7 +22,6 @@ enum Crypto_cipher_algorithm
 	CRYPTO_CIPHER_SNOW3G_UEA2,
 	CRYPTO_CIPHER_ALGO_LAST
 };
-
 
 enum Crypto_cipher_operation
 {

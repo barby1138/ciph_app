@@ -100,6 +100,24 @@ void crypto_job_from_buffer(uint8_t* buffer, uint32_t len, struct Dpdk_cryptodev
     vec->cipher_buff_list[0].length = pData_len->ciphertext_length;
     vec->op._op_in_buff_list_len = 1;
 
+    // [OT] this is temp patch will be done automatically inside server in REL2 (with dpdk shared mem)
+    if (vec->op._sess_op == SESS_OP_ATTACH && vec->op._op_status == OP_STATUS_SUCC)
+    {
+        if (vec->op._op_outbuff_len < vec->cipher_buff_list[0].length)
+        {
+            vec->op._op_status == OP_STATUS_FAILED;
+			printf ("outbuff too small %u vs %u\n", vec->op._op_outbuff_len, vec->cipher_buff_list[0].length);	
+        }
+        else
+        {
+            clib_memcpy_fast(vec->op._op_outbuff_ptr, 
+					vec->cipher_buff_list[0].data, 
+					vec->cipher_buff_list[0].length);
+
+		    vec->op._op_outbuff_len = vec->cipher_buff_list[0].length;
+        }
+    }
+
     buffer += pData_len->ciphertext_length;
     vec->cipher_key.data = buffer;
     vec->cipher_key.length = pData_len->cipher_key_length;
