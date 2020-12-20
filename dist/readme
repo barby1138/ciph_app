@@ -1,0 +1,7 @@
+1. Unpack tar to /opt/lib/lxc
+
+rm -rf /opt/lib/lxc/ciph_app && lxc-stop -n ciph_app -k
+
+tar zxf lxc/ciph_app.tar-1.0.1.gz -C /opt/lib/lxc && lxc-start -n ciph_app -d && lxc-attach -n ciph_app
+
+[root@ciph_app /]# cd /home/ciph_app && taskset 0x1 ./dpdk-crypto-app cfg
