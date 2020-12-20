@@ -3,7 +3,7 @@
 CC=gcc
 CFLAGS=-MD
 CXX=gcc
-CXXFLAGS=$(CFLAGS) -Wall -fexceptions -Wattributes -mavx2 
+CXXFLAGS=$(CFLAGS) -Wall -fexceptions -Wattributes -mavx2 -std=c11
 LD=$(CXX) $(CXXFLAGS)
 LDFLAGS=
 
