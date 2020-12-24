@@ -1,19 +1,18 @@
+#ifndef _CRYPTO_OPERATION_
+#define _CRYPTO_OPERATION_
 
-#ifndef _CPERF_TEST_VECTRORS_
-#define _CPERF_TEST_VECTRORS_
-
-enum Sess_operation 
+enum Crypto_operation_type
 {
-	SESS_OP_ATTACH = 0,
-	SESS_OP_CREATE,
-	SESS_OP_CLOSE,
+	CRYPTO_OP_TYPE_SESS_CIPHERING = 0,
+	CRYPTO_OP_TYPE_SESS_CREATE,
+	CRYPTO_OP_TYPE_SESS_CLOSE,
 };
 
-enum Operation_status 
+enum Crypto_operation_status 
 {
-	OP_STATUS_NOT_PROCESSED = 0,
-	OP_STATUS_SUCC,
-	OP_STATUS_FAILED
+	CRYPTO_OP_STATUS_NOT_PROCESSED = 0,
+	CRYPTO_OP_STATUS_SUCC,
+	CRYPTO_OP_STATUS_FAILED
 };
 
 enum Crypto_cipher_algorithm
@@ -30,35 +29,42 @@ enum Crypto_cipher_operation
 	CRYPTO_CIPHER_OP_LAST
 };
 
-enum { MAX_BUFF_LIST = 100 };
+enum { MAX_CYPTO_BUFF_LIST_SIZE = 100 };
 
-struct Operation_t {
-		uint32_t _op_status;
-		uint8_t* _op_ctx_ptr;
-		uint8_t* _op_outbuff_ptr;
-		uint32_t _op_outbuff_len;
-		uint32_t _op_in_buff_list_len;
-		uint64_t _seq;
+typedef struct Crypto_operation_context {
+	uint32_t op_status;
 
-		enum Sess_operation _sess_op;
-		// [in] for SESS_OP_ATTACH / SESS_OP_CLOSE [out] for SESS_OP_CREATE
-		uint32_t _sess_id;
-		// used only for SESS_OP_CREATE
-		enum Crypto_cipher_algorithm _cipher_algo;
-		enum Crypto_cipher_operation _cipher_op;
-};
+	uint8_t* op_ctx_ptr;
 
-struct Buff_t {
-		uint8_t *data;
-		uint32_t length;
-};
+	uint8_t* outbuff_ptr;
+	uint32_t outbuff_len;
 
-struct Dpdk_cryptodev_data_vector {
-	struct Operation_t op;
+	uint64_t seq;
 
-	struct Buff_t cipher_buff_list[MAX_BUFF_LIST];
-	struct Buff_t cipher_key;
-	struct Buff_t cipher_iv;
-};
+	enum Crypto_operation_type op_type;
+	// [in] for CRYPTO_OP_TYPE_SESS_CIPHERING / CRYPTO_OP_TYPE_SESS_CLOSE [out] for CRYPTO_OP_TYPE_SESS_CREATE
+	uint32_t sess_id;
+		// used only for CRYPTO_OP_TYPE_SESS_CREATE
+	enum Crypto_cipher_algorithm cipher_algo;
+	enum Crypto_cipher_operation cipher_op;
+}Crypto_operation_context;
 
-#endif // _CPERF_TEST_VECTRORS_
+typedef struct Crypto_buff {
+	uint32_t length;
+	uint8_t* data;
+}Crypto_buff;
+
+typedef struct Crypto_buff_list {
+	uint32_t buff_list_length;
+	struct Crypto_buff buffs[MAX_CYPTO_BUFF_LIST_SIZE];
+}Crypto_buff_list;
+
+typedef struct Crypto_operation {
+	Crypto_operation_context op;
+
+	Crypto_buff_list cipher_buff_list;
+	Crypto_buff cipher_key;
+	Crypto_buff cipher_iv;
+}Crypto_operation;
+
+#endif // _CRYPTO_OPERATION_

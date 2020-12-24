@@ -3,7 +3,7 @@
 CC=gcc
 CFLAGS=-MD
 CXX=gcc
-CXXFLAGS=$(CFLAGS) -W -fexceptions -fPIC -mavx2
+CXXFLAGS=$(CFLAGS) -W -fexceptions -fPIC -mavx2 -std=c++11
 #-fpermissive
 AR=ar
 ARFLAGS=rus
@@ -18,11 +18,13 @@ OBJDIR=$(ROOTDIR)/obj/$(OS)/$(CFG)
 DESTDIR=$(ROOTDIR)/lib/$(OS)/$(CFG)
 TARGET=$(DESTDIR)/$(LIBNAME).a
 
-DEFINE=-D_LINUX
+DEFINE=-D_LINUX -D_REDHAT
 
 INCLUDE=-I$(ROOTDIR) \
 		-I$(ROOTDIR)/libmemcpy \
-		-I$(ROOTDIR)/3rdparty/dpdk-20.05/x86_64-native-linuxapp-gcc/include
+		-I$(ROOTDIR)/3rdparty/fridmon-0.1.10/quark_1_0_1 \
+		-I$(ROOTDIR)/3rdparty/fridmon-0.1.10/meson_1_0_1 \
+		-I$(ROOTDIR)/3rdparty/dpdk-20.05/x86_64-native-linuxapp-gcc/include 
 
 ifndef CFG
 CFG=debug

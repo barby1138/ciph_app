@@ -17,12 +17,23 @@
 
 #include "memcpy_fast.h"
 
+// use external fridmon logger
+#define _EXTERNAL_TRACER_
+#ifdef _EXTERNAL_TRACER_
+#include <quark/config.h>
+#include <meson/tracer.h>
+#include <meson/profiler.h>
+
+#undef RTE_LOG
+#define TRACE_ERR TRACE_ERROR
+#define RTE_LOG(a, b, format, ...) TRACE_##a (format, ##__VA_ARGS__)
+#endif
+//////////////////////
+
 rte_crypto_cipher_algorithm crypto_cipher_algo_map[CRYPTO_CIPHER_ALGO_LAST];
 rte_crypto_cipher_operation crypto_cipher_op_map[CRYPTO_CIPHER_OP_LAST];
 
 enum { MAX_SESS_NUM = 2 * 2 * 4000 };
-
-//#define EXPERIMENTAL_NO_MEMCPY
 
 uint8_t plaintext[1024] = {
 0xff, 0xca, 0xfb, 0xf1, 0x38, 0x20, 0x2f, 0x7b, 0x24, 0x98, 0x26, 0x7d, 0x1d, 0x9f, 0xb3, 0x93,
@@ -201,29 +212,30 @@ uint8_t cipher_key[] = {
 
 void print_buff1(uint8_t* data, int len)
 {
-  fprintf(stdout, "test app length %d\n", len);
+  	fprintf(stdout, "test app length %d\n", len);
 
-  int c = 0;
-  fprintf(stdout, "%03d ", c++);
+  	int c = 0;
+  	fprintf(stdout, "%03d ", c++);
 
-  for(int i = 0; i < len; ++i)
-  {
-    fprintf(stdout, "%02X%s", data[i], ( i + 1 ) % 16 == 0 ? "\r\n" : " " );
+  	for(int i = 0; i < len; ++i)
+  	{
+		fprintf(stdout, "%02X%s", data[i], ( i + 1 ) % 16 == 0 ? "\r\n" : " " );
 
-    if (( i + 1 ) % 16 == 0)
-      fprintf(stdout, "%03d ", c++);
-  }
+    	if (( i + 1 ) % 16 == 0)
+      		fprintf(stdout, "%03d ", c++);
+  	}
 
-  fprintf(stdout, "\r\n");
+  	fprintf(stdout, "\r\n");
 }
 
 
 int Dpdk_cryptodev_client::fill_session_pool_socket(int32_t socket_id, uint32_t session_priv_size, uint32_t nb_sessions)
 {
 	char mp_name[RTE_MEMPOOL_NAMESIZE];
-	struct rte_mempool *sess_mp;
+	rte_mempool *sess_mp;
 
-	if (_priv_mp == NULL) {
+	if (_priv_mp == NULL) 
+	{
 		snprintf(mp_name, RTE_MEMPOOL_NAMESIZE, "priv_sess_mp_%u", socket_id);
 
 		sess_mp = rte_mempool_create(mp_name,
@@ -238,29 +250,32 @@ int Dpdk_cryptodev_client::fill_session_pool_socket(int32_t socket_id, uint32_t 
 					socket_id,
 					0);
 
-		if (sess_mp == NULL) {
-			RTE_LOG(ERR, USER1, "Cannot create pool \"%s\" on socket %d\n",mp_name, socket_id);
+		if (sess_mp == NULL) 
+		{
+			RTE_LOG(ERR, USER1, "Cannot create pool \"%s\" on socket %d", mp_name, socket_id);
 			return -ENOMEM;
 		}
 
-		printf("Allocated pool \"%s\" on socket %d\n", mp_name, socket_id);
+		RTE_LOG(INFO, USER1, "Allocated pool \"%s\" on socket %d", mp_name, socket_id);
 
 		_priv_mp = sess_mp;
 	}
 
-	if (_sess_mp == NULL) {
+	if (_sess_mp == NULL) 
+	{
 
 		snprintf(mp_name, RTE_MEMPOOL_NAMESIZE, "sess_mp_%u", socket_id);
 
 		sess_mp = rte_cryptodev_sym_session_pool_create(mp_name,
 					nb_sessions, 0, 0, 0, socket_id);
 
-		if (sess_mp == NULL) {
-			RTE_LOG(ERR, USER1, "Cannot create pool \"%s\" on socket %d\n", mp_name, socket_id);
+		if (sess_mp == NULL) 
+		{
+			RTE_LOG(ERR, USER1, "Cannot create pool \"%s\" on socket %d", mp_name, socket_id);
 			return -ENOMEM;
 		}
 
-		printf("Allocated pool \"%s\" on socket %d\n", mp_name, socket_id);
+		RTE_LOG(INFO, USER1, "Allocated pool \"%s\" on socket %d", mp_name, socket_id);
 
 		_sess_mp = sess_mp;
 	}
@@ -293,7 +308,7 @@ int Dpdk_cryptodev_client::init_inner()
 	printf("enabled_cdev_count: %d\n", enabled_cdev_count);
 	if (enabled_cdev_count == 0) 
 	{
-		RTE_LOG(ERR, USER1, "No crypto devices type %s available\n", _opts.device_type);
+		RTE_LOG(ERR, USER1, "No crypto devices type %s available", _opts.device_type);
 		return -EINVAL;
 	}
 	printf("enabled_cdev id: %d\n", _enabled_cdevs[enabled_cdev_count - 1]);
@@ -329,25 +344,26 @@ int Dpdk_cryptodev_client::init_inner()
 				CDEV_SCHED_MODE_MULTICORE)
 			_opts.nb_qps = 1;
 #endif
-		struct rte_cryptodev_info cdev_info;
+		rte_cryptodev_info cdev_info;
 		uint8_t socket_id = rte_cryptodev_socket_id(cdev_id);
 
 		if (socket_id >= RTE_MAX_NUMA_NODES)
 			socket_id = 0;
 
 		rte_cryptodev_info_get(cdev_id, &cdev_info);
-		if (_opts.nb_qps > cdev_info.max_nb_queue_pairs) {
-			RTE_LOG(ERR, USER1, "Number of needed queue pairs is higher than the maximum number of queue pairs per device.\n");
-			RTE_LOG(ERR, USER1, "Lower the number of cores or increase the number of crypto devices\n");
+		if (_opts.nb_qps > cdev_info.max_nb_queue_pairs) 
+		{
+			RTE_LOG(ERR, USER1, "Number of needed queue pairs is higher than the maximum number of queue pairs per device.");
+			RTE_LOG(ERR, USER1, "Lower the number of cores or increase the number of crypto devices");
 			return -EINVAL;
 		}
-		struct rte_cryptodev_config conf;
+		rte_cryptodev_config conf;
         
 		conf.nb_queue_pairs = _opts.nb_qps;
 		conf.socket_id = socket_id;
 		conf.ff_disable = RTE_CRYPTODEV_FF_SECURITY | RTE_CRYPTODEV_FF_ASYMMETRIC_CRYPTO;
 
-		struct rte_cryptodev_qp_conf qp_conf;
+		rte_cryptodev_qp_conf qp_conf;
 		qp_conf.nb_descriptors = _opts.nb_descriptors;
 
 		/**
@@ -382,7 +398,7 @@ int Dpdk_cryptodev_client::init_inner()
 		ret = rte_cryptodev_configure(cdev_id, &conf);
 		if (ret < 0) 
 		{
-			RTE_LOG(ERR, USER1, "Failed to configure cryptodev %u\n", cdev_id);
+			RTE_LOG(ERR, USER1, "Failed to configure cryptodev %u", cdev_id);
 			return -EINVAL;
 		}
 
@@ -391,7 +407,7 @@ int Dpdk_cryptodev_client::init_inner()
 			ret = rte_cryptodev_queue_pair_setup(cdev_id, j, &qp_conf, socket_id);
 			if (ret < 0) 
 			{
-				RTE_LOG(ERR, USER1, "Failed to setup queue pair %u on cryptodev %u",	j, cdev_id);
+				RTE_LOG(ERR, USER1, "Failed to setup queue pair %u on cryptodev %u", j, cdev_id);
 				return -EINVAL;
 			}
 		}
@@ -402,14 +418,14 @@ int Dpdk_cryptodev_client::init_inner()
 			0 // extra_priv
 			) < 0)
 		{
-			RTE_LOG(ERR, USER1, "Failed to alloc_common_memory\n");
+			RTE_LOG(ERR, USER1, "Failed to alloc_common_memory");
 			return -EPERM;
 		}
 
 		ret = rte_cryptodev_start(cdev_id);
 		if (ret < 0) 
 		{
-			RTE_LOG(ERR, USER1, "Failed to start device %u: error %d\n", cdev_id, ret);
+			RTE_LOG(ERR, USER1, "Failed to start device %u: error %d", cdev_id, ret);
 			return -EPERM;
 		}
 	}
@@ -417,10 +433,10 @@ int Dpdk_cryptodev_client::init_inner()
 	return enabled_cdev_count;
 }
 
-int Dpdk_cryptodev_client::verify_devices_capabilities(struct Dpdk_cryptodev_options *opts)
+int Dpdk_cryptodev_client::verify_devices_capabilities(Dpdk_cryptodev_options *opts)
 {
-	struct rte_cryptodev_sym_capability_idx cap_idx;
-	const struct rte_cryptodev_symmetric_capability *capability;
+	rte_cryptodev_sym_capability_idx cap_idx;
+	const rte_cryptodev_symmetric_capability *capability;
 
 	uint8_t i, cdev_id;
 	int ret;
@@ -474,13 +490,13 @@ int Dpdk_cryptodev_client::init(int argc, char **argv)
 	ret = cperf_options_parse(&_opts, argc, argv);
 	if (ret) 
 	{
-		RTE_LOG(ERR, USER1, "Parsing on or more user options failed\n");
+		RTE_LOG(ERR, USER1, "Parsing on or more user options failed");
 		goto err;
 	}
 
 	ret = cperf_options_check(&_opts);
 	if (ret) {
-		RTE_LOG(ERR, USER1, "Checking on or more user options failed\n");
+		RTE_LOG(ERR, USER1, "Checking on or more user options failed");
 		goto err;
 	}
 
@@ -490,7 +506,7 @@ int Dpdk_cryptodev_client::init(int argc, char **argv)
 
 	if (_nb_cryptodevs < 1) 
 	{
-		RTE_LOG(ERR, USER1, "Failed to initialise requested crypto device type\n");
+		RTE_LOG(ERR, USER1, "Failed to initialise requested crypto device type");
 		_nb_cryptodevs = 0;
 		goto err;
 	}
@@ -498,15 +514,15 @@ int Dpdk_cryptodev_client::init(int argc, char **argv)
 	ret = verify_devices_capabilities(&_opts);
 	if (ret) 
 	{
-		RTE_LOG(ERR, USER1, "Crypto device type does not support capabilities requested\n");
+		RTE_LOG(ERR, USER1, "Crypto device type does not support capabilities requested");
 		goto err;
 	}
 */
     // per connection
-	t_vecs = (struct Dpdk_cryptodev_data_vector *)rte_malloc(NULL, _opts.max_burst_size * sizeof(struct Dpdk_cryptodev_data_vector), 0);
+	t_vecs = (Crypto_operation *)rte_malloc(NULL, _opts.max_burst_size * sizeof(Crypto_operation), 0);
 	if (t_vecs == NULL)
 	{
-		RTE_LOG(ERR, USER1, "t_vecs alloc failed\n");
+		RTE_LOG(ERR, USER1, "t_vecs alloc failed");
 		goto err;
 	}
 
@@ -537,7 +553,7 @@ void  Dpdk_cryptodev_client::cleanup()
 	// free connections
 }
 
-int Dpdk_cryptodev_client::run_jobs(int channel_index, struct Dpdk_cryptodev_data_vector* jobs, uint32_t size)
+int Dpdk_cryptodev_client::run_jobs(int channel_index, Crypto_operation* jobs, uint32_t size)
 {
 	uint16_t total_nb_qps = 0;
 	uint8_t cdev_id;
@@ -553,37 +569,37 @@ int Dpdk_cryptodev_client::run_jobs(int channel_index, struct Dpdk_cryptodev_dat
 	uint32_t i = 0, j = 0;
 	while (i < size)
 	{
-		if (jobs[i].op._sess_op == SESS_OP_CREATE)
+		if (jobs[i].op.op_type == CRYPTO_OP_TYPE_SESS_CREATE)
 		{
 			uint32_t sess_id = -1;
 			if (0 == create_session(channel_index, cdev_id, &jobs[i], &sess_id))
 			{
-				jobs[i].op._op_status = OP_STATUS_SUCC;
-				jobs[i].op._sess_id = sess_id;
+				jobs[i].op.op_status = CRYPTO_OP_STATUS_SUCC;
+				jobs[i].op.sess_id = sess_id;
 			}
 			else
 			{
-				jobs[i].op._op_status = OP_STATUS_FAILED;
-				jobs[i].op._sess_id = -1;
+				jobs[i].op.op_status = CRYPTO_OP_STATUS_FAILED;
+				jobs[i].op.sess_id = -1;
 			}
 		}
-		else if (jobs[i].op._sess_op == SESS_OP_CLOSE)
+		else if (jobs[i].op.op_type == CRYPTO_OP_TYPE_SESS_CLOSE)
 		{
 			; // postpone remove sess to the end of burst
 		}
-		else if (jobs[i].op._sess_op == SESS_OP_ATTACH)
+		else if (jobs[i].op.op_type == CRYPTO_OP_TYPE_SESS_CIPHERING)
 		{
 			// init with failde
-			jobs[i].op._op_status = OP_STATUS_FAILED;
+			jobs[i].op.op_status = CRYPTO_OP_STATUS_FAILED;
 
 			if (NULL == get_session(channel_index, cdev_id, &jobs[i]))
 			{
-				RTE_LOG(WARNING, USER1, "session == NULL - skip op\n");
+				RTE_LOG(WARNING, USER1, "session == NULL - skip op");
 			}
 			else
 			{	
 /*
-				if ( 0 != memcmp((jobs[i].op._cipher_op == CRYPTO_CIPHER_OP_DECRYPT) ? ciphertext : plaintext,
+				if ( 0 != memcmp((jobs[i].op.cipher_op == CRYPTO_CIPHER_OP_DECRYPT) ? ciphertext : plaintext,
 					jobs[i].cipher_buff_list[0].data,
 					jobs[i].cipher_buff_list[0].length))
 				{
@@ -591,9 +607,9 @@ int Dpdk_cryptodev_client::run_jobs(int channel_index, struct Dpdk_cryptodev_dat
 					print_buff1(jobs[i].cipher_buff_list[0].data, jobs[i].cipher_buff_list[0].length);
 				}
 */
-				t_vecs[j].op._sess_id = jobs[i].op._sess_id;
-				t_vecs[j].cipher_buff_list[0].data = jobs[i].cipher_buff_list[0].data;
-				t_vecs[j].cipher_buff_list[0].length = jobs[i].cipher_buff_list[0].length; //_opts.max_buffer_size;
+				t_vecs[j].op.sess_id = jobs[i].op.sess_id;
+				t_vecs[j].cipher_buff_list.buffs[0].data = jobs[i].cipher_buff_list.buffs[0].data;
+				t_vecs[j].cipher_buff_list.buffs[0].length = jobs[i].cipher_buff_list.buffs[0].length; //_opts.max_buffer_size;
 				t_vecs[j].cipher_iv.data = jobs[i].cipher_iv.data;
 				t_vecs[j].cipher_iv.length = jobs[i].cipher_iv.length;
 
@@ -602,7 +618,7 @@ int Dpdk_cryptodev_client::run_jobs(int channel_index, struct Dpdk_cryptodev_dat
 		}
 		else
 		{
-			RTE_LOG(WARNING, USER1, "WARN!!! unknown sess op %d i %d\n", jobs[i].op._sess_op, i);
+			RTE_LOG(WARNING, USER1, "WARN!!! unknown sess op %d i %d", jobs[i].op.op_type, i);
 		}
 
 		i++;
@@ -615,24 +631,24 @@ int Dpdk_cryptodev_client::run_jobs(int channel_index, struct Dpdk_cryptodev_dat
 	i = 0, j = 0;
 	while (i < size)
 	{
-		if (jobs[i].op._sess_op == SESS_OP_CREATE)
+		if (jobs[i].op.op_type == CRYPTO_OP_TYPE_SESS_CREATE)
 		{
 			;
 		}
-		else if (jobs[i].op._sess_op == SESS_OP_CLOSE)
+		else if (jobs[i].op.op_type == CRYPTO_OP_TYPE_SESS_CLOSE)
 		{
 			if (0 == remove_session(channel_index, cdev_id, &jobs[i]))
-				jobs[i].op._op_status = OP_STATUS_SUCC;
+				jobs[i].op.op_status = CRYPTO_OP_STATUS_SUCC;
 			else
-				jobs[i].op._op_status = OP_STATUS_FAILED;
+				jobs[i].op.op_status = CRYPTO_OP_STATUS_FAILED;
 		}
-		else if (jobs[i].op._sess_op == SESS_OP_ATTACH)
+		else if (jobs[i].op.op_type == CRYPTO_OP_TYPE_SESS_CIPHERING)
 		{
-			jobs[i].op._op_status = OP_STATUS_SUCC;
-			jobs[i].op._op_in_buff_list_len = 1;
+			jobs[i].op.op_status = CRYPTO_OP_STATUS_SUCC;
+			jobs[i].cipher_buff_list.buff_list_length = 1;
 
 /*
-			if ( 0 != memcmp((jobs[i].op._cipher_op == CRYPTO_CIPHER_OP_DECRYPT) ? plaintext : ciphertext,
+			if ( 0 != memcmp((jobs[i].op.cipher_op == CRYPTO_CIPHER_OP_DECRYPT) ? plaintext : ciphertext,
 					t_vecs[j].cipher_buff_list[0].data,
 					t_vecs[j].cipher_buff_list[0].length))
 			{
@@ -644,7 +660,7 @@ int Dpdk_cryptodev_client::run_jobs(int channel_index, struct Dpdk_cryptodev_dat
 		}
 		else
 		{
-			RTE_LOG(WARNING, USER1, "WARN!!! unknown sess op %d i = %d\n", jobs[i].op._sess_op, i);
+			RTE_LOG(WARNING, USER1, "WARN!!! unknown sess op %d i = %d", jobs[i].op.op_type, i);
 		}
 
 		i++;
@@ -655,42 +671,45 @@ int Dpdk_cryptodev_client::run_jobs(int channel_index, struct Dpdk_cryptodev_dat
 
 // ops
 int Dpdk_cryptodev_client::set_ops_cipher(
-		struct rte_crypto_op **ops,
+		rte_crypto_op **ops,
 		int channel_index,
-		const struct Dpdk_cryptodev_data_vector *vecs,
+		const Crypto_operation *vecs,
 		uint32_t nb_ops)
 {
 	uint16_t i;
 
 	uint8_t cdev_id = 0;
 
-	uint16_t iv_offset = sizeof(struct rte_crypto_op) + sizeof(struct rte_crypto_sym_op);
+	uint16_t iv_offset = sizeof(rte_crypto_op) + sizeof(rte_crypto_sym_op);
 
-	for (i = 0; i < nb_ops; i++) {
-		struct rte_crypto_sym_op *sym_op = ops[i]->sym;
+	for (i = 0; i < nb_ops; i++) 
+	{
+		rte_crypto_sym_op *sym_op = ops[i]->sym;
 
 		ops[i]->status = RTE_CRYPTO_OP_STATUS_NOT_PROCESSED;
 
 		static int count = 0;
 		ops[i]->sess_type =  RTE_CRYPTO_OP_WITH_SESSION; 
 
-		struct rte_cryptodev_sym_session* sess = get_session(channel_index, cdev_id, &vecs[i]);
+		rte_cryptodev_sym_session* sess = get_session(channel_index, cdev_id, &vecs[i]);
 		// [OT] No need handle not found sess == NULL - checked at input
 		rte_crypto_op_attach_sym_session(ops[i], sess);
 
-		sym_op->m_src = (struct rte_mbuf *)((uint8_t *)ops[i] + _src_buf_offset);
-		{
-		struct rte_mbuf *m = sym_op->m_src;
+		sym_op->m_src = (rte_mbuf *)((uint8_t *)ops[i] + _src_buf_offset);
 
-		uint32_t mbuf_hdr_size = sizeof(struct rte_mbuf);
+		// TODO review
+		{
+		rte_mbuf *m = sym_op->m_src;
+
+		uint32_t mbuf_hdr_size = sizeof(rte_mbuf);
 
 		/* start of buffer is after mbuf structure and priv data */
 		m->priv_size = 0;
-		m->buf_addr = vecs[i].cipher_buff_list[0].data;
-		m->buf_iova = rte_mempool_virt2iova(vecs[i].cipher_buff_list[0].data);
-		m->buf_len = vecs[i].cipher_buff_list[0].length;
-		m->data_len = vecs[i].cipher_buff_list[0].length;
-		m->pkt_len = vecs[i].cipher_buff_list[0].length;
+		m->buf_addr = vecs[i].cipher_buff_list.buffs[0].data;
+		m->buf_iova = rte_mempool_virt2iova(vecs[i].cipher_buff_list.buffs[0].data);
+		m->buf_len = vecs[i].cipher_buff_list.buffs[0].length;
+		m->data_len = vecs[i].cipher_buff_list.buffs[0].length;
+		m->pkt_len = vecs[i].cipher_buff_list.buffs[0].length;
 
 		//printf("fill_single_seg_mbuf %d, %d\n", m, m->data_len);
 
@@ -705,7 +724,7 @@ int Dpdk_cryptodev_client::set_ops_cipher(
 		m->next = NULL;
 		}
 
-		sym_op->cipher.data.length = vecs[i].cipher_buff_list[0].length;
+		sym_op->cipher.data.length = vecs[i].cipher_buff_list.buffs[0].length;
 
 		// TODO cifer algo from session
 		//if (options->cipher_algo == RTE_CRYPTO_CIPHER_SNOW3G_UEA2 ||
@@ -726,12 +745,12 @@ int Dpdk_cryptodev_client::set_ops_cipher(
 	return 0;
 }
 
-int Dpdk_cryptodev_client::create_session(int channel_index, uint8_t dev_id, const struct Dpdk_cryptodev_data_vector *test_vector, uint32_t* sess_id)
+int Dpdk_cryptodev_client::create_session(int channel_index, uint8_t dev_id, const Crypto_operation *test_vector, uint32_t* sess_id)
 {
-	uint16_t iv_offset = sizeof(struct rte_crypto_op) + sizeof(struct rte_crypto_sym_op);
+	uint16_t iv_offset = sizeof(rte_crypto_op) + sizeof(rte_crypto_sym_op);
 
-	struct rte_crypto_sym_xform cipher_xform;
-	struct rte_cryptodev_sym_session *s = NULL;
+	rte_crypto_sym_xform cipher_xform;
+	rte_cryptodev_sym_session *s = NULL;
 
 	s = rte_cryptodev_sym_session_create(_sess_mp);
 	if (s == NULL)
@@ -742,22 +761,25 @@ int Dpdk_cryptodev_client::create_session(int channel_index, uint8_t dev_id, con
 	cipher_xform.next = NULL;
 
 	// TODO check index
-	cipher_xform.cipher.algo = crypto_cipher_algo_map[test_vector->op._cipher_algo];
-	cipher_xform.cipher.op = crypto_cipher_op_map[test_vector->op._cipher_op];
+	cipher_xform.cipher.algo = crypto_cipher_algo_map[test_vector->op.cipher_algo];
+	cipher_xform.cipher.op = crypto_cipher_op_map[test_vector->op.cipher_op];
 	cipher_xform.cipher.iv.offset = iv_offset;
 
-	RTE_LOG(NOTICE, USER1, "create_session alg:%d op:%d iv_offset:%d iv len %d key len %d\n", 
+	RTE_LOG(INFO, USER1, "create_session alg:%d op:%d iv_offset:%d iv len %d key len %d", 
 			cipher_xform.cipher.algo, 
 			cipher_xform.cipher.op, 
 			cipher_xform.cipher.iv.offset, 
 			test_vector->cipher_iv.length,
 			test_vector->cipher_key.length);
 
-	if (cipher_xform.cipher.algo != RTE_CRYPTO_CIPHER_NULL) {
+	if (cipher_xform.cipher.algo != RTE_CRYPTO_CIPHER_NULL) 
+	{
 		cipher_xform.cipher.key.data = test_vector->cipher_key.data;
 		cipher_xform.cipher.key.length = test_vector->cipher_key.length;
 		cipher_xform.cipher.iv.length = 16; //test_vector->cipher_iv.length;
-	} else {
+	} 
+	else 
+	{
 		cipher_xform.cipher.key.data = NULL;
 		cipher_xform.cipher.key.length = 0;
 		cipher_xform.cipher.iv.length = 0;
@@ -781,31 +803,31 @@ int Dpdk_cryptodev_client::create_session(int channel_index, uint8_t dev_id, con
 	return -1;
 }
 
-int Dpdk_cryptodev_client::remove_session(int channel_index, uint8_t dev_id, const struct Dpdk_cryptodev_data_vector *test_vector)
+int Dpdk_cryptodev_client::remove_session(int channel_index, uint8_t dev_id, const Crypto_operation *test_vector)
 {
-	struct rte_cryptodev_sym_session* s = _active_sessions_registry[channel_index][test_vector->op._sess_id];
+	rte_cryptodev_sym_session* s = _active_sessions_registry[channel_index][test_vector->op.sess_id];
 	if (NULL == s)
 	{
-		RTE_LOG(ERR, USER1, "remove_session s == NULL \n");
+		RTE_LOG(ERR, USER1, "remove_session s == NULL");
 		return -1;
 	}
 
 	if (0 != rte_cryptodev_sym_session_clear(dev_id, s))
-		RTE_LOG(ERR, USER1, "rte_cryptodev_sym_session_clear failed\n");
+		RTE_LOG(ERR, USER1, "rte_cryptodev_sym_session_clear failed");
 	if (0 != rte_cryptodev_sym_session_free(s))
-		RTE_LOG(ERR, USER1, "rte_cryptodev_sym_session_free failed\n");
+		RTE_LOG(ERR, USER1, "rte_cryptodev_sym_session_free failed");
 		
-	_active_sessions_registry[channel_index][test_vector->op._sess_id] = NULL;
+	_active_sessions_registry[channel_index][test_vector->op.sess_id] = NULL;
 	
 	return 0;
 }
 
-struct rte_cryptodev_sym_session* Dpdk_cryptodev_client::get_session(int channel_index, uint8_t dev_id, const struct Dpdk_cryptodev_data_vector *test_vector)
+rte_cryptodev_sym_session* Dpdk_cryptodev_client::get_session(int channel_index, uint8_t dev_id, const Crypto_operation *test_vector)
 {
-	struct rte_cryptodev_sym_session* s = _active_sessions_registry[channel_index][test_vector->op._sess_id];
+	rte_cryptodev_sym_session* s = _active_sessions_registry[channel_index][test_vector->op.sess_id];
 	if (NULL == s)
 	{
-		RTE_LOG(ERR, USER1, "get_session s == NULL \n");
+		RTE_LOG(ERR, USER1, "get_session s == NULL");
 		return NULL;
 	}
 
@@ -826,14 +848,14 @@ int Dpdk_cryptodev_client::run_jobs_inner(int channel_index, uint8_t dev_id, uin
 
     uint16_t socket_id = 0;
 
-	struct rte_mbuf *mbufs[_opts.max_burst_size];
-	struct rte_crypto_op *ops[_opts.max_burst_size];
-	struct rte_crypto_op *ops_processed[_opts.max_burst_size];
+	rte_mbuf *mbufs[_opts.max_burst_size];
+	rte_crypto_op *ops[_opts.max_burst_size];
+	rte_crypto_op *ops_processed[_opts.max_burst_size];
 
 	uint32_t lcore = rte_lcore_id();
 
 #ifdef CPERF_LINEARIZATION_ENABLE
-	struct rte_cryptodev_info dev_info;
+	rte_cryptodev_info dev_info;
 	int linearize = 0;
 
 	/* Check if source mbufs require coalescing */
@@ -845,8 +867,8 @@ int Dpdk_cryptodev_client::run_jobs_inner(int channel_index, uint8_t dev_id, uin
 	}
 #endif /* CPERF_LINEARIZATION_ENABLE */
 
-	while (ops_enqd_total < _opts.total_ops) {
-	
+	while (ops_enqd_total < _opts.total_ops) 
+	{
 		uint16_t burst_size = ((ops_enqd_total + _opts.max_burst_size) <= _opts.total_ops) ?
 						_opts.max_burst_size :
 						_opts.total_ops - ops_enqd_total;
@@ -855,11 +877,11 @@ int Dpdk_cryptodev_client::run_jobs_inner(int channel_index, uint8_t dev_id, uin
 	
 		if (rte_mempool_get_bulk(_ops_mp, (void **)ops, ops_needed) != 0) 
 		{
-			RTE_LOG(ERR, USER1,
-				"Failed to allocate more crypto operations "
-				"from the crypto operation pool.\n"
-				"Consider increasing the pool size "
-				"with --pool-sz\n");
+			RTE_LOG(ERR, USER1, 
+				"Failed to allocate more crypto operations " 
+				"from the crypto operation pool. " 
+				"Consider increasing the pool size " 
+				"with --pool-sz");
 			return -1;
 		}
 			
@@ -891,7 +913,8 @@ int Dpdk_cryptodev_client::run_jobs_inner(int channel_index, uint8_t dev_id, uin
 
 		/* Dequeue processed burst of ops from crypto device */
 		ops_deqd = rte_cryptodev_dequeue_burst(dev_id, qp_id, ops_processed, ops_needed);//ctx->options->max_burst_size);
-		if (ops_deqd == 0) {
+		if (ops_deqd == 0) 
+		{
 			/**
 			 * Count dequeue polls which didn't return any
 			 * processed operations. This statistic is mainly
@@ -909,13 +932,15 @@ int Dpdk_cryptodev_client::run_jobs_inner(int channel_index, uint8_t dev_id, uin
 
 	/* Dequeue any operations still in the crypto device */
 
-	while (ops_deqd_total < _opts.total_ops) {
+	while (ops_deqd_total < _opts.total_ops) 
+	{
 		/* Sending 0 length burst to flush sw crypto device */
 		rte_cryptodev_enqueue_burst(dev_id, qp_id, NULL, 0);
 
 		/* dequeue burst */
 		ops_deqd = rte_cryptodev_dequeue_burst(dev_id, qp_id, ops_processed, _opts.max_burst_size);
-		if (ops_deqd == 0) {
+		if (ops_deqd == 0) 
+		{
 			ops_deqd_failed++;
 			continue;
 		}
@@ -935,11 +960,14 @@ int Dpdk_cryptodev_client::run_jobs_inner(int channel_index, uint8_t dev_id, uin
 struct obj_params {
 	uint32_t src_buf_offset;
 	uint32_t dst_buf_offset;
+/*
 	uint16_t segment_sz;
 	uint16_t headroom_sz;
 	uint16_t data_len;
 	uint16_t segments_nb;
+*/
 };
+
 /*
 void fill_single_seg_mbuf(struct rte_mbuf *m, struct rte_mempool *mp,
 		void *obj, uint32_t mbuf_offset, uint16_t segment_sz,
@@ -1006,14 +1034,14 @@ void fill_multi_seg_mbuf(struct rte_mbuf *m, struct rte_mempool *mp,
 }
 */
 
-void mempool_obj_init(struct rte_mempool *mp,
+void mempool_obj_init(rte_mempool *mp,
 		    void *opaque_arg,
 		    void *obj,
 		    __attribute__((unused)) unsigned int i)
 {
-	struct obj_params *params = (struct obj_params *) opaque_arg;
-	struct rte_crypto_op *op = (struct rte_crypto_op *) obj;
-	struct rte_mbuf *m = (struct rte_mbuf *) ((uint8_t *) obj + params->src_buf_offset);
+	obj_params *params = (obj_params *) opaque_arg;
+	rte_crypto_op *op = (rte_crypto_op *) obj;
+	rte_mbuf *m = (rte_mbuf *) ((uint8_t *) obj + params->src_buf_offset);
 	/* Set crypto operation */
 	op->type = RTE_CRYPTO_OP_TYPE_SYMMETRIC;
 	op->status = RTE_CRYPTO_OP_STATUS_NOT_PROCESSED;
@@ -1055,7 +1083,7 @@ int Dpdk_cryptodev_client::alloc_common_memory(
 	int ret;
 
 	// Calculate the object size 
-	uint16_t crypto_op_size = sizeof(struct rte_crypto_op) + sizeof(struct rte_crypto_sym_op);
+	uint16_t crypto_op_size = sizeof(rte_crypto_op) + sizeof(rte_crypto_sym_op);
 	/*
 	 * If doing AES-CCM, IV field needs to be 16 bytes long,
 	 * and AAD field needs to be long enough to have 18 bytes,
@@ -1085,7 +1113,7 @@ int Dpdk_cryptodev_client::alloc_common_memory(
 	uint16_t crypto_op_total_size = crypto_op_size + crypto_op_private_size;
 	uint16_t crypto_op_total_size_padded = RTE_CACHE_LINE_ROUNDUP(crypto_op_total_size);
 
-	uint32_t mbuf_size = sizeof(struct rte_mbuf) + _opts.segment_sz;
+	uint32_t mbuf_size = sizeof(rte_mbuf) + _opts.segment_sz;
 	uint32_t max_size = _opts.max_buffer_size + _opts.digest_sz;
 	uint16_t segments_nb = (max_size % _opts.segment_sz) ?
 			(max_size / _opts.segment_sz) + 1 :
@@ -1093,26 +1121,31 @@ int Dpdk_cryptodev_client::alloc_common_memory(
 	printf("segments_nb %d\n", segments_nb);
 
 	//uint32_t obj_size = crypto_op_total_size_padded + (mbuf_size * segments_nb);
-	uint32_t obj_size = crypto_op_total_size_padded + sizeof(struct rte_mbuf);
+	uint32_t obj_size = crypto_op_total_size_padded + sizeof(rte_mbuf);
 
 	snprintf(pool_name, sizeof(pool_name), "pool_cdev_%u_qp_%u", dev_id, qp_id);
 
 	_src_buf_offset = crypto_op_total_size_padded;
 
+	obj_params params;
+	params.src_buf_offset = crypto_op_total_size_padded;
+	params.dst_buf_offset = 0;
+/*
 	struct obj_params params;
 	params.segment_sz = _opts.segment_sz;
 	params.headroom_sz = _opts.headroom_sz;
-	/* Data len = segment size - (headroom + tailroom) */
+	// Data len = segment size - (headroom + tailroom) 
 	params.data_len = _opts.segment_sz - _opts.headroom_sz - _opts.tailroom_sz;
 	params.segments_nb = segments_nb;
 	params.src_buf_offset = crypto_op_total_size_padded;
 	params.dst_buf_offset = 0;
-
+*/
 	if (_opts.out_of_place) {
-		_dst_buf_offset = _src_buf_offset + (mbuf_size * segments_nb);
-		params.dst_buf_offset = _dst_buf_offset;
+		//_dst_buf_offset = _src_buf_offset + (mbuf_size * segments_nb);
+		//params.dst_buf_offset = _dst_buf_offset;
+
 		/* Destination buffer will be one segment only */
-		obj_size += max_size;
+		//obj_size += max_size;
 	}
 
 	_ops_mp = rte_mempool_create_empty(pool_name,
@@ -1123,7 +1156,7 @@ int Dpdk_cryptodev_client::alloc_common_memory(
 			rte_socket_id(), 
             0);
 	if (_ops_mp == NULL) {
-		RTE_LOG(ERR, USER1, "Cannot allocate mempool for device %u\n", dev_id);
+		RTE_LOG(ERR, USER1, "Cannot allocate mempool for device %u", dev_id);
 		return -1;
 	}
                                                                                                                                                                                                                                                                                                                                                     
@@ -1131,13 +1164,13 @@ int Dpdk_cryptodev_client::alloc_common_memory(
 
 	ret = rte_mempool_set_ops_byname(_ops_mp, mp_ops_name, NULL);
 	if (ret != 0) {
-		RTE_LOG(ERR, USER1, "Error setting mempool handler for device %u\n", dev_id);
+		RTE_LOG(ERR, USER1, "Error setting mempool handler for device %u", dev_id);
 		return -1;
 	}
 
 	ret = rte_mempool_populate_default(_ops_mp);
 	if (ret < 0) {
-		RTE_LOG(ERR, USER1, "Error populating mempool for device %u\n", dev_id);
+		RTE_LOG(ERR, USER1, "Error populating mempool for device %u", dev_id);
 		return -1;
 	}
 

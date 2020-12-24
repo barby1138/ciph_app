@@ -1837,7 +1837,7 @@ int memif_delete (memif_conn_handle_t *conn)
   return err;
 }
 
-int memif_connect1 (memif_connection_t *c)
+int memif_connect (memif_connection_t *c)
 {
   libmemif_main_t *lm;
   memif_region_t *mr;

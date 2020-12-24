@@ -7,58 +7,57 @@
 
 //enum { CA_MODE_SLAVE = 0, CA_MODE_MASTER = 1 };
 
-typedef void (*on_jobs_complete_CallBk_t) (uint32_t, struct Dpdk_cryptodev_data_vector*, uint32_t);
+typedef void (*on_ops_complete_CallBk_t) (uint32_t, Crypto_operation*, uint32_t);
 
 #define CIFER_IV_LENGTH 16
 
-struct Data_lengths {
+typedef struct Data_lengths {
     uint32_t ciphertext_length;
     uint32_t cipher_key_length;
     uint32_t cipher_iv_length;
-};
+}Data_lengths;
 
-void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len, struct Dpdk_cryptodev_data_vector* vec)
+void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len,  Crypto_operation* vec)
 {
     *len = 0;
 
-    struct Operation_t* buffer_op = (struct Operation_t*) buffer;
-	buffer_op->_op_status = vec->op._op_status;
-	buffer_op->_op_ctx_ptr = vec->op._op_ctx_ptr;
-	buffer_op->_op_outbuff_ptr = vec->op._op_outbuff_ptr;
-	buffer_op->_op_outbuff_len = vec->op._op_outbuff_len;
-	buffer_op->_op_in_buff_list_len = vec->op._op_in_buff_list_len;
-	buffer_op->_seq = vec->op._seq;
-	buffer_op->_sess_op = vec->op._sess_op;
-	buffer_op->_sess_id = vec->op._sess_id;
-	buffer_op->_cipher_algo = vec->op._cipher_algo;
-	buffer_op->_cipher_op = vec->op._cipher_op;
+    Crypto_operation_context* buffer_op = (Crypto_operation_context*) buffer;
+	buffer_op->op_status = vec->op.op_status;
+	buffer_op->op_ctx_ptr = vec->op.op_ctx_ptr;
+    buffer_op->outbuff_ptr = vec->op.outbuff_ptr;
+	buffer_op->outbuff_len = vec->op.outbuff_len;
+	buffer_op->seq = vec->op.seq;
+	buffer_op->op_type = vec->op.op_type;
+	buffer_op->sess_id = vec->op.sess_id;
+	buffer_op->cipher_algo = vec->op.cipher_algo;
+	buffer_op->cipher_op = vec->op.cipher_op;
     
     buffer += sizeof(vec->op);
     *len += sizeof(vec->op);
 
-    struct Data_lengths data_len;
+    Data_lengths data_len;
     data_len.ciphertext_length = 0;
-    for (int i = 0; i < vec->op._op_in_buff_list_len; i++)
-        data_len.ciphertext_length += vec->cipher_buff_list[i].length;
+    for (int i = 0; i < vec->cipher_buff_list.buff_list_length; i++)
+        data_len.ciphertext_length += vec->cipher_buff_list.buffs[i].length;
 
     data_len.cipher_key_length = vec->cipher_key.length;
     data_len.cipher_iv_length = vec->cipher_iv.length;
 
-    struct Data_lengths* buffer_data_len = (struct Data_lengths* ) buffer;
+    Data_lengths* buffer_data_len = (Data_lengths* ) buffer;
     buffer_data_len->ciphertext_length = data_len.ciphertext_length;
     buffer_data_len->cipher_key_length = data_len.cipher_key_length;
     buffer_data_len->cipher_iv_length = data_len.cipher_iv_length;
 
-    buffer += sizeof(struct Data_lengths);
-    *len += sizeof(struct Data_lengths);
+    buffer += sizeof(Data_lengths);
+    *len += sizeof(Data_lengths);
 
-    for (int i = 0; i < vec->op._op_in_buff_list_len; i++)
+    for (int i = 0; i < vec->cipher_buff_list.buff_list_length; i++)
     {
-        if (vec->cipher_buff_list[i].length)
+        if (vec->cipher_buff_list.buffs[i].length)
         {
-            clib_memcpy_fast(buffer, vec->cipher_buff_list[i].data, vec->cipher_buff_list[i].length);
-            buffer += vec->cipher_buff_list[i].length;
-            *len += vec->cipher_buff_list[i].length;
+            clib_memcpy_fast(buffer, vec->cipher_buff_list.buffs[i].data, vec->cipher_buff_list.buffs[i].length);
+            buffer += vec->cipher_buff_list.buffs[i].length;
+            *len += vec->cipher_buff_list.buffs[i].length;
         }
     }
 
@@ -77,46 +76,47 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len, struct Dpdk_cryptodev_
     }
 }
 
-void crypto_job_from_buffer(uint8_t* buffer, uint32_t len, struct Dpdk_cryptodev_data_vector* vec)
+void crypto_job_from_buffer(uint8_t* buffer, uint32_t len, Crypto_operation* vec)
 {
-    struct Operation_t* buffer_op = (struct Operation_t*) buffer;
-	vec->op._op_status = buffer_op->_op_status;
-	vec->op._op_ctx_ptr = buffer_op->_op_ctx_ptr;
-	vec->op._op_outbuff_ptr = buffer_op->_op_outbuff_ptr;
-	vec->op._op_outbuff_len = buffer_op->_op_outbuff_len;
-	vec->op._op_in_buff_list_len = buffer_op->_op_in_buff_list_len;
-	vec->op._seq = buffer_op->_seq;
-	vec->op._sess_op = buffer_op->_sess_op;
-	vec->op._sess_id = buffer_op->_sess_id;
-	vec->op._cipher_algo = buffer_op->_cipher_algo;
-	vec->op._cipher_op = buffer_op->_cipher_op;
+    Crypto_operation_context* buffer_op = (Crypto_operation_context*) buffer;
+	vec->op.op_status = buffer_op->op_status;
+	vec->op.op_ctx_ptr = buffer_op->op_ctx_ptr;
+    vec->op.outbuff_ptr = buffer_op->outbuff_ptr;
+	vec->op.outbuff_len = buffer_op->outbuff_len;
+	vec->op.seq = buffer_op->seq;
+	vec->op.op_type = buffer_op->op_type;
+	vec->op.sess_id = buffer_op->sess_id;
+	vec->op.cipher_algo = buffer_op->cipher_algo;
+	vec->op.cipher_op = buffer_op->cipher_op;
 
     buffer += sizeof(vec->op);
 
-    struct Data_lengths* pData_len = (struct Data_lengths*)buffer;
-    buffer += sizeof(struct Data_lengths);
-
-    vec->cipher_buff_list[0].data = buffer;
-    vec->cipher_buff_list[0].length = pData_len->ciphertext_length;
-    vec->op._op_in_buff_list_len = 1;
+    Data_lengths* pData_len = (Data_lengths*)buffer;
+    buffer += sizeof(Data_lengths);
 
     // [OT] this is temp patch will be done automatically inside server in REL2 (with dpdk shared mem)
-    if (vec->op._sess_op == SESS_OP_ATTACH && vec->op._op_status == OP_STATUS_SUCC)
+    vec->cipher_buff_list.buffs[0].data = buffer;
+    vec->cipher_buff_list.buffs[0].length = pData_len->ciphertext_length;
+    vec->cipher_buff_list.buff_list_length = 1;
+
+    if (vec->op.op_type == CRYPTO_OP_TYPE_SESS_CIPHERING && vec->op.op_status == CRYPTO_OP_STATUS_SUCC)
     {
-        if (vec->op._op_outbuff_len < vec->cipher_buff_list[0].length)
+        if (vec->op.outbuff_len < vec->cipher_buff_list.buffs[0].length)
         {
-            vec->op._op_status == OP_STATUS_FAILED;
-			printf ("outbuff too small %u vs %u\n", vec->op._op_outbuff_len, vec->cipher_buff_list[0].length);	
+            vec->op.op_status == CRYPTO_OP_STATUS_FAILED;
+			printf ("outbuff too small %u vs %u\n", vec->op.outbuff_len, vec->cipher_buff_list.buffs[0].length);	
         }
         else
         {
-            clib_memcpy_fast(vec->op._op_outbuff_ptr, 
-					vec->cipher_buff_list[0].data, 
-					vec->cipher_buff_list[0].length);
+            // TODO check ptr / len
+            clib_memcpy_fast(vec->op.outbuff_ptr, 
+					vec->cipher_buff_list.buffs[0].data, 
+					vec->cipher_buff_list.buffs[0].length);
 
-		    vec->op._op_outbuff_len = vec->cipher_buff_list[0].length;
+		    vec->op.outbuff_len = vec->cipher_buff_list.buffs[0].length;
         }
     }
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
 
     buffer += pData_len->ciphertext_length;
     vec->cipher_key.data = buffer;
@@ -130,7 +130,7 @@ void crypto_job_from_buffer(uint8_t* buffer, uint32_t len, struct Dpdk_cryptodev
 class Ciph_vec_burst_serializer : public IMsg_burst_serializer
 {
 public:
-    Ciph_vec_burst_serializer(struct Dpdk_cryptodev_data_vector* vecs, uint32_t size)
+    Ciph_vec_burst_serializer(Crypto_operation* vecs, uint32_t size)
         : _vecs(vecs), _size(size)
     {}
 
@@ -141,7 +141,7 @@ public:
     }
 
 private:
-    struct Dpdk_cryptodev_data_vector* _vecs;
+    Crypto_operation* _vecs;
     uint32_t _size;
 };
 
@@ -157,10 +157,10 @@ public:
     int init();
     int cleanup();
 
-    int conn_alloc(uint32_t index, uint32_t mode, on_jobs_complete_CallBk_t cb);
+    int conn_alloc(uint32_t index, uint32_t mode, on_ops_complete_CallBk_t cb);
     int conn_free(uint32_t index);
 
-    int send(uint32_t index, struct Dpdk_cryptodev_data_vector* vecs, uint32_t size);
+    int send(uint32_t index, Crypto_operation* vecs, uint32_t size);
     static void on_recv_cb (uint32_t index, const typename Comm_client::Conn_buffer_t* rx_bufs, uint32_t len);
 
     int set_rx_mode(uint32_t index, uint32_t qid, char *mode);
@@ -168,29 +168,29 @@ public:
 
 private:
 /*
-    static void jobs_2_buffs(struct Dpdk_cryptodev_data_vector* vecs, uint32_t size, typename Comm_client::Conn_buffer_t* buffs)
+    static void jobs_2_buffs(Crypto_operation* vecs, uint32_t size, typename Comm_client::Conn_buffer_t* buffs)
     {
         for(int i = 0; i < size; ++i)
             crypto_job_to_buffer((uint8_t*) buffs[i].data, &buffs[i].len, &vecs[i]);
     }
 */
-    static void buffs_2_jobs(struct Dpdk_cryptodev_data_vector* vecs, const typename Comm_client::Conn_buffer_t* buffs, uint32_t buff_size)
+    static void buffs_2_jobs(Crypto_operation* vecs, const typename Comm_client::Conn_buffer_t* buffs, uint32_t buff_size)
     {
         for(int i = 0; i < buff_size; ++i)
             crypto_job_from_buffer((uint8_t*) buffs[i].data, buffs[i].len, &vecs[i]);
     }
 
 private:
-    static on_jobs_complete_CallBk_t _cb[MAX_CONNECTIONS];
-    static struct Dpdk_cryptodev_data_vector* _pool_vecs[MAX_CONNECTIONS];
+    static on_ops_complete_CallBk_t _cb[MAX_CONNECTIONS];
+    static Crypto_operation* _pool_vecs[MAX_CONNECTIONS];
 
     Comm_client _client;
 };
 
 template<class Comm_client> 
-on_jobs_complete_CallBk_t Ciph_comm_agent<Comm_client>::_cb[MAX_CONNECTIONS] = { 0 };
+on_ops_complete_CallBk_t Ciph_comm_agent<Comm_client>::_cb[MAX_CONNECTIONS] = { 0 };
 template<class Comm_client> 
-struct Dpdk_cryptodev_data_vector* Ciph_comm_agent<Comm_client>::_pool_vecs[MAX_CONNECTIONS] = { 0 };
+Crypto_operation* Ciph_comm_agent<Comm_client>::_pool_vecs[MAX_CONNECTIONS] = { 0 };
 
 template<class Comm_client> 
 static void Ciph_comm_agent<Comm_client>::on_recv_cb (uint32_t index, const typename Comm_client::Conn_buffer_t* rx_bufs, uint32_t len)
@@ -207,9 +207,9 @@ int Ciph_comm_agent<Comm_client> ::init()
 {
     for(int i = 0; i < MAX_CONNECTIONS; i++)
     {
-        _pool_vecs[i] = (struct Dpdk_cryptodev_data_vector*) malloc(256 * sizeof(struct Dpdk_cryptodev_data_vector));
+        _pool_vecs[i] = (Crypto_operation*) malloc(256 * sizeof(Crypto_operation));
         // TODO check null
-        memset(_pool_vecs[i], 0, 256 * sizeof(struct Dpdk_cryptodev_data_vector));
+        memset(_pool_vecs[i], 0, 256 * sizeof(Crypto_operation));
     }
 
     return _client.init();
@@ -222,7 +222,7 @@ int Ciph_comm_agent<Comm_client>::cleanup()
 }
 
 template<class Comm_client> 
-int Ciph_comm_agent<Comm_client>::conn_alloc(uint32_t index, uint32_t mode, on_jobs_complete_CallBk_t cb)
+int Ciph_comm_agent<Comm_client>::conn_alloc(uint32_t index, uint32_t mode, on_ops_complete_CallBk_t cb)
 {
     //TODO check index
     // TODO check if already allocated
@@ -247,7 +247,7 @@ int Ciph_comm_agent<Comm_client>::conn_free(uint32_t index)
 }
 
 template<class Comm_client> 
-int Ciph_comm_agent<Comm_client>::send(uint32_t index, struct Dpdk_cryptodev_data_vector* vecs, uint32_t size)
+int Ciph_comm_agent<Comm_client>::send(uint32_t index, Crypto_operation* vecs, uint32_t size)
 {
     //TODO check index
     Ciph_vec_burst_serializer ser(vecs, size);

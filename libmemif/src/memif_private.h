@@ -212,7 +212,7 @@ extern libmemif_main_t libmemif_main;
 /* main.c */
 
 /* if region doesn't contain shared memory, mmap region, check ring cookie */
-int memif_connect1 (memif_connection_t * c);
+int memif_connect (memif_connection_t * c);
 
 /* memory map region, initalize rings and queues */
 int memif_init_regions_and_queues (memif_connection_t * c);

@@ -566,7 +566,7 @@ static_fn int memif_msg_receive_connect (memif_connection_t *c,
   memif_list_elt_t elt;
 
   int err;
-  err = memif_connect1 (c);
+  err = memif_connect (c);
   if (err != MEMIF_ERR_SUCCESS)
     return err;
 
@@ -601,7 +601,7 @@ static_fn int memif_msg_receive_connected (memif_connection_t *c,
   libmemif_main_t *lm = get_libmemif_main (c->args.socket);
 
   int err;
-  err = memif_connect1 (c);
+  err = memif_connect (c);
   if (err != MEMIF_ERR_SUCCESS)
     return err;
 

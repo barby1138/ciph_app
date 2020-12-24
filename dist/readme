@@ -19,18 +19,20 @@ lxc-start -n ciph_app -d && lxc-attach -n ciph_app
 # Unpack DEVEL packadge
 tar zxf dist/ciph_app_devel.tar-1.0.1.gz -C YOUR_WORKING_DIR
 
-YOUR_WORKING_DIR/ciph_app_devel
-    |-- lib
+[YOUR_WORKING_DIR/ciph_app_devel]
+    |-- [lib]
     |      |-- libciph_agent.a
     |      |-- libmemif_client.a
     |
-    |-- include
+    |-- [include]
     |      |-- ciph_agent_c.h
     |      |-- data_vectors.h
     |
-    |-- examoles
-           |-- ciph_app_test.c
-           |-- build.sh         
+    |-- [examoles]
+    |       |-- ciph_app_test.c
+    |       |-- build.sh         
+    |
+    |-- VERSION
 
 # build CIPH_APP_TEST
 cd YOUR_WORKING_DIR/ciph_app_devel/examoles && ./build.sh 
@@ -38,4 +40,7 @@ cd YOUR_WORKING_DIR/ciph_app_devel/examoles && ./build.sh
 # run CIPH_APP_TEST
 ./ciph_app_test
 
-4. Enjoy
+4. If your client runs inside the container, make sure to update it's configuration
+echo "lxc.mount.entry = /tmp tmp none bind,private,create=file"  >> PATH_TO_YOUR_CONT/config
+
+5. Enjoy

@@ -10,10 +10,11 @@
 #include <chrono>
 #include <iostream>
 
-#include "dpdk_cryptodev_client.h"
 #include "memif_client.h"
 
 #include "ciph_agent.h"
+
+#include "dpdk_cryptodev_client.h"
 
 #include <unistd.h> //usleep
 
@@ -58,10 +59,12 @@ void print_buff(uint8_t* data, int len)
   fprintf(stdout, "\r\n");
 }
 
-struct Dpdk_cryptodev_data_vector* g_job;
+/*
+Crypto_operation* g_job;
 uint32_t g_size;
+*/
 
-void on_job_complete_cb (uint32_t index, struct Dpdk_cryptodev_data_vector* pjob, uint32_t size)
+void on_job_complete_cb (uint32_t index, Crypto_operation* pjob, uint32_t size)
 {
   Dpdk_cryptodev_client_sngl::instance().run_jobs(index, pjob, size);
 
@@ -82,7 +85,7 @@ int main(int argc, char** argv)
 		props::instance().load("ciph_app.xml");
 
 		custom_tracer::instance().setFile(".ciph_app.log");
-		custom_tracer::instance().setMask(tlDebug);
+		custom_tracer::instance().setMask(tlInfo);
 
 		bench_scope_low scope("ciph_app main");
 

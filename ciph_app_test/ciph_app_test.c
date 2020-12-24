@@ -276,7 +276,7 @@ enum { THR_CNT = 4 };
 typedef struct
 {
   	long index;
-	on_jobs_complete_CallBk_t cb;
+	on_ops_complete_CallBk_t cb;
   	uint32_t packet_size;
   	uint32_t num_pck;
   	uint32_t num_pck_per_batch;
@@ -341,40 +341,40 @@ static double get_delta_usec(struct timespec start, struct timespec end)
 	return tmp;
 }
 
-void on_jobs_complete_cb_0 (uint32_t index, struct Dpdk_cryptodev_data_vector* vec, uint32_t size)
+void on_jobs_complete_cb_0 (uint32_t index, Crypto_operation* vec, uint32_t size)
 {	
 	uint32_t j;
 
     for (j = 0; j < size; ++j)
     {
-      	if (vec[j].op._op_status != OP_STATUS_SUCC)
+      	if (vec[j].op.op_status != CRYPTO_OP_STATUS_SUCC)
       	{
         	thread_data[index].g_op_failed++;
           	continue;
       	}
 
       	// control plain
-      	if (vec[j].op._sess_op == SESS_OP_CREATE)
+      	if (vec[j].op.op_type == CRYPTO_OP_TYPE_SESS_CREATE)
       	{
-        	printf ("session created id: %d\n", vec[j].op._sess_id);
-      		thread_data[index].g_setup_sess_id = vec[j].op._sess_id;
+        	printf ("session created id: %d\n", vec[j].op.sess_id);
+      		thread_data[index].g_setup_sess_id = vec[j].op.sess_id;
       	}
-      	if (vec[j].op._sess_op == SESS_OP_CLOSE)
+      	if (vec[j].op.op_type == CRYPTO_OP_TYPE_SESS_CLOSE)
       	{
-        	printf ("session closed %d\n", vec[j].op._sess_id);
+        	printf ("session closed %d\n", vec[j].op.sess_id);
       	}
 
       	// data plain
-      	if (vec[j].op._sess_op == SESS_OP_ATTACH)
+      	if (vec[j].op.op_type == CRYPTO_OP_TYPE_SESS_CIPHERING)
 	  	{
-			//print_buff(vec[j].op._op_outbuff_ptr, vec[j].cipher_buff_list[0].length);
+			//print_buff(vec[j].op.op_outbuff_ptr, vec[j].cipher_buff_list[0].length);
 			if (thread_data[index].cipher_algo == CRYPTO_CIPHER_AES_CBC && BUFFER_TOTAL_LEN == 64)
 			{
 				if (thread_data[index].cipher_op == CRYPTO_CIPHER_OP_DECRYPT)
 				{
 					if ( 0 != memcmp(plaintext,
-							vec[j].op._op_outbuff_ptr,
-							vec[j].op._op_outbuff_len))
+							vec[j].op.outbuff_ptr,
+							vec[j].op.outbuff_len))
 					{
           				thread_data[index].g_data_failed++;
 						printf ("g_data_failed %d %d\n", index, thread_data[index].g_data_failed);
@@ -383,8 +383,8 @@ void on_jobs_complete_cb_0 (uint32_t index, struct Dpdk_cryptodev_data_vector* v
 				else  if (thread_data[index].cipher_op == CRYPTO_CIPHER_OP_ENCRYPT)
 				{
 					if ( 0 != memcmp(ciphertext,
-							vec[j].op._op_outbuff_ptr,
-							vec[j].op._op_outbuff_len))
+							vec[j].op.outbuff_ptr,
+							vec[j].op.outbuff_len))
 					{
         				thread_data[index].g_data_failed++;
 						printf ("g_data_failed %d %d\n", index, thread_data[index].g_data_failed);
@@ -423,13 +423,13 @@ void* send_proc(void* data)
     ciph_agent_conn_alloc(conn_id, CA_MODE_SLAVE, thread_data[conn_id].cb);
 
     printf ("start %ld ...\n", conn_id);
-    struct Dpdk_cryptodev_data_vector job_sess;
-    memset(&job_sess, 0, sizeof(struct Dpdk_cryptodev_data_vector));
-	job_sess.op._seq = seq++;
+    Crypto_operation job_sess;
+    memset(&job_sess, 0, sizeof(Crypto_operation));
+	job_sess.op.seq = seq++;
 	// sess
-    job_sess.op._sess_op = SESS_OP_CREATE;
-    job_sess.op._cipher_algo = thread_data[conn_id].cipher_algo;
-    job_sess.op._cipher_op = thread_data[conn_id].cipher_op;
+    job_sess.op.op_type = CRYPTO_OP_TYPE_SESS_CREATE;
+    job_sess.op.cipher_algo = thread_data[conn_id].cipher_algo;
+    job_sess.op.cipher_op = thread_data[conn_id].cipher_op;
     job_sess.cipher_key.data = cipher_key;
     job_sess.cipher_key.length = 16;
     
@@ -443,33 +443,32 @@ void* send_proc(void* data)
 	  if (res == -2) printf ("ciph_agent_poll ERROR\n");;
 	}
 
-    struct Dpdk_cryptodev_data_vector job;
-    memset(&job, 0, sizeof(struct Dpdk_cryptodev_data_vector));
+    Crypto_operation job;
+    memset(&job, 0, sizeof(Crypto_operation));
     // sess
-    job.op._sess_id = thread_data[conn_id].g_setup_sess_id;
-    job.op._sess_op = SESS_OP_ATTACH;
-    // data
-	job.op._op_in_buff_list_len = BUFFER_SEGMENT_NUM;
-	job.op._cipher_op = thread_data[conn_id].cipher_op;
+    job.op.sess_id = thread_data[conn_id].g_setup_sess_id;
+    job.op.op_type = CRYPTO_OP_TYPE_SESS_CIPHERING;
+	job.op.cipher_op = thread_data[conn_id].cipher_op;
 	
-	uint32_t total_length = BUFFER_TOTAL_LEN; //256;
-	uint32_t step = total_length / job.op._op_in_buff_list_len;
-	for (i = 0; i < job.op._op_in_buff_list_len; ++i)
+	job.cipher_buff_list.buff_list_length = BUFFER_SEGMENT_NUM;
+
+	uint32_t step = BUFFER_TOTAL_LEN / BUFFER_SEGMENT_NUM;
+	for (i = 0; i < job.cipher_buff_list.buff_list_length; ++i)
 	{
-    	job.cipher_buff_list[i].data = ((job.op._cipher_op == CRYPTO_CIPHER_OP_ENCRYPT) ? plaintext : ciphertext) + i*step;
-		job.cipher_buff_list[i].length = step;
+    	job.cipher_buff_list.buffs[i].data = ((job.op.cipher_op == CRYPTO_CIPHER_OP_ENCRYPT) ? plaintext : ciphertext) + i*step;
+		job.cipher_buff_list.buffs[i].length = step;
 	}
 	
     job.cipher_iv.data = iv;
     job.cipher_iv.length = 16;
 	// outbuf
-	job.op._op_outbuff_ptr = outbuff;
-	job.op._op_outbuff_len = MAX_OUTBUFF_LEN;
+	job.op.outbuff_ptr = outbuff;
+	job.op.outbuff_len = MAX_OUTBUFF_LEN;
 	
 	// warmup
     for (i = 0; i < num_pck_per_batch; ++i)
     {
-		job.op._seq = seq++;
+		job.op.seq = seq++;
 		res = ciph_agent_send(conn_id, &job, 1);
 		if (res == -2) printf ("ciph_agent_send ERROR\n");;
     }
@@ -496,7 +495,7 @@ void* send_proc(void* data)
 
       	for (i = 0; i < num_pck_per_batch; ++i)
       	{
-		  	job.op._seq = seq++;
+		  	job.op.seq = seq++;
         	res = ciph_agent_send(conn_id, &job, 1);
 			if (res == -2) printf ("ciph_agent_send ERROR\n");;
       	}
@@ -540,12 +539,12 @@ void* send_proc(void* data)
     	//printf ("num %ld %ld ...\n", conn_id, send_to_usec);
     }
 
-    struct Dpdk_cryptodev_data_vector job_sess_del;
-    memset(&job_sess_del, 0, sizeof(struct Dpdk_cryptodev_data_vector));
-	job_sess_del.op._seq = seq++;
+    Crypto_operation job_sess_del;
+    memset(&job_sess_del, 0, sizeof(Crypto_operation));
+	job_sess_del.op.seq = seq++;
     // sess
-    job_sess_del.op._sess_id = thread_data[conn_id].g_setup_sess_id;
-    job_sess_del.op._sess_op = SESS_OP_CLOSE;
+    job_sess_del.op.sess_id = thread_data[conn_id].g_setup_sess_id;
+    job_sess_del.op.op_type = CRYPTO_OP_TYPE_SESS_CLOSE;
 
     // close session
 	ciph_agent_send(conn_id, &job_sess_del, 1);
