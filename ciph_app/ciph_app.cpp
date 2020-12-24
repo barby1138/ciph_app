@@ -87,6 +87,8 @@ int main(int argc, char** argv)
 		custom_tracer::instance().setFile(".ciph_app.log");
 		custom_tracer::instance().setMask(tlInfo);
 
+		TRACE_INFO("Ver: %s", VERSION);
+
 		bench_scope_low scope("ciph_app main");
 
 	  char* v[] = { "app",

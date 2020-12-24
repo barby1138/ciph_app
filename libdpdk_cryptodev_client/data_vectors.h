@@ -29,7 +29,10 @@ enum Crypto_cipher_operation
 	CRYPTO_CIPHER_OP_LAST
 };
 
-enum { MAX_CYPTO_BUFF_LIST_SIZE = 100 };
+enum { 
+	MAX_CYPTO_BUFF_TOTAL_LEN_BYTES = 1500,
+	MAX_CYPTO_BUFF_LIST_SIZE = 100 
+};
 
 typedef struct Crypto_operation_context {
 	uint32_t op_status;

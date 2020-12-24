@@ -34,8 +34,11 @@ LIBDESTDIR=$(ROOTDIR)/lib/$(OS)/$(CFG)
 CC=gcc
 APP = dpdk-crypto-app
 
+file := "$(ROOTDIR)/VERSION"
+_VERSION_ := $(shell cat ${file})
+
 #CFLAGS += $(WERROR_FLAGS) 
-CFLAGS += -DALLOW_EXPERIMENTAL_API -D_LINUX -D_REDHAT -std=gnu++11 -fpermissive -Wno-unused-parameter -Wno-cast-qual -w -mavx2
+CFLAGS += -DVERSION=\"$(_VERSION_)\" -DALLOW_EXPERIMENTAL_API -D_LINUX -D_REDHAT -std=gnu++11 -fpermissive -Wno-unused-parameter -Wno-cast-qual -w -mavx2
 #CFLAGS += -O3
 
 # all source are stored in SRCS-y
