@@ -731,9 +731,9 @@ int Dpdk_cryptodev_client::set_ops_cipher(
 		//		options->cipher_algo == RTE_CRYPTO_CIPHER_KASUMI_F8 ||
 		//		options->cipher_algo == RTE_CRYPTO_CIPHER_ZUC_EEA3)
 		// in bits
-		sym_op->cipher.data.length <<= 3;
+		//sym_op->cipher.data.length <<= 3;
 
-		//sym_op->cipher.data.offset = 0;
+		sym_op->cipher.data.offset = 0;
 
 		if (vecs[i].cipher_iv.length)
 		{

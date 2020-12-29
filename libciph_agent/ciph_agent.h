@@ -1,3 +1,4 @@
+
 #include "stdafx.h"
 
 #include "memif_client.h"
@@ -145,7 +146,7 @@ private:
     uint32_t _size;
 };
 
-enum { MAX_CONNECTIONS = 20 };
+enum { MAX_CONNECTIONS = 20, OPS_POOL_PER_CONN_SIZE = 256 };
 
 template<class Comm_client>
 class Ciph_comm_agent
@@ -207,9 +208,9 @@ int Ciph_comm_agent<Comm_client> ::init()
 {
     for(int i = 0; i < MAX_CONNECTIONS; i++)
     {
-        _pool_vecs[i] = (Crypto_operation*) malloc(256 * sizeof(Crypto_operation));
+        _pool_vecs[i] = (Crypto_operation*) malloc(OPS_POOL_PER_CONN_SIZE * sizeof(Crypto_operation));
         // TODO check null
-        memset(_pool_vecs[i], 0, 256 * sizeof(Crypto_operation));
+        memset(_pool_vecs[i], 0, OPS_POOL_PER_CONN_SIZE * sizeof(Crypto_operation));
     }
 
     return _client.init();
@@ -218,6 +219,7 @@ int Ciph_comm_agent<Comm_client> ::init()
 template<class Comm_client> 
 int Ciph_comm_agent<Comm_client>::cleanup()
 {
+    // TODO cleanup _pool_vecs
     return _client.cleanup();
 }
 

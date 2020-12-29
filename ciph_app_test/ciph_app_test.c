@@ -341,7 +341,7 @@ static double get_delta_usec(struct timespec start, struct timespec end)
 	return tmp;
 }
 
-void on_jobs_complete_cb_0 (uint32_t index, Crypto_operation* vec, uint32_t size)
+void on_ops_complete_cb_0 (uint32_t index, Crypto_operation* vec, uint32_t size)
 {	
 	uint32_t j;
 
@@ -423,53 +423,53 @@ void* send_proc(void* data)
     ciph_agent_conn_alloc(conn_id, CA_MODE_SLAVE, thread_data[conn_id].cb);
 
     printf ("start %ld ...\n", conn_id);
-    Crypto_operation job_sess;
-    memset(&job_sess, 0, sizeof(Crypto_operation));
-	job_sess.op.seq = seq++;
+    Crypto_operation op_sess;
+    memset(&op_sess, 0, sizeof(Crypto_operation));
+	op_sess.op.seq = seq++;
 	// sess
-    job_sess.op.op_type = CRYPTO_OP_TYPE_SESS_CREATE;
-    job_sess.op.cipher_algo = thread_data[conn_id].cipher_algo;
-    job_sess.op.cipher_op = thread_data[conn_id].cipher_op;
-    job_sess.cipher_key.data = cipher_key;
-    job_sess.cipher_key.length = 16;
+    op_sess.op.op_type = CRYPTO_OP_TYPE_SESS_CREATE;
+    op_sess.op.cipher_algo = thread_data[conn_id].cipher_algo;
+    op_sess.op.cipher_op = thread_data[conn_id].cipher_op;
+    op_sess.cipher_key.data = cipher_key;
+    op_sess.cipher_key.length = 16;
     
     // create session
-    ciph_agent_send(conn_id, &job_sess, 1);
+    ciph_agent_send(conn_id, &op_sess, 1);
 
     // poll and recv created session id
     while (thread_data[conn_id].g_size < 1)
 	{
-      res = ciph_agent_poll(conn_id, MAX_CONN_CLIENT_BURST);
-	  if (res == -2) printf ("ciph_agent_poll ERROR\n");;
+    	res = ciph_agent_poll(conn_id, MAX_CONN_CLIENT_BURST);
+		if (res == -2) printf ("ciph_agent_poll ERROR\n");;
 	}
 
-    Crypto_operation job;
-    memset(&job, 0, sizeof(Crypto_operation));
+    Crypto_operation op;
+    memset(&op, 0, sizeof(Crypto_operation));
     // sess
-    job.op.sess_id = thread_data[conn_id].g_setup_sess_id;
-    job.op.op_type = CRYPTO_OP_TYPE_SESS_CIPHERING;
-	job.op.cipher_op = thread_data[conn_id].cipher_op;
+    op.op.sess_id = thread_data[conn_id].g_setup_sess_id;
+    op.op.op_type = CRYPTO_OP_TYPE_SESS_CIPHERING;
+	op.op.cipher_op = thread_data[conn_id].cipher_op;
 	
-	job.cipher_buff_list.buff_list_length = BUFFER_SEGMENT_NUM;
+	op.cipher_buff_list.buff_list_length = BUFFER_SEGMENT_NUM;
 
 	uint32_t step = BUFFER_TOTAL_LEN / BUFFER_SEGMENT_NUM;
-	for (i = 0; i < job.cipher_buff_list.buff_list_length; ++i)
+	for (i = 0; i < op.cipher_buff_list.buff_list_length; ++i)
 	{
-    	job.cipher_buff_list.buffs[i].data = ((job.op.cipher_op == CRYPTO_CIPHER_OP_ENCRYPT) ? plaintext : ciphertext) + i*step;
-		job.cipher_buff_list.buffs[i].length = step;
+    	op.cipher_buff_list.buffs[i].data = ((op.op.cipher_op == CRYPTO_CIPHER_OP_ENCRYPT) ? plaintext : ciphertext) + i*step;
+		op.cipher_buff_list.buffs[i].length = step;
 	}
 	
-    job.cipher_iv.data = iv;
-    job.cipher_iv.length = 16;
+    op.cipher_iv.data = iv;
+    op.cipher_iv.length = 16;
 	// outbuf
-	job.op.outbuff_ptr = outbuff;
-	job.op.outbuff_len = MAX_OUTBUFF_LEN;
+	op.op.outbuff_ptr = outbuff;
+	op.op.outbuff_len = MAX_OUTBUFF_LEN;
 	
 	// warmup
     for (i = 0; i < num_pck_per_batch; ++i)
     {
-		job.op.seq = seq++;
-		res = ciph_agent_send(conn_id, &job, 1);
+		op.op.seq = seq++;
+		res = ciph_agent_send(conn_id, &op, 1);
 		if (res == -2) printf ("ciph_agent_send ERROR\n");;
     }
     
@@ -495,8 +495,8 @@ void* send_proc(void* data)
 
       	for (i = 0; i < num_pck_per_batch; ++i)
       	{
-		  	job.op.seq = seq++;
-        	res = ciph_agent_send(conn_id, &job, 1);
+		  	op.op.seq = seq++;
+        	res = ciph_agent_send(conn_id, &op, 1);
 			if (res == -2) printf ("ciph_agent_send ERROR\n");;
       	}
 
@@ -539,15 +539,15 @@ void* send_proc(void* data)
     	//printf ("num %ld %ld ...\n", conn_id, send_to_usec);
     }
 
-    Crypto_operation job_sess_del;
-    memset(&job_sess_del, 0, sizeof(Crypto_operation));
-	job_sess_del.op.seq = seq++;
+    Crypto_operation op_sess_del;
+    memset(&op_sess_del, 0, sizeof(Crypto_operation));
+	op_sess_del.op.seq = seq++;
     // sess
-    job_sess_del.op.sess_id = thread_data[conn_id].g_setup_sess_id;
-    job_sess_del.op.op_type = CRYPTO_OP_TYPE_SESS_CLOSE;
+    op_sess_del.op.sess_id = thread_data[conn_id].g_setup_sess_id;
+    op_sess_del.op.op_type = CRYPTO_OP_TYPE_SESS_CLOSE;
 
     // close session
-	ciph_agent_send(conn_id, &job_sess_del, 1);
+	ciph_agent_send(conn_id, &op_sess_del, 1);
 
     timespec_get (&thread_data[conn_id].end, TIME_UTC);
     printf ("\n\n");
@@ -591,7 +591,7 @@ int main(int argc, char* argv[])
     memset (&thread_data[0].end, 0, sizeof (thread_data[0].end));
 	thread_data[0].g_size = 0;
 	thread_data[0].g_setup_sess_id = -1;
-	thread_data[0].cb = on_jobs_complete_cb_0;
+	thread_data[0].cb = on_ops_complete_cb_0;
 	thread_data[0].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
 	//thread_data[0].cipher_algo = CRYPTO_CIPHER_AES_CBC;
     thread_data[0].cipher_op = CRYPTO_CIPHER_OP_DECRYPT;
@@ -605,7 +605,7 @@ int main(int argc, char* argv[])
     memset (&thread_data[1].end, 0, sizeof (thread_data[1].end));
 	thread_data[1].g_size = 0;
 	thread_data[1].g_setup_sess_id = -1;
-	thread_data[1].cb = on_jobs_complete_cb_0;
+	thread_data[1].cb = on_ops_complete_cb_0;
 	thread_data[1].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
 	//thread_data[1].cipher_algo = CRYPTO_CIPHER_AES_CBC;
     thread_data[1].cipher_op = CRYPTO_CIPHER_OP_ENCRYPT;
