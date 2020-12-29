@@ -36,20 +36,6 @@ cd $ROOT
 cd project/linux
 make CFG=release
 
-#echo ============== PREP CONT ROOTFS =====================
-#cd $ROOT
-#cd 3rdparty_artifactory
-#tar zxf rootfs_centos-7-amd64.tar.gz -C $ROOT/lxc/ciph_app
-
-#echo =========== PREP CONT FILES ==============
-#cd $ROOT
-#cp VERSION $ROOT/lxc/ciph_app
-#mkdir $ROOT/lxc/ciph_app/rootfs/home/ciph_app
-#cp ciph_app/project/linux/dpdk-crypto-app $ROOT/lxc/ciph_app/rootfs/home/ciph_app
-#cp ciph_app/project/linux/ciph_app.xml $ROOT/lxc/ciph_app/rootfs/home/ciph_app
-#cp /usr/lib64/libnuma.so* $ROOT/lxc/ciph_app/rootfs/usr/lib64
-#cp 3rdparty_artifactory/libIPSec_MB* $ROOT/lxc/ciph_app/rootfs/usr/lib64
-
 #echo =========== PACK CONT ==============
 #cd $ROOT/lxc
 #tar czf ciph_app.tar-1.0.1.gz ciph_app
@@ -76,3 +62,28 @@ cp VERSION dist/ciph_app_devel
 echo =========== PACK DEVEL ==============
 cd $ROOT/dist
 tar czf ciph_app_devel.tar-1.0.1.gz ciph_app_devel
+
+echo =========== PREP FILES FOR RPM ==============
+RPMBUILD=~/rpmbuild/BUILD
+cd $ROOT
+echo $RPMBUILD
+rm -rf $RPMBUILD/ciph_app 
+mkdir $RPMBUILD/ciph_app
+mkdir $RPMBUILD/ciph_app/bin
+mkdir $RPMBUILD/ciph_app/lib
+cp VERSION $RPMBUILD/ciph_app
+cp lvc/config $RPMBUILD/ciph_app
+cp lvc/build_lxc.sh $RPMBUILD/ciph_app
+cp ciph_app/project/linux/dpdk-crypto-app $RPMBUILD/ciph_app/bin
+cp ciph_app/project/linux/ciph_app.xml $RPMBUILD/ciph_app/bin
+cp /usr/lib64/libnuma.so* $RPMBUILD/ciph_app/lib
+cp 3rdparty_artifactory/libIPSec_MB* $RPMBUILD/ciph_app/lib
+
+echo =========== BUILD RPM ==============
+cd $ROOT/lxc
+rpmbuild -b ciph_app.spec
+ls
+
+echo =========== PACK RPM ==============
+cd $ROOT/dist
+
