@@ -26,6 +26,8 @@ install -v -m 0744 config -D %{buildroot}/tmp/ciph_app/%{version}/config
 
 %files
 /tmp/ciph_app/%{version}/
+/tmp/ciph_app/%{version}/bin
+/tmp/ciph_app/%{version}/lib
 
 %doc
 
