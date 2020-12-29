@@ -17,9 +17,9 @@ cp -f config $LXCPATH/ciph_app
 cp VERSION $LXCPATH/ciph_app
 mkdir $LXCPATH/ciph_app/rootfs/home/ciph_app
 # dpdk-crypto-app, ciph_app.xml
-cp DEPLPATH/ciph_app/* $LXCPATH/ciph_app/rootfs/home/ciph_app
+cp -a bin $LXCPATH/ciph_app/rootfs/home/ciph_app
 # libnuma, libIPSec_MB
-cp DEPLPATH/libs/* $LXCPATH/ciph_app/rootfs/usr/lib64
+cp -a lib $LXCPATH/ciph_app/rootfs/usr/lib64
 # TODO put app to startup
 
 echo =========== START ==============
