@@ -68,7 +68,7 @@ RPMBUILD=~/rpmbuild/BUILD
 cd $ROOT
 echo $RPMBUILD
 rm -rf $RPMBUILD/ciph_app
-mkdir -p $RPMBUILD/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
+mkdir -p ~/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 mkdir $RPMBUILD/ciph_app
 mkdir $RPMBUILD/ciph_app/bin
 mkdir $RPMBUILD/ciph_app/lib
@@ -82,7 +82,7 @@ cp 3rdparty_artifactory/libIPSec_MB* $RPMBUILD/ciph_app/lib
 
 echo =========== BUILD RPM ==============
 cd $ROOT/lxc
-rpmbuild -b ciph_app.spec
+rpmbuild -bb ciph_app.spec
 ls
 
 echo =========== PACK RPM ==============
