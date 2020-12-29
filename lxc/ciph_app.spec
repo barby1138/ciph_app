@@ -14,6 +14,8 @@ ciph_app LXC container
 %install
 cd %{name}
 install -d  %{buildroot}/tmp/ciph_app/%{version}/
+install -d  %{buildroot}/tmp/ciph_app/%{version}/bin/
+install -d  %{buildroot}/tmp/ciph_app/%{version}/lib/
 for f in bin/*; do \
 install -v -m 0644 "$f" -D %{buildroot}/tmp/ciph_app/%{version}/bin; \
 done
@@ -26,8 +28,6 @@ install -v -m 0744 config -D %{buildroot}/tmp/ciph_app/%{version}/config
 
 %files
 /tmp/ciph_app/%{version}/
-/tmp/ciph_app/%{version}/bin
-/tmp/ciph_app/%{version}/lib
 
 %doc
 
