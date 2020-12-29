@@ -36,11 +36,6 @@ cd $ROOT
 cd project/linux
 make CFG=release
 
-#echo =========== PACK CONT ==============
-#cd $ROOT/lxc
-#tar czf ciph_app.tar-1.0.1.gz ciph_app
-#mv ciph_app.tar-1.0.1.gz $ROOT/dist
-
 echo =========== PREP DEVEL ==============
 cd $ROOT
 mkdir dist/ciph_app_devel
@@ -83,8 +78,8 @@ cp 3rdparty_artifactory/libIPSec_MB* $RPMBUILD/ciph_app/lib
 echo =========== BUILD RPM ==============
 cd $ROOT/lxc
 rpmbuild -bb ciph_app.spec
-ls
 
 echo =========== PACK RPM ==============
 cd $ROOT/dist
+cp ~/rpmbuild/RPMS/x86_64/*.rpm .
 
