@@ -67,13 +67,14 @@ echo =========== PREP FILES FOR RPM ==============
 RPMBUILD=~/rpmbuild/BUILD
 cd $ROOT
 echo $RPMBUILD
-rm -rf $RPMBUILD/ciph_app 
+rm -rf $RPMBUILD/ciph_app
+mkdir -p $RPMBUILD/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 mkdir $RPMBUILD/ciph_app
 mkdir $RPMBUILD/ciph_app/bin
 mkdir $RPMBUILD/ciph_app/lib
 cp VERSION $RPMBUILD/ciph_app
-cp lvc/config $RPMBUILD/ciph_app
-cp lvc/build_lxc.sh $RPMBUILD/ciph_app
+cp lxc/config $RPMBUILD/ciph_app
+cp lxc/build_lxc.sh $RPMBUILD/ciph_app
 cp ciph_app/project/linux/dpdk-crypto-app $RPMBUILD/ciph_app/bin
 cp ciph_app/project/linux/ciph_app.xml $RPMBUILD/ciph_app/bin
 cp /usr/lib64/libnuma.so* $RPMBUILD/ciph_app/lib
