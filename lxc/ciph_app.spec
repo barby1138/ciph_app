@@ -30,6 +30,7 @@ install -v -m 0744 config -D %{buildroot}/tmp/ciph_app/%{version}/config
 %doc
 
 %post
-/tmp/ciph_app/%{version}/build_lxc.sh
+cd /tmp/ciph_app/%{version}
+./build_lxc.sh
 
 %changelog
