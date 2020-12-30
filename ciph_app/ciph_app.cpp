@@ -96,7 +96,7 @@ int main(int argc, char** argv)
 					"crypto_aesni_mb_pmd", 
           "--vdev", 
           "crypto_snow3g",
-					"--no-huge", 
+					//"--no-huge", 
 					"--",
 					//"--devtype",
 					//"crypto_aesni_mb",
@@ -105,7 +105,7 @@ int main(int argc, char** argv)
           "--buffer-sz",
           "1024"
 					};
-    int c = 9;
+    int c = 8;
 
 		Dpdk_cryptodev_client_sngl::instance().init(c, v);
     

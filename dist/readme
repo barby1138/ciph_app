@@ -1,25 +1,27 @@
-1. Cleanup (if needed)
-# stop container
-lxc-stop -n ciph_app -k
+1. Cleanup
+rpm -e ciph_app-1.0.1-1.el7.centos.x86_64
 
-# cleanup files
-rm -rf /opt/lib/lxc/ciph_app && 
+2. Install
+cd ~/ciph_app
+rpm -i ciph_app-1.0.1-1.el7.centos.x86_64.rpm
 
-2. Install LXC container and run CIPH_APP inside container 
-# Unpack CIPH_APP container
-tar zxf dist/ciph_app.tar-1.0.1.gz -C /opt/lib/lxc
-
-# start'n'attach to container
-lxc-start -n ciph_app -d && lxc-attach -n ciph_app
+#manipulate container
+lxc-stop -n ciph_app
+lxc-start -n ciph_app
+lxc-info -n ciph_app
+lxc-attach -n ciph_app
 
 # run app inside cintainer
+[root@ciph_app /]# cd /home/ciph_app && ./dpdk-crypto-app cfg
+# or to run on specific CPU affinity
 [root@ciph_app /]# cd /home/ciph_app && taskset 0x1 ./dpdk-crypto-app cfg
 
 3. Build and run CIPH_APP_TEST
+cd ~/ciph_app
 # Unpack DEVEL packadge
-tar zxf dist/ciph_app_devel.tar-1.0.1.gz -C YOUR_WORKING_DIR
+tar zxf dist/ciph_app_devel-1.0.1.tar.gz
 
-[YOUR_WORKING_DIR/ciph_app_devel]
+[ciph_app_devel]
     |-- [lib]
     |      |-- libciph_agent.a
     |      |-- libmemif_client.a
@@ -30,15 +32,17 @@ tar zxf dist/ciph_app_devel.tar-1.0.1.gz -C YOUR_WORKING_DIR
     |
     |-- [examoles]
     |       |-- ciph_app_test.c
-    |       |-- build.sh         
+    |       |-- build.sh
     |
     |-- VERSION
 
 # build CIPH_APP_TEST
-cd YOUR_WORKING_DIR/ciph_app_devel/examoles && ./build.sh 
+cd ciph_app_devel/examoles && ./build.sh
 
 # run CIPH_APP_TEST
 ./ciph_app_test
+# or to run on specific CPU affinity
+taskset 0x4 ./ciph_app_test
 
 4. If your client runs inside the container, make sure to update it's configuration
 echo "lxc.mount.entry = /tmp tmp none bind,private,create=file"  >> PATH_TO_YOUR_CONT/config
