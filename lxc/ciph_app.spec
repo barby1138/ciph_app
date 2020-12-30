@@ -26,6 +26,8 @@ install -v -m 0744 build_lxc.sh -D %{buildroot}/tmp/ciph_app/%{version}/build_lx
 install -v -m 0744 VERSION -D %{buildroot}/tmp/ciph_app/%{version}/VERSION
 install -v -m 0744 config -D %{buildroot}/tmp/ciph_app/%{version}/config
 
+install -v -m 0744 lxc/rootfs_centos-7-amd64.tar.gz -D %{buildroot}/tmp/ciph_app/%{version}/lxc/rootfs_centos-7-amd64.tar.gz
+
 %files
 /tmp/ciph_app/%{version}/
 

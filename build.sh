@@ -6,7 +6,7 @@ echo ============== COPY ARTIFACTORY =====================
 cd $ROOT
 mkdir 3rdparty_artifactory
 cp /tmp/dpdk-20.05-x86_64-native-linuxapp-gcc.tar.gz 3rdparty_artifactory
-cp /tmp/rootfs_centos-7-amd64.tar.gz 3rdparty_artifactory
+#cp /tmp/rootfs_centos-7-amd64.tar.gz 3rdparty_artifactory
 cp /tmp/libIPSec_MB.0.54.0.tar.gz 3rdparty_artifactory
 
 echo ============== IPSec =====================
@@ -56,7 +56,7 @@ cp VERSION dist/ciph_app_devel
 
 echo =========== PACK DEVEL ==============
 cd $ROOT/dist
-tar czf ciph_app_devel.tar-1.0.1.gz ciph_app_devel
+tar czf ciph_app_devel-1.0.1.tar.gz ciph_app_devel
 
 echo =========== PREP FILES FOR RPM ==============
 RPMBUILD=~/rpmbuild/BUILD
@@ -74,6 +74,9 @@ cp ciph_app/project/linux/dpdk-crypto-app $RPMBUILD/ciph_app/bin
 cp ciph_app/project/linux/ciph_app.xml $RPMBUILD/ciph_app/bin
 cp /usr/lib64/libnuma.so* $RPMBUILD/ciph_app/lib
 cp 3rdparty_artifactory/libIPSec_MB* $RPMBUILD/ciph_app/lib
+
+mkdir $RPMBUILD/ciph_app/lxc
+cp /tmp/rootfs_centos-7-amd64.tar.gz $RPMBUILD/ciph_app/lxc
 
 echo =========== BUILD RPM ==============
 cd $ROOT/lxc

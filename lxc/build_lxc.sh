@@ -8,8 +8,13 @@ echo ============== CLEANUP =====================
 lxc-stop -n ciph_app -k
 rm -rf $LXCPATH/ciph_app
 
-echo ============== CREATE =====================
-lxc-create -n ciph_app -t download -- -d centos -r 7 -a amd64 --keyserver hkp://p80.pool.sks-keyservers.net:80
+#echo ============== CREATE =====================
+#lxc-create -n ciph_app -t download -- -d centos -r 7 -a amd64 --keyserver hkp://p80.pool.sks-keyservers.net:80
+
+echo ============== UNTAR ROOTFS =====================
+cd $DEPLPATH/lxc
+mkdir $LXCPATH/ciph_app
+tar zxf rootfs_centos-7-amd64.tar.gz -C $LXCPATH/ciph_app
 
 echo =========== PREPARE ==============
 cd $DEPLPATH
