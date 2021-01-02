@@ -1,6 +1,6 @@
 Name: ciph_app
-Version: 1.0.1
-Release: 1%{?dist}
+Version: %{_ver}
+Release: 
 Summary: ciph_app LXC container
 
 License: Parallel Wireless Inc

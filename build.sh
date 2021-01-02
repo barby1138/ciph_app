@@ -1,6 +1,8 @@
 
 ROOT=$PWD 
 echo $ROOT
+VER=$(cat VERSION)
+echo $VER
 
 echo ============== COPY ARTIFACTORY =====================
 cd $ROOT
@@ -9,18 +11,18 @@ cp /tmp/dpdk-20.05-x86_64-native-linuxapp-gcc.tar.gz 3rdparty_artifactory
 #cp /tmp/rootfs_centos-7-amd64.tar.gz 3rdparty_artifactory
 cp /tmp/libIPSec_MB.0.54.0.tar.gz 3rdparty_artifactory
 
-echo ============== IPSec =====================
+echo ============== PREP IPSec =====================
 cd $ROOT
 cd 3rdparty_artifactory
 tar zxf libIPSec_MB.0.54.0.tar.gz
 cp -f libIPSec_MB* /usr/lib
 
-echo ============== DPDK =====================
+echo ============== PREP DPDK =====================
 cd $ROOT
 cd 3rdparty_artifactory
 tar zxf dpdk-20.05-x86_64-native-linuxapp-gcc.tar.gz -C $ROOT/3rdparty
 
-echo ============== FRIDMON =====================
+echo ============== BUILD FRIDMON =====================
 cd $ROOT
 unzip 3rdparty/fridmon-0.1.10.zip -d ./3rdparty
 
@@ -31,7 +33,7 @@ cd $ROOT
 cd 3rdparty/fridmon-0.1.10/hyperon_1_0_1/project/redhat
 make CFG=release
 
-echo ============== CIPH_APP =====================
+echo ============== BUILD CIPH_APP =====================
 cd $ROOT
 cd project/linux
 make CFG=release
@@ -56,7 +58,7 @@ cp VERSION dist/ciph_app_devel
 
 echo =========== PACK DEVEL ==============
 cd $ROOT/dist
-tar czf ciph_app_devel-1.0.1.tar.gz ciph_app_devel
+tar czf ciph_app_devel-$VER.tar.gz ciph_app_devel
 
 echo =========== PREP FILES FOR RPM ==============
 RPMBUILD=~/rpmbuild/BUILD
@@ -80,7 +82,7 @@ cp /tmp/rootfs_centos-7-amd64.tar.gz $RPMBUILD/ciph_app/lxc
 
 echo =========== BUILD RPM ==============
 cd $ROOT/lxc
-rpmbuild -bb ciph_app.spec
+rpmbuild -bb --define '_ver $VER' ciph_app.spec
 
 echo =========== PACK RPM ==============
 cd $ROOT/dist
