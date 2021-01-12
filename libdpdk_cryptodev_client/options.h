@@ -15,7 +15,7 @@
 #define CPERF_SILENT		("silent")
 
 #define CPERF_POOL_SIZE		("pool-sz")
-#define CPERF_TOTAL_OPS		("total-ops")
+//#define CPERF_TOTAL_OPS		("total-ops")
 #define CPERF_BURST_SIZE	("burst-sz")
 #define CPERF_BUFFER_SIZE	("buffer-sz")
 #define CPERF_SEGMENT_SIZE	("segment-sz")
@@ -62,7 +62,6 @@
 struct Dpdk_cryptodev_options {
 
 	uint32_t pool_sz;
-	uint32_t total_ops;
 	uint32_t headroom_sz;
 	uint32_t tailroom_sz;
 	uint32_t segment_sz;

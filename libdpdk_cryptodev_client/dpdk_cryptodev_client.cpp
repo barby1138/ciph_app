@@ -609,13 +609,6 @@ int Dpdk_cryptodev_client::run_jobs(int ch_id, Crypto_operation* jobs, uint32_t 
 					print_buff1(jobs[i].cipher_buff_list[0].data, jobs[i].cipher_buff_list[0].length);
 				}
 */
-/*
-				t_vecs[j].op.sess_id = jobs[i].op.sess_id;
-				t_vecs[j].cipher_buff_list.buffs[0].data = jobs[i].cipher_buff_list.buffs[0].data;
-				t_vecs[j].cipher_buff_list.buffs[0].length = jobs[i].cipher_buff_list.buffs[0].length; //_opts.max_buffer_size;
-				t_vecs[j].cipher_iv.data = jobs[i].cipher_iv.data;
-				t_vecs[j].cipher_iv.length = jobs[i].cipher_iv.length;
-*/
 				j++;
 			}
 		}
@@ -627,7 +620,7 @@ int Dpdk_cryptodev_client::run_jobs(int ch_id, Crypto_operation* jobs, uint32_t 
 		i++;
 	}
 
-	_opts.total_ops = j;
+	//_opts.total_ops = j;
 	run_jobs_inner(ch_id, cdev_id, qp_id, jobs, j);
 
 	i = 0, j = 0;
@@ -778,11 +771,11 @@ int Dpdk_cryptodev_client::run_jobs_inner(
 	}
 #endif /* CPERF_LINEARIZATION_ENABLE */
 
-	while (ops_enqd_total < _opts.total_ops) 
+	while (ops_enqd_total < vecs_size) 
 	{
-		uint16_t burst_size = ((ops_enqd_total + _opts.max_burst_size) <= _opts.total_ops) ?
+		uint16_t burst_size = ((ops_enqd_total + _opts.max_burst_size) <= vecs_size) ?
 						_opts.max_burst_size :
-						_opts.total_ops - ops_enqd_total;
+						vecs_size - ops_enqd_total;
 	
 		uint16_t ops_needed = burst_size - ops_unused;
 	
@@ -844,7 +837,7 @@ int Dpdk_cryptodev_client::run_jobs_inner(
 
 	/* Dequeue any operations still in the crypto device */
 
-	while (ops_deqd_total < _opts.total_ops) 
+	while (ops_deqd_total < vecs_size) 
 	{
 		/* Sending 0 length burst to flush sw crypto device */
 		rte_cryptodev_enqueue_burst(dev_id, qp_id, NULL, 0);

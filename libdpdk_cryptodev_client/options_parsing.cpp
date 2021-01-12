@@ -242,23 +242,6 @@ err_list:
 }
 
 static int
-parse_total_ops(struct Dpdk_cryptodev_options *opts, const char *arg)
-{
-	int ret = parse_uint32_t(&opts->total_ops, arg);
-
-	if (ret)
-		RTE_LOG(ERR, USER1, "failed to parse total operations count\n");
-
-	if (opts->total_ops == 0) {
-		RTE_LOG(ERR, USER1,
-				"invalid total operations count number specified\n");
-		return -1;
-	}
-
-	return ret;
-}
-
-static int
 parse_pool_sz(struct Dpdk_cryptodev_options *opts, const char *arg)
 {
 	int ret =  parse_uint32_t(&opts->pool_sz, arg);
@@ -372,7 +355,6 @@ static struct option lgopts[] = {
 	{ CPERF_PTEST_TYPE, required_argument, 0, 0 },
 
 	{ CPERF_POOL_SIZE, required_argument, 0, 0 },
-	{ CPERF_TOTAL_OPS, required_argument, 0, 0 },
 	{ CPERF_BURST_SIZE, required_argument, 0, 0 },
 	{ CPERF_BUFFER_SIZE, required_argument, 0, 0 },
 	{ CPERF_SEGMENT_SIZE, required_argument, 0, 0 },
@@ -424,7 +406,6 @@ cperf_options_default(struct Dpdk_cryptodev_options *opts)
 	//opts->test = CPERF_TEST_TYPE_VERIFY;
 
 	opts->pool_sz = 8192;
-	opts->total_ops = 10000000;
 	opts->nb_descriptors = 2048;
 
 	opts->buffer_size_list[0] = 64;
@@ -483,10 +464,7 @@ static int
 cperf_opts_parse_long(int opt_idx, struct Dpdk_cryptodev_options *opts)
 {
 	struct long_opt_parser parsermap[] = {
-		//{ CPERF_PTEST_TYPE,	parse_cperf_test_type },
-		//{ CPERF_SILENT,		parse_silent },
 		{ CPERF_POOL_SIZE,	parse_pool_sz },
-		{ CPERF_TOTAL_OPS,	parse_total_ops },
 		{ CPERF_BURST_SIZE,	parse_burst_sz },
 		{ CPERF_BUFFER_SIZE,	parse_buffer_sz },
 		{ CPERF_SEGMENT_SIZE,	parse_segment_sz },
@@ -681,7 +659,6 @@ cperf_options_dump(struct Dpdk_cryptodev_options *opts)
 	printf("#\n");
 	printf("#\n");
 	printf("# size of crypto op / mbuf pool: %u\n", opts->pool_sz);
-	printf("# total number of ops: %u\n", opts->total_ops);
 	if (opts->inc_buffer_size != 0) {
 		printf("# buffer size:\n");
 		printf("#\t min: %u\n", opts->min_buffer_size);
