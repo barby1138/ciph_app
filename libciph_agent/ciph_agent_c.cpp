@@ -33,9 +33,9 @@ int32_t ciph_agent_conn_free(uint32_t index)
     return Ciph_agent_sngl::instance().conn_free(index);
 }
 
-int32_t ciph_agent_send(uint32_t index, Crypto_operation* jobs, uint32_t size)
+int32_t ciph_agent_send(uint32_t index, const Crypto_operation* ops, uint32_t size)
 {
-    int32_t res = Ciph_agent_sngl::instance().send(index, jobs, size);
+    int32_t res = Ciph_agent_sngl::instance().send(index, ops, size);
 
     return res;
 }

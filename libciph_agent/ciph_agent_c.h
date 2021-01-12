@@ -40,7 +40,7 @@ int32_t ciph_agent_conn_free(uint32_t id);
 * ops - pointer to array of crypto ops to send
 * size - jobs number in array
 */
-int32_t ciph_agent_send(uint32_t id, Crypto_operation* ops, uint32_t size);
+int32_t ciph_agent_send(uint32_t id, const Crypto_operation* ops, uint32_t size);
 
 /*
 * polls the connection for completed jobs

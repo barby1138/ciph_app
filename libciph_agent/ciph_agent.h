@@ -56,7 +56,15 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len,  Crypto_operation* vec
     {
         if (vec->cipher_buff_list.buffs[i].length)
         {
-            clib_memcpy_fast(buffer, vec->cipher_buff_list.buffs[i].data, vec->cipher_buff_list.buffs[i].length);
+            if (NULL != vec->cipher_buff_list.buffs[i].data)
+            {
+                clib_memcpy_fast(buffer, vec->cipher_buff_list.buffs[i].data, vec->cipher_buff_list.buffs[i].length);
+            }
+            else
+            {
+                printf("WARN!!! BAD buff - cipher_buff_list.buffs[ %d ].data == NULL\n", i);
+            }
+            
             buffer += vec->cipher_buff_list.buffs[i].length;
             *len += vec->cipher_buff_list.buffs[i].length;
         }
@@ -64,14 +72,30 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len,  Crypto_operation* vec
 
     if (vec->cipher_key.length)
     {
-        clib_memcpy_fast(buffer, vec->cipher_key.data, vec->cipher_key.length);
+        if (NULL != vec->cipher_key.data)
+        {
+            clib_memcpy_fast(buffer, vec->cipher_key.data, vec->cipher_key.length);
+        }
+        else
+        {
+            printf("WARN!!! BAD buff - cipher_key.data == NULL\n");
+        }
+
         buffer += vec->cipher_key.length;
         *len += vec->cipher_key.length;
     }
 
     if (vec->cipher_iv.length)
     {
-        clib_memcpy_fast(buffer, vec->cipher_iv.data, vec->cipher_iv.length);
+        if (NULL != vec->cipher_iv.data)
+        {
+            clib_memcpy_fast(buffer, vec->cipher_iv.data, vec->cipher_iv.length);
+        }
+        else
+        {
+            printf("WARN!!! BAD buff - cipher_iv.data == NULL\n");
+        }
+
         buffer += vec->cipher_iv.length;
         *len += vec->cipher_iv.length;
     }
@@ -110,11 +134,19 @@ void crypto_job_from_buffer(uint8_t* buffer, uint32_t len, Crypto_operation* vec
         else
         {
             // TODO check ptr / len
-            clib_memcpy_fast(vec->op.outbuff_ptr, 
+            if (NULL != vec->op.outbuff_ptr)
+            {
+                clib_memcpy_fast(vec->op.outbuff_ptr, 
 					vec->cipher_buff_list.buffs[0].data, 
 					vec->cipher_buff_list.buffs[0].length);
 
-		    vec->op.outbuff_len = vec->cipher_buff_list.buffs[0].length;
+		        vec->op.outbuff_len = vec->cipher_buff_list.buffs[0].length;
+            }
+            else
+            {
+                vec->op.op_status == CRYPTO_OP_STATUS_FAILED;
+                printf("WARN!!! BAD buff - op.outbuff_ptr == NULL\n");
+            }
         }
     }
     ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -131,41 +163,37 @@ void crypto_job_from_buffer(uint8_t* buffer, uint32_t len, Crypto_operation* vec
 class Ciph_vec_burst_serializer : public IMsg_burst_serializer
 {
 public:
-    Ciph_vec_burst_serializer(Crypto_operation* vecs, uint32_t size)
-        : _vecs(vecs), _size(size)
+    Ciph_vec_burst_serializer(const Crypto_operation* vecs, uint32_t size)
+        :   _vecs(vecs), 
+            _size(size)
     {}
 
     inline virtual void serialize(uint8_t* buff, uint32_t* len, uint32_t ind)
     {
-        // TODO ind > size
+        assert(ind < _size);
+
         crypto_job_to_buffer((uint8_t*) buff, len, &_vecs[ind]);
     }
 
 private:
-    Crypto_operation* _vecs;
+    const Crypto_operation* _vecs;
     uint32_t _size;
 };
 
 enum { MAX_CONNECTIONS = 20, OPS_POOL_PER_CONN_SIZE = 256 };
 
-template<class Comm_client>
 class Ciph_comm_agent
 {
-public:
-typedef Comm_client Comm_client_t;
-
 public:
     int init();
     int cleanup();
 
-    int conn_alloc(uint32_t index, uint32_t mode, on_ops_complete_CallBk_t cb);
-    int conn_free(uint32_t index);
+    int conn_alloc(uint32_t conn_id, uint32_t mode, on_ops_complete_CallBk_t cb);
+    int conn_free(uint32_t conn_id);
 
-    int send(uint32_t index, Crypto_operation* vecs, uint32_t size);
-    static void on_recv_cb (uint32_t index, const typename Comm_client::Conn_buffer_t* rx_bufs, uint32_t len);
+    int send(uint32_t conn_id, const Crypto_operation* vecs, uint32_t size);
 
-    int set_rx_mode(uint32_t index, uint32_t qid, char *mode);
-    int poll(uint32_t index, uint32_t qid, uint32_t size);
+    int poll(uint32_t conn_id, uint32_t qid, uint32_t size);
 
 private:
 /*
@@ -175,98 +203,81 @@ private:
             crypto_job_to_buffer((uint8_t*) buffs[i].data, &buffs[i].len, &vecs[i]);
     }
 */
-    static void buffs_2_jobs(Crypto_operation* vecs, const typename Comm_client::Conn_buffer_t* buffs, uint32_t buff_size)
+    static void on_recv_cb (uint32_t conn_id, const typename Memif_client::Conn_buffer_t* rx_bufs, uint32_t len);
+
+    static void buffs_2_jobs(Crypto_operation* vecs, const typename Memif_client::Conn_buffer_t* buffs, uint32_t buff_size)
     {
+        assert(buff_size <= OPS_POOL_PER_CONN_SIZE);
+
         for(int i = 0; i < buff_size; ++i)
             crypto_job_from_buffer((uint8_t*) buffs[i].data, buffs[i].len, &vecs[i]);
     }
 
 private:
     static on_ops_complete_CallBk_t _cb[MAX_CONNECTIONS];
-    static Crypto_operation* _pool_vecs[MAX_CONNECTIONS];
+    static Crypto_operation _pool_vecs[MAX_CONNECTIONS][OPS_POOL_PER_CONN_SIZE];
 
-    Comm_client _client;
+    Memif_client _client;
 };
 
-template<class Comm_client> 
-on_ops_complete_CallBk_t Ciph_comm_agent<Comm_client>::_cb[MAX_CONNECTIONS] = { 0 };
-template<class Comm_client> 
-Crypto_operation* Ciph_comm_agent<Comm_client>::_pool_vecs[MAX_CONNECTIONS] = { 0 };
+on_ops_complete_CallBk_t Ciph_comm_agent::_cb[MAX_CONNECTIONS] = { 0 };
+Crypto_operation Ciph_comm_agent::_pool_vecs[MAX_CONNECTIONS][OPS_POOL_PER_CONN_SIZE] = { 0 };
 
-template<class Comm_client> 
-static void Ciph_comm_agent<Comm_client>::on_recv_cb (uint32_t index, const typename Comm_client::Conn_buffer_t* rx_bufs, uint32_t len)
+static void Ciph_comm_agent::on_recv_cb (uint32_t conn_id, const typename Memif_client::Conn_buffer_t* rx_bufs, uint32_t len)
 { 
-    //TODO check index
-    buffs_2_jobs(_pool_vecs[index], rx_bufs, len);
+    buffs_2_jobs(_pool_vecs[conn_id], rx_bufs, len);
 
-    if (NULL != _cb[index])
-        _cb[index](index, _pool_vecs[index], len);
+    if (NULL != _cb[conn_id])
+        _cb[conn_id](conn_id, _pool_vecs[conn_id], len);
 }
 
-template<class Comm_client> 
-int Ciph_comm_agent<Comm_client> ::init()
+int Ciph_comm_agent::init()
 {
-    for(int i = 0; i < MAX_CONNECTIONS; i++)
-    {
-        _pool_vecs[i] = (Crypto_operation*) malloc(OPS_POOL_PER_CONN_SIZE * sizeof(Crypto_operation));
-        // TODO check null
-        memset(_pool_vecs[i], 0, OPS_POOL_PER_CONN_SIZE * sizeof(Crypto_operation));
-    }
+    memset(_pool_vecs, 0, MAX_CONNECTIONS * OPS_POOL_PER_CONN_SIZE * sizeof(Crypto_operation));
 
     return _client.init();
 }
 
-template<class Comm_client> 
-int Ciph_comm_agent<Comm_client>::cleanup()
+int Ciph_comm_agent::cleanup()
 {
-    // TODO cleanup _pool_vecs
     return _client.cleanup();
 }
 
-template<class Comm_client> 
-int Ciph_comm_agent<Comm_client>::conn_alloc(uint32_t index, uint32_t mode, on_ops_complete_CallBk_t cb)
+int Ciph_comm_agent::conn_alloc(uint32_t conn_id, uint32_t mode, on_ops_complete_CallBk_t cb)
 {
-    //TODO check index
+    // TODO check conn_id
     // TODO check if already allocated
+
     int res;
 
-    _cb[index] = cb;
+    _cb[conn_id] = cb;
 
-    typename Comm_client::Conn_config_t conn_config;
-    conn_config._on_recv_cb_fn = Ciph_comm_agent<Comm_client>::on_recv_cb;
+    typename Memif_client::Conn_config_t conn_config;
+    conn_config._on_recv_cb_fn = Ciph_comm_agent::on_recv_cb;
     conn_config._mode = mode;
-    res = _client.conn_alloc(index, conn_config);
+
+    res = _client.conn_alloc(conn_id, conn_config);
 
     return 0;
 }
 
-template<class Comm_client> 
-int Ciph_comm_agent<Comm_client>::conn_free(uint32_t index)
+int Ciph_comm_agent::conn_free(uint32_t conn_id)
 {
-    _cb[index] = NULL;
+    _cb[conn_id] = NULL;
 
-    return _client.conn_free(index);
+    return _client.conn_free(conn_id);
 }
 
-template<class Comm_client> 
-int Ciph_comm_agent<Comm_client>::send(uint32_t index, Crypto_operation* vecs, uint32_t size)
+int Ciph_comm_agent::send(uint32_t conn_id, const Crypto_operation* vecs, uint32_t size)
 {
-    //TODO check index
     Ciph_vec_burst_serializer ser(vecs, size);
 
-    return _client.send(index, size, ser);
+    return _client.send(conn_id, size, ser);
 }
 
-template<class Comm_client> 
-int Ciph_comm_agent<Comm_client>::set_rx_mode(uint32_t index, uint32_t qid, char *mode)
+int Ciph_comm_agent::poll(uint32_t conn_id, uint32_t qid, uint32_t size)
 {
-    return _client.set_rx_mode(index, qid, mode);
-}
-
-template<class Comm_client> 
-int Ciph_comm_agent<Comm_client>::poll(uint32_t index, uint32_t qid, uint32_t size)
-{
-    int res =_client.poll(index, qid, size);
+    int res =_client.poll(conn_id, qid, size);
 
     return res;
 }
@@ -288,4 +299,4 @@ T& Simple_singleton_holder<T>::instance()
     return instance;
 }
 
-typedef Simple_singleton_holder<Ciph_comm_agent<Memif_client> > Ciph_agent_sngl;
+typedef Simple_singleton_holder<Ciph_comm_agent > Ciph_agent_sngl;
