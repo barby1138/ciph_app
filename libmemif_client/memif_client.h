@@ -33,7 +33,7 @@ public:
     int conn_alloc(long index, const Memif_client::Conn_config_t& conn_config);
     int conn_free(long index);
 
-    int poll (long index, long qid, uint32_t size);
+    int poll(long index, long qid, uint32_t size);
     int send(long index, uint64_t size, IMsg_burst_serializer& ser);
 
     void print_info ();
@@ -52,6 +52,15 @@ private:
 
     std::thread _host_thread;
 };
+
+/*
+class Memif_connection
+{
+public:
+    int poll(long qid, uint32_t size);
+    int send(uint64_t size, IMsg_burst_serializer& ser);
+};
+*/
 
 typedef void (*on_recv_cb_fn_t) (long index, const Memif_client::Conn_buffer_t* rx_bufs, uint32_t len);
 

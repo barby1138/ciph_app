@@ -808,7 +808,7 @@ int Dpdk_cryptodev_client::remove_session(int channel_index, uint8_t dev_id, con
 	rte_cryptodev_sym_session* s = _active_sessions_registry[channel_index][test_vector->op.sess_id];
 	if (NULL == s)
 	{
-		RTE_LOG(ERR, USER1, "remove_session s == NULL");
+		RTE_LOG(ERR, USER1, "remove_session s == NULL ch_id %d, sess_id %d", channel_index, test_vector->op.sess_id);
 		return -1;
 	}
 
