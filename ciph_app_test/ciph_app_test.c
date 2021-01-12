@@ -396,11 +396,13 @@ void on_ops_complete_cb_0 (uint32_t index, Crypto_operation* vec, uint32_t size)
       	// data plain
       	if (vec[j].op.op_type == CRYPTO_OP_TYPE_SESS_CIPHERING)
 	  	{
-			//print_buff(vec[j].op.op_outbuff_ptr, vec[j].cipher_buff_list[0].length);
+			//print_buff(vec[j].op.outbuff_ptr, vec[j].op.outbuff_len);
 			if (thread_data[index].cipher_algo == CRYPTO_CIPHER_AES_CBC && BUFFER_TOTAL_LEN == 64)
 			{
 				if (thread_data[index].cipher_op == CRYPTO_CIPHER_OP_DECRYPT)
 				{
+					//print_buff(vec[j].op.outbuff_ptr, vec[j].op.outbuff_len);
+
 					if ( 0 != memcmp(plaintext,
 							vec[j].op.outbuff_ptr,
 							vec[j].op.outbuff_len))
@@ -694,8 +696,8 @@ int main(int argc, char* argv[])
     memset (&thread_data[0].end, 0, sizeof (thread_data[0].end));
 	thread_data[0].total_size = 0;
 	thread_data[0].cb = on_ops_complete_cb_0;
-	thread_data[0].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
-	//thread_data[0].cipher_algo = CRYPTO_CIPHER_AES_CBC;
+	//thread_data[0].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
+	thread_data[0].cipher_algo = CRYPTO_CIPHER_AES_CBC;
     thread_data[0].cipher_op = CRYPTO_CIPHER_OP_DECRYPT;
 	
 	thread_data[1].index = conn_id_1;
@@ -707,8 +709,8 @@ int main(int argc, char* argv[])
     memset (&thread_data[1].end, 0, sizeof (thread_data[1].end));
 	thread_data[1].total_size = 0;
 	thread_data[1].cb = on_ops_complete_cb_0;
-	thread_data[1].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
-	//thread_data[1].cipher_algo = CRYPTO_CIPHER_AES_CBC;
+	//thread_data[1].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
+	thread_data[1].cipher_algo = CRYPTO_CIPHER_AES_CBC;
     thread_data[1].cipher_op = CRYPTO_CIPHER_OP_ENCRYPT;
 
 	//int s;
