@@ -62,11 +62,10 @@ typedef std::lock_guard<std::recursive_mutex> LOCK_GUARD;
 #define LOG 
 #define INFO 
 
+enum { MAX_Q_SIZE = 2 };
+
 typedef struct
 {
-  uint16_t index;
-  /* memif conenction handle */
-  memif_conn_handle_t conn;
   /* tx buffers */
   memif_buffer_t *tx_bufs;
   /* allocated tx buffers counter */
@@ -77,6 +76,16 @@ typedef struct
   /* allcoated rx buffers counter */
   /* number of rx buffers pointing to shared memory */
   uint16_t rx_buf_num;
+}memif_buffs_t;
+
+typedef struct
+{
+  uint16_t index;
+  /* memif conenction handle */
+  memif_conn_handle_t conn;
+
+  memif_buffs_t buffs[MAX_Q_SIZE];
+
   /* interface ip address */
   uint8_t ip_addr[4];
   uint16_t seq;
@@ -161,6 +170,7 @@ int on_connect (memif_conn_handle_t conn, void *private_ctx)
   LOCK_GUARD lock(m);
 
   memif_refill_queue (conn, 0, -1, ICMPR_HEADROOM);
+  memif_refill_queue (conn, 1, -1, ICMPR_HEADROOM);
 
   long index = *((long *)private_ctx);
   if (index >= MAX_CONNS)
@@ -241,7 +251,7 @@ int control_fd_update (int fd, uint8_t events, void *ctx)
 
   return add_epoll_fd (fd, evt);
 }
-
+/*
 int on_interrupt02 (memif_conn_handle_t conn, void *private_ctx, uint16_t qid)
 {
   long index = *((long *)private_ctx);
@@ -302,7 +312,7 @@ error:
 
   return 0;
 }
-
+*/
 int on_interrupt02_poll (long index, uint16_t qid, uint32_t count)
 {
   if (index >= MAX_CONNS)
@@ -337,7 +347,7 @@ int on_interrupt02_poll (long index, uint16_t qid, uint32_t count)
     // receive data from shared memory buffers 
     err = memif_rx_burst (c->conn, 
                     qid, 
-                    c->rx_bufs, 
+                    c->buffs[qid].rx_bufs, 
                     MAX_MEMIF_BUFS, 
                     &rx);
     ret_val = err;
@@ -347,16 +357,19 @@ int on_interrupt02_poll (long index, uint16_t qid, uint32_t count)
       goto error;
     }
 
-    c->rx_buf_num += rx;
+    c->buffs[qid].rx_buf_num += rx;
     c->rx_counter += rx;
 
     if (rx > 0)
-      c->fn(index, c->rx_bufs, rx);
+    {
+      //printf ("on_interrupt02_poll CB qid %d\n", qid);
+      c->fn(index, qid, c->buffs[qid].rx_bufs, rx);
+    }
 
     err = memif_refill_queue (c->conn, qid, rx, ICMPR_HEADROOM);
     if (err != MEMIF_ERR_SUCCESS)
       printf ("memif_buffer_free: %s\n", memif_strerror (err));
-    c->rx_buf_num -= rx;
+    c->buffs[qid].rx_buf_num -= rx;
 
     //count -= rx;
   }
@@ -371,8 +384,8 @@ error:
   err = memif_refill_queue (c->conn, qid, rx, ICMPR_HEADROOM);
   if (err != MEMIF_ERR_SUCCESS)
     printf ("memif_buffer_free: %s\n", memif_strerror (err));
-  c->rx_buf_num -= rx;
-  DBG ("freed %d buffers. %u/%u alloc/free buffers", rx, c->rx_buf_num, MAX_MEMIF_BUFS - c->rx_buf_num);
+  c->buffs[qid].rx_buf_num -= rx;
+  DBG ("freed %d buffers. %u/%u alloc/free buffers", rx, c->buffs[qid].rx_buf_num, MAX_MEMIF_BUFS - c->buffs[qid].rx_buf_num);
 
   return -1;
 }
@@ -459,10 +472,10 @@ int Memif_client::conn_alloc (long index, const Memif_client::Conn_config_t& con
     memif_conn_args_t args;
     memset (&args, 0, sizeof (args));
     args.is_master = conn_config._mode;
-    args.log2_ring_size = 14;
+    args.log2_ring_size = 10;
     args.buffer_size = 2048;
-    args.num_s2m_rings = 1;
-    args.num_m2s_rings = 1;
+    args.num_s2m_rings = 2;
+    args.num_m2s_rings = 2;
     strncpy ((char *)args.interface_name, IF_NAME, strlen (IF_NAME));
     args.mode = 0;
 
@@ -481,10 +494,13 @@ int Memif_client::conn_alloc (long index, const Memif_client::Conn_config_t& con
 
     c->index = index;
     /* alloc memif buffers */
-    c->rx_buf_num = 0;
-    c->rx_bufs = (memif_buffer_t *)malloc (sizeof (memif_buffer_t) * MAX_MEMIF_BUFS);
-    c->tx_buf_num = 0;
-    c->tx_bufs = (memif_buffer_t *)malloc (sizeof (memif_buffer_t) * MAX_MEMIF_BUFS);
+    for (uint32_t qid = 0; qid < 2; ++qid)
+    {
+      c->buffs[qid].rx_buf_num = 0;
+      c->buffs[qid].rx_bufs = (memif_buffer_t *)malloc (sizeof (memif_buffer_t) * MAX_MEMIF_BUFS);
+      c->buffs[qid].tx_buf_num = 0;
+      c->buffs[qid].tx_bufs = (memif_buffer_t *)malloc (sizeof (memif_buffer_t) * MAX_MEMIF_BUFS);
+    }
 
     c->ip_addr[0] = 192;
     c->ip_addr[1] = 168;
@@ -502,7 +518,7 @@ int Memif_client::conn_alloc (long index, const Memif_client::Conn_config_t& con
       {
           // accept connection
           usleep(1000 * 1000);
-          printf ("kisten for connection - memif alloc connected: %d\n", c->connected);
+          printf ("listen for connection - memif alloc connected: %d\n", c->connected);
       }  
     }
 
@@ -523,14 +539,17 @@ int Memif_client::conn_free (long index)
   }
   memif_connection_t *c = &memif_connection[index];
 
-  if (c->rx_bufs)
-    free (c->rx_bufs);
-  c->rx_bufs = NULL;
-  c->rx_buf_num = 0;
-  if (c->tx_bufs)
-    free (c->tx_bufs);
-  c->tx_bufs = NULL;
-  c->tx_buf_num = 0;
+  for (uint32_t qid = 0; qid < 2; ++qid)
+  {
+    if (c->buffs[qid].rx_bufs)
+      free (c->buffs[qid].rx_bufs);
+    c->buffs[qid].rx_bufs = NULL;
+    c->buffs[qid].rx_buf_num = 0;
+    if (c->buffs[qid].tx_bufs)
+      free (c->buffs[qid].tx_bufs);
+    c->buffs[qid].tx_bufs = NULL;
+    c->buffs[qid].tx_buf_num = 0;
+  }
 
   int err;
   /* disconenct then delete memif connection */
@@ -576,7 +595,7 @@ int Memif_client::set_rx_mode (long index, long qid, char *mode)
   return 0;
 }
 
-int Memif_client::poll (long index, long qid, uint32_t size)
+int Memif_client::poll (long index, uint16_t qid, uint32_t size)
 {
   LOCK_GUARD lock(m);
 
@@ -697,7 +716,8 @@ void Memif_client::print_info ()
           printf ("down\n");
           printf ("\treason: %s\n", md.error);
       }
-      printf ("\tcounters: %u.%u %u.%u\n", c->tx_counter, c->rx_buf_num, c->tx_counter, c->tx_err_counter);
+
+      printf ("\tcounters: %u.%u %u\n", c->tx_counter, c->tx_counter, c->tx_err_counter);
   }
   free (buf);
 }
@@ -705,7 +725,7 @@ void Memif_client::print_info ()
 enum { MAX_SEND_RETRIES = 1000000 };
 //enum { RETRY_WAIT_FACTOR = 2 };
 
-int Memif_client::send(long index, uint64_t size, IMsg_burst_serializer& ser)
+int Memif_client::send(long index, uint16_t qid, uint64_t size, IMsg_burst_serializer& ser)
 {
     LOCK_GUARD guard(m);
 
@@ -759,11 +779,10 @@ int Memif_client::send(long index, uint64_t size, IMsg_burst_serializer& ser)
           }
 
           i = 0;
-          // qid == 0 - we use only 1 q
           err = memif_buffer_alloc (
               c->conn, 
-              0, 
-              c->tx_bufs,
+              qid, 
+              c->buffs[qid].tx_bufs,
               MAX_MEMIF_BUFS > count ? count : MAX_MEMIF_BUFS, 
               &tx, 
               BUFF_SIZE);
@@ -775,29 +794,30 @@ int Memif_client::send(long index, uint64_t size, IMsg_burst_serializer& ser)
               return -1;
           }
 
-          c->tx_buf_num += tx;
+          c->buffs[qid].tx_buf_num += tx;
+
+//printf ("memif_buffer_alloc tx %d %d  %d %d\n", tx, size, count, c->buffs[qid].tx_buf_num);
 
           while (tx)
           {
               while (tx > 2)
               {
-                  ser.serialize((uint8_t*)c->tx_bufs[i].data, &c->tx_bufs[i].len, ind);
-                  ser.serialize((uint8_t*)c->tx_bufs[i + 1].data, &c->tx_bufs[i + 1].len, ind + 1);
+                  ser.serialize((uint8_t*)c->buffs[qid].tx_bufs[i].data, &c->buffs[qid].tx_bufs[i].len, ind);
+                  ser.serialize((uint8_t*)c->buffs[qid].tx_bufs[i + 1].data, &c->buffs[qid].tx_bufs[i + 1].len, ind + 1);
                   
                   i += 2;
                   tx -= 2;
                   ind += 2;
               }
               
-              ser.serialize((uint8_t*)c->tx_bufs[i].data, &c->tx_bufs[i].len, ind);
+              ser.serialize((uint8_t*)c->buffs[qid].tx_bufs[i].data, &c->buffs[qid].tx_bufs[i].len, ind);
 
               i++;
               tx--;
               ind++;
           }
 
-          // qid == 0 - we use only 1 q
-          err = memif_tx_burst (c->conn, 0, c->tx_bufs, c->tx_buf_num, &tx);
+          err = memif_tx_burst (c->conn, qid, c->buffs[qid].tx_bufs, c->buffs[qid].tx_buf_num, &tx);
           if (log)
             printf("tx %d %d\n", err, tx);
           if (err != MEMIF_ERR_SUCCESS)
@@ -805,7 +825,7 @@ int Memif_client::send(long index, uint64_t size, IMsg_burst_serializer& ser)
               printf ("memif_tx_burst failed: %s\n", memif_strerror (err));
               return -1;
           }
-          c->tx_buf_num -= tx;
+          c->buffs[qid].tx_buf_num -= tx;
           c->tx_counter += tx;
           count -= tx;
     }

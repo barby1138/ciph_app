@@ -8,7 +8,7 @@
 
 //enum { CA_MODE_SLAVE = 0, CA_MODE_MASTER = 1 };
 
-typedef void (*on_ops_complete_CallBk_t) (uint32_t, Crypto_operation*, uint32_t);
+typedef void (*on_ops_complete_CallBk_t) (uint32_t, uint16_t, Crypto_operation*, uint32_t);
 
 #define CIFER_IV_LENGTH 16
 
@@ -191,9 +191,9 @@ public:
     int conn_alloc(uint32_t conn_id, uint32_t mode, on_ops_complete_CallBk_t cb);
     int conn_free(uint32_t conn_id);
 
-    int send(uint32_t conn_id, const Crypto_operation* vecs, uint32_t size);
+    int send(uint32_t conn_id, uint16_t qid, const Crypto_operation* vecs, uint32_t size);
 
-    int poll(uint32_t conn_id, uint32_t qid, uint32_t size);
+    int poll(uint32_t conn_id, uint16_t qid, uint32_t size);
 
 private:
 /*
@@ -203,7 +203,7 @@ private:
             crypto_job_to_buffer((uint8_t*) buffs[i].data, &buffs[i].len, &vecs[i]);
     }
 */
-    static void on_recv_cb (uint32_t conn_id, const typename Memif_client::Conn_buffer_t* rx_bufs, uint32_t len);
+    static void on_recv_cb (uint32_t conn_id, uint16_t qid, const typename Memif_client::Conn_buffer_t* rx_bufs, uint32_t len);
 
     static void buffs_2_jobs(Crypto_operation* vecs, const typename Memif_client::Conn_buffer_t* buffs, uint32_t buff_size)
     {
@@ -223,12 +223,12 @@ private:
 on_ops_complete_CallBk_t Ciph_comm_agent::_cb[MAX_CONNECTIONS] = { 0 };
 Crypto_operation Ciph_comm_agent::_pool_vecs[MAX_CONNECTIONS][OPS_POOL_PER_CONN_SIZE] = { 0 };
 
-static void Ciph_comm_agent::on_recv_cb (uint32_t conn_id, const typename Memif_client::Conn_buffer_t* rx_bufs, uint32_t len)
+static void Ciph_comm_agent::on_recv_cb (uint32_t conn_id, uint16_t qid, const typename Memif_client::Conn_buffer_t* rx_bufs, uint32_t len)
 { 
     buffs_2_jobs(_pool_vecs[conn_id], rx_bufs, len);
 
     if (NULL != _cb[conn_id])
-        _cb[conn_id](conn_id, _pool_vecs[conn_id], len);
+        _cb[conn_id](conn_id, qid, _pool_vecs[conn_id], len);
 }
 
 int Ciph_comm_agent::init()
@@ -268,14 +268,14 @@ int Ciph_comm_agent::conn_free(uint32_t conn_id)
     return _client.conn_free(conn_id);
 }
 
-int Ciph_comm_agent::send(uint32_t conn_id, const Crypto_operation* vecs, uint32_t size)
+int Ciph_comm_agent::send(uint32_t conn_id, uint16_t qid, const Crypto_operation* vecs, uint32_t size)
 {
     Ciph_vec_burst_serializer ser(vecs, size);
 
-    return _client.send(conn_id, size, ser);
+    return _client.send(conn_id, qid, size, ser);
 }
 
-int Ciph_comm_agent::poll(uint32_t conn_id, uint32_t qid, uint32_t size)
+int Ciph_comm_agent::poll(uint32_t conn_id, uint16_t qid, uint32_t size)
 {
     int res =_client.poll(conn_id, qid, size);
 

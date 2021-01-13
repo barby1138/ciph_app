@@ -13,17 +13,16 @@ int32_t ciph_agent_cleanup()
     return Ciph_agent_sngl::instance().cleanup();
 }
 
-int32_t ciph_agent_conn_alloc(uint32_t index, uint32_t mode, on_ops_complete_CallBk_t cb)
+int32_t ciph_agent_conn_alloc(uint32_t cid, uint32_t mode, on_ops_complete_CallBk_t cb)
 {
-    int32_t res = Ciph_agent_sngl::instance().conn_alloc(index, mode, cb);
+    int32_t res = Ciph_agent_sngl::instance().conn_alloc(cid, mode, cb);
 
     return res;
 }
 
-int32_t ciph_agent_poll(uint32_t index, uint32_t size)
+int32_t ciph_agent_poll(uint32_t cid, uint16_t qid, uint32_t size)
 {
-    // qit == 0 - we use only 1 q
-    int32_t res = Ciph_agent_sngl::instance().poll(index, 0, size);
+    int32_t res = Ciph_agent_sngl::instance().poll(cid, qid, size);
 
     return res;
 }
@@ -33,9 +32,9 @@ int32_t ciph_agent_conn_free(uint32_t index)
     return Ciph_agent_sngl::instance().conn_free(index);
 }
 
-int32_t ciph_agent_send(uint32_t index, const Crypto_operation* ops, uint32_t size)
+int32_t ciph_agent_send(uint32_t cid, uint16_t qid, const Crypto_operation* ops, uint32_t size)
 {
-    int32_t res = Ciph_agent_sngl::instance().send(index, ops, size);
+    int32_t res = Ciph_agent_sngl::instance().send(cid, qid, ops, size);
 
     return res;
 }

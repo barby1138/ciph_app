@@ -59,12 +59,13 @@ void print_buff(uint8_t* data, int len)
   fprintf(stdout, "\r\n");
 }
 
-void on_job_complete_cb (uint32_t index, Crypto_operation* pjob, uint32_t size)
+void on_job_complete_cb (uint32_t cid, uint16_t qid, Crypto_operation* pjob, uint32_t size)
 {
-  Dpdk_cryptodev_client_sngl::instance().run_jobs(index, pjob, size);
+  Dpdk_cryptodev_client_sngl::instance().run_jobs(cid, pjob, size);
 
+//printf ("APP cid %d qid %d %d\n", cid, qid, size);
   //usleep(500);
-  Ciph_agent_sngl::instance().send(index, pjob, size);
+  Ciph_agent_sngl::instance().send(cid, qid, pjob, size);
 }
 
 int main(int argc, char** argv)
@@ -114,7 +115,10 @@ int main(int argc, char** argv)
     {
         usleep(100);
         res = Ciph_agent_sngl::instance().poll(0, 0, 64);
+        res = Ciph_agent_sngl::instance().poll(0, 1, 64);
+
         res = Ciph_agent_sngl::instance().poll(1, 0, 64);     
+        res = Ciph_agent_sngl::instance().poll(1, 1, 64);     
     }
 
     Ciph_agent_sngl::instance().conn_free(0);

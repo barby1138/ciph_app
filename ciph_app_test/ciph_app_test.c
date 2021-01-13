@@ -272,6 +272,8 @@ uint8_t cipher_key[] = {
 	0xE4, 0x23, 0x33, 0x8A, 0x35, 0x64, 0x61, 0xE2, 0x49, 0x03, 0xDD, 0xC6, 0xB8, 0xCA, 0x55, 0x7A
 };
 
+const uint16_t QID_USER = 0, QID_CTRL = 1;
+
 enum { THR_CNT = 2 };
 enum { MAX_ACTIVE_SESS_NUM = 300 };
 enum { MAX_OUTBUFF_LEN = 1500 };
@@ -362,9 +364,11 @@ static double get_delta_usec(struct timespec start, struct timespec end)
 	return tmp;
 }
 
-void on_ops_complete_cb_0 (uint32_t index, Crypto_operation* vec, uint32_t size)
+void on_ops_complete_cb_0 (uint32_t cid, uint16_t qid, Crypto_operation* vec, uint32_t size)
 {	
 	uint32_t j;
+
+//printf ("cid %d qid %d\n", cid, qid);
 
     for (j = 0; j < size; ++j)
     {
@@ -374,12 +378,12 @@ void on_ops_complete_cb_0 (uint32_t index, Crypto_operation* vec, uint32_t size)
       	// control plain
       	if (vec[j].op.op_type == CRYPTO_OP_TYPE_SESS_CREATE)
       	{
-        	printf ("session created id: %u seq %" PRIu64 " == %" PRIu64 "\n", vec[j].op.sess_id, vec[j].op.seq, thread_data[index].setup_sess_ctx.setup_sess_pck_seq);
-      		if (thread_data[index].setup_sess_ctx.setup_sess_pck_seq == vec[j].op.seq)
+        	printf ("session created id: %u seq %" PRIu64 " == %" PRIu64 "\n", vec[j].op.sess_id, vec[j].op.seq, thread_data[cid].setup_sess_ctx.setup_sess_pck_seq);
+      		if (thread_data[cid].setup_sess_ctx.setup_sess_pck_seq == vec[j].op.seq)
 			{
-			  thread_data[index].setup_sess_ctx.setup_sess_id = vec[j].op.sess_id;
-			  thread_data[index].setup_sess_ctx.is_recv_resp = 1;
-			  thread_data[index].setup_sess_ctx.resp_status = vec[j].op.op_status;
+			  thread_data[cid].setup_sess_ctx.setup_sess_id = vec[j].op.sess_id;
+			  thread_data[cid].setup_sess_ctx.is_recv_resp = 1;
+			  thread_data[cid].setup_sess_ctx.resp_status = vec[j].op.op_status;
 			}
       	}
       	if (vec[j].op.op_type == CRYPTO_OP_TYPE_SESS_CLOSE)
@@ -389,7 +393,7 @@ void on_ops_complete_cb_0 (uint32_t index, Crypto_operation* vec, uint32_t size)
 
       	if (vec[j].op.op_status != CRYPTO_OP_STATUS_SUCC)
       	{
-        	thread_data[index].op_failed++;
+        	thread_data[cid].op_failed++;
           	continue;
       	}
 
@@ -397,9 +401,9 @@ void on_ops_complete_cb_0 (uint32_t index, Crypto_operation* vec, uint32_t size)
       	if (vec[j].op.op_type == CRYPTO_OP_TYPE_SESS_CIPHERING)
 	  	{
 			//print_buff(vec[j].op.outbuff_ptr, vec[j].op.outbuff_len);
-			if (thread_data[index].cipher_algo == CRYPTO_CIPHER_AES_CBC && BUFFER_TOTAL_LEN == 64)
+			if (thread_data[cid].cipher_algo == CRYPTO_CIPHER_AES_CBC && BUFFER_TOTAL_LEN == 64)
 			{
-				if (thread_data[index].cipher_op == CRYPTO_CIPHER_OP_DECRYPT)
+				if (thread_data[cid].cipher_op == CRYPTO_CIPHER_OP_DECRYPT)
 				{
 					//print_buff(vec[j].op.outbuff_ptr, vec[j].op.outbuff_len);
 
@@ -407,40 +411,39 @@ void on_ops_complete_cb_0 (uint32_t index, Crypto_operation* vec, uint32_t size)
 							vec[j].op.outbuff_ptr,
 							vec[j].op.outbuff_len))
 					{
-          				thread_data[index].data_failed++;
-						printf ("data_failed %d %d\n", index, thread_data[index].data_failed);
+          				thread_data[cid].data_failed++;
+						printf ("data_failed %d %d\n", cid, thread_data[cid].data_failed);
 					}
 				}
-				else  if (thread_data[index].cipher_op == CRYPTO_CIPHER_OP_ENCRYPT)
+				else  if (thread_data[cid].cipher_op == CRYPTO_CIPHER_OP_ENCRYPT)
 				{
 					if ( 0 != memcmp(ciphertext,
 							vec[j].op.outbuff_ptr,
 							vec[j].op.outbuff_len))
 					{
-        				thread_data[index].data_failed++;
-						printf ("data_failed %d %d\n", index, thread_data[index].data_failed);
+        				thread_data[cid].data_failed++;
+						printf ("data_failed %d %d\n", cid, thread_data[cid].data_failed);
 					}
 				}
 		  	}
 	  	}
     }
 
-    thread_data[index].total_size += size;
-    //printf ("index %d Seq len: %u\n", index, thread_data[index].total_size);
+    thread_data[cid].total_size += size;
+    //printf ("cid %d Seq len: %u\n", cid, thread_data[cid].total_size);
 
-    if (thread_data[index].total_size == thread_data[index].num_pck + 
-					thread_data[index].num_pck_per_batch + 
+    if (thread_data[cid].total_size == thread_data[cid].num_pck + 
+					thread_data[cid].num_pck_per_batch + 
 					1 + 1 )
     {
-      	printf ("data_failed %d\n", thread_data[index].data_failed);
-      	printf ("op_failed %d\n", thread_data[index].op_failed);
+      	printf ("data_failed %d\n", thread_data[cid].data_failed);
+      	printf ("op_failed %d\n", thread_data[cid].op_failed);
     }
-
 }
 
 uint8_t dummy_ctx[1024];
 
-int32_t create_session(long conn_id, uint64_t seq)
+int32_t create_session(long cid, uint64_t seq)
 {
 	int32_t res;
 
@@ -449,32 +452,32 @@ int32_t create_session(long conn_id, uint64_t seq)
 	op_sess.op.seq = seq;
 	// sess
     op_sess.op.op_type = CRYPTO_OP_TYPE_SESS_CREATE;
-    op_sess.op.cipher_algo = thread_data[conn_id].cipher_algo;
-    op_sess.op.cipher_op = thread_data[conn_id].cipher_op;
+    op_sess.op.cipher_algo = thread_data[cid].cipher_algo;
+    op_sess.op.cipher_op = thread_data[cid].cipher_op;
     op_sess.cipher_key.data = cipher_key;
     op_sess.cipher_key.length = 16;
     
-    memset(&thread_data[conn_id].setup_sess_ctx, 0, sizeof(setup_sess_ctx_t));
-	thread_data[conn_id].setup_sess_ctx.setup_sess_id = -1;
-	thread_data[conn_id].setup_sess_ctx.setup_sess_pck_seq = seq;
+    memset(&thread_data[cid].setup_sess_ctx, 0, sizeof(setup_sess_ctx_t));
+	thread_data[cid].setup_sess_ctx.setup_sess_id = -1;
+	thread_data[cid].setup_sess_ctx.setup_sess_pck_seq = seq;
 
     // create session
-    ciph_agent_send(conn_id, &op_sess, 1);
+    ciph_agent_send(cid, QID_CTRL, &op_sess, 1);
 
     // poll and recv created session id
-	while (!thread_data[conn_id].setup_sess_ctx.is_recv_resp)
+	while (!thread_data[cid].setup_sess_ctx.is_recv_resp)
 	{
-    	res = ciph_agent_poll(conn_id, MAX_CONN_CLIENT_BURST);
+    	res = ciph_agent_poll(cid, QID_CTRL, MAX_CONN_CLIENT_BURST);
 		if (res == -2) printf ("ciph_agent_poll ERROR\n");;
 	}
 
-	if (thread_data[conn_id].setup_sess_ctx.resp_status != CRYPTO_OP_STATUS_SUCC)
+	if (thread_data[cid].setup_sess_ctx.resp_status != CRYPTO_OP_STATUS_SUCC)
 		return -1;
 
 	return 0;
 }
 
-int32_t close_session(long conn_id, uint64_t seq, uint64_t sess_id)
+int32_t close_session(long cid, uint64_t seq, uint64_t sess_id)
 {
 	//int32_t res;
 
@@ -486,9 +489,9 @@ int32_t close_session(long conn_id, uint64_t seq, uint64_t sess_id)
     op_sess_del.op.op_type = CRYPTO_OP_TYPE_SESS_CLOSE;
 
     // close session
-	ciph_agent_send(conn_id, &op_sess_del, 1);
+	ciph_agent_send(cid, QID_USER, &op_sess_del, 1);
 
-	if (thread_data[conn_id].setup_sess_ctx.resp_status != CRYPTO_OP_STATUS_SUCC)
+	if (thread_data[cid].setup_sess_ctx.resp_status != CRYPTO_OP_STATUS_SUCC)
 		return -1;
 
 	return 0;
@@ -554,11 +557,11 @@ void* send_proc(void* data)
     for (i = 0; i < num_pck_per_batch; ++i)
     {
 		op.op.seq = ++seq;
-		res = ciph_agent_send(conn_id, &op, 1);
+		res = ciph_agent_send(conn_id, QID_USER, &op, 1);
 		if (res == -2) printf ("ciph_agent_send ERROR\n");
     }
     
-	res = ciph_agent_poll(conn_id, MAX_CONN_CLIENT_BURST);
+	res = ciph_agent_poll(conn_id, QID_USER, MAX_CONN_CLIENT_BURST);
 	if (res == -2) printf ("ciph_agent_poll ERROR\n");
 	
     timespec_get (&thread_data[conn_id].start, TIME_UTC);
@@ -580,6 +583,7 @@ void* send_proc(void* data)
 
       	for (i = 0; i < num_pck_per_batch; ++i)
       	{
+
 			/*
 			// create session onece per 10 pck
 			// and close any of active sessions if > threshold
@@ -591,14 +595,12 @@ void* send_proc(void* data)
 			*/
 
 		  	op.op.seq = ++seq;
-        	res = ciph_agent_send(conn_id, &op, 1);
+        	res = ciph_agent_send(conn_id, QID_USER, &op, 1);
 			if (res == -2) printf ("ciph_agent_send ERROR\n");;
       	}
 
-    	res = ciph_agent_poll(conn_id, MAX_CONN_CLIENT_BURST);
+    	res = ciph_agent_poll(conn_id, QID_USER, MAX_CONN_CLIENT_BURST);
 		if (res == -2) printf ("ciph_agent_poll ERROR\n");
-
-		//printf ("polled ... %d\n", seq);
 
 		memset (&end_send, 0, sizeof (end_send));
         timespec_get (&end_send, TIME_UTC);
@@ -663,7 +665,7 @@ void* send_proc(void* data)
 	printf ("flush ...\n");
     while (thread_data[conn_id].total_size < seq + 1) // num_pck + num_pck_per_batch + sess cr/cl
 	{
-      	res = ciph_agent_poll(conn_id, MAX_CONN_CLIENT_BURST);
+      	res = ciph_agent_poll(conn_id, QID_USER, MAX_CONN_CLIENT_BURST);
 		if (res == -2) printf ("ciph_agent_poll ERROR\n");;
 	}
 
