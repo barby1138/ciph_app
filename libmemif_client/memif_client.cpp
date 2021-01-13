@@ -474,8 +474,8 @@ int Memif_client::conn_alloc (long index, const Memif_client::Conn_config_t& con
     args.is_master = conn_config._mode;
     args.log2_ring_size = 10;
     args.buffer_size = 2048;
-    args.num_s2m_rings = 2;
-    args.num_m2s_rings = 2;
+    args.num_s2m_rings = 2; //conn_config._q_nb;
+    args.num_m2s_rings = 2; //conn_config._q_nb;
     strncpy ((char *)args.interface_name, IF_NAME, strlen (IF_NAME));
     args.mode = 0;
 

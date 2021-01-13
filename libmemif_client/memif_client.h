@@ -67,7 +67,7 @@ typedef void (*on_recv_cb_fn_t) (long index, uint16_t qid, const Memif_client::C
 struct Memif_client_conn_config
 {
     on_recv_cb_fn_t _on_recv_cb_fn;
-    //uint16_t _queue_nb;
+    //uint16_t _q_nb;
     uint16_t _mode;
 };
 

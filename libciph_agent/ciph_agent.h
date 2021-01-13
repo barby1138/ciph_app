@@ -255,6 +255,7 @@ int Ciph_comm_agent::conn_alloc(uint32_t conn_id, uint32_t mode, on_ops_complete
     typename Memif_client::Conn_config_t conn_config;
     conn_config._on_recv_cb_fn = Ciph_comm_agent::on_recv_cb;
     conn_config._mode = mode;
+    //conn_config._q_nb = q_nb;
 
     res = _client.conn_alloc(conn_id, conn_config);
 
