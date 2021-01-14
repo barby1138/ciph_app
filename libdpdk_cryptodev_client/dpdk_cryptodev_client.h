@@ -55,7 +55,7 @@ private:
     int run_jobs_inner(int ch_id, 
                         uint8_t dev_id, 
                         uint8_t qp_id, 
-                        const Crypto_operation* vecs, 
+                        Crypto_operation* vecs, 
                         uint32_t dev_vecs_size, 
                         uint32_t* dev_vecs_idxs);
 
@@ -65,6 +65,13 @@ private:
                         const Crypto_operation* vecs, 
                         uint32_t ops_nb, 
                         uint32_t* dev_vecs_idxs);
+
+    int set_ops_cipher_result(	rte_crypto_op **ops, // processed
+						Crypto_operation* vecs, 
+					    uint32_t ops_nb, // deqd
+						uint32_t* dev_vecs_idxs,
+					    uint32_t ops_deqd_total // deqd before
+                        );
 
     // sessions
     int create_session(int ch_id, const Crypto_operation& vec, uint32_t* sess_id);

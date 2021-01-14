@@ -431,7 +431,7 @@ void on_ops_complete_cb_0 (uint32_t cid, uint16_t qid, Crypto_operation* vec, ui
 
     thread_data[cid].total_size += size;
     //printf ("cid %d Seq len: %u\n", cid, thread_data[cid].total_size);
-
+/*
     if (thread_data[cid].total_size == thread_data[cid].num_pck + 
 					thread_data[cid].num_pck_per_batch + 
 					1 + 1 )
@@ -439,6 +439,7 @@ void on_ops_complete_cb_0 (uint32_t cid, uint16_t qid, Crypto_operation* vec, ui
       	printf ("data_failed %d\n", thread_data[cid].data_failed);
       	printf ("op_failed %d\n", thread_data[cid].op_failed);
     }
+*/
 }
 
 uint8_t dummy_ctx[1024];
@@ -671,6 +672,9 @@ void* send_proc(void* data)
 
 	printf ("Seq len: %u\n", thread_data[conn_id].total_size);
 	
+	printf ("data_failed %d\n", thread_data[conn_id].data_failed);
+    printf ("op_failed %d\n", thread_data[conn_id].op_failed);
+
     ciph_agent_conn_free(conn_id);
 
 	return NULL;
