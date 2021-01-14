@@ -698,8 +698,8 @@ int main(int argc, char* argv[])
     memset (&thread_data[0].end, 0, sizeof (thread_data[0].end));
 	thread_data[0].total_size = 0;
 	thread_data[0].cb = on_ops_complete_cb_0;
-	//thread_data[0].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
-	thread_data[0].cipher_algo = CRYPTO_CIPHER_AES_CBC;
+	thread_data[0].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
+	//thread_data[0].cipher_algo = CRYPTO_CIPHER_AES_CBC;
     thread_data[0].cipher_op = CRYPTO_CIPHER_OP_DECRYPT;
 	
 	thread_data[1].index = conn_id_1;

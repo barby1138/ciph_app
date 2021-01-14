@@ -30,8 +30,10 @@
 #endif
 //////////////////////
 
-rte_crypto_cipher_algorithm crypto_cipher_algo_map[CRYPTO_CIPHER_ALGO_LAST];
-rte_crypto_cipher_operation crypto_cipher_op_map[CRYPTO_CIPHER_OP_LAST];
+rte_crypto_cipher_algorithm crypto2rte_cipher_algo_map[CRYPTO_CIPHER_ALGO_LAST];
+rte_crypto_cipher_operation crypto2rte_cipher_op_map[CRYPTO_CIPHER_OP_LAST];
+
+uint8_t algo2cdev_id_map[CRYPTO_CIPHER_ALGO_LAST];
 
 //enum { MAX_SESS_NUM = 2 * 2 * 4000 };
 
@@ -209,7 +211,6 @@ uint8_t cipher_key[] = {
 	0xE4, 0x23, 0x33, 0x8A, 0x35, 0x64, 0x61, 0xE2, 0x49, 0x03, 0xDD, 0xC6, 0xB8, 0xCA, 0x55, 0x7A
 };
 
-
 void print_buff1(uint8_t* data, int len)
 {
   	fprintf(stdout, "test app length %d\n", len);
@@ -227,7 +228,6 @@ void print_buff1(uint8_t* data, int len)
 
   	fprintf(stdout, "\r\n");
 }
-
 
 int Dpdk_cryptodev_client::fill_session_pool_socket(int32_t socket_id, uint32_t session_priv_size, uint32_t nb_sessions)
 {
@@ -291,28 +291,44 @@ int Dpdk_cryptodev_client::init_inner()
 
 	printf("init_inner\n");
 
+	uint8_t enabled_cdevs_id[RTE_CRYPTO_MAX_DEVS];
 	//enabled_cdev_count = rte_cryptodev_devices_get(_opts.device_type, _enabled_cdevs, RTE_CRYPTO_MAX_DEVS);
 
-	enabled_cdev_count = rte_cryptodev_devices_get("crypto_aesni_mb", _enabled_cdevs, RTE_CRYPTO_MAX_DEVS);
-	printf("enabled_cdev_count: %d\n", enabled_cdev_count);
-	if (enabled_cdev_count == 0) 
+	uint8_t cdev_nb = rte_cryptodev_devices_get("crypto_aesni_mb", 
+													enabled_cdevs_id, 
+													RTE_CRYPTO_MAX_DEVS);
+	if (cdev_nb == 0) 
 	{
-		printf("No crypto devices type %s available\n", _opts.device_type);
+		printf("No crypto devices type crypto_aesni_mb available\n");
 		return -EINVAL;
 	}
-	printf("enabled_cdev id: %d\n", _enabled_cdevs[enabled_cdev_count - 1]);
+	if (cdev_nb > 1)
+	{
+		printf("WARN!!! crypto_aesni_mb dev_nb > 1 %d - use last\n", cdev_nb);
+	}
+	enabled_cdev_count += 1;
+	printf("enabled_cdev id: %d\n", enabled_cdevs_id[enabled_cdev_count - 1]);
+	_enabled_cdevs[enabled_cdev_count - 1].cdev_id = enabled_cdevs_id[enabled_cdev_count - 1];
+	_enabled_cdevs[enabled_cdev_count - 1].algo = CRYPTO_CIPHER_AES_CBC;
+	algo2cdev_id_map[CRYPTO_CIPHER_AES_CBC] = enabled_cdevs_id[enabled_cdev_count - 1];
 
-/*
-	enabled_cdev_count += rte_cryptodev_devices_get("crypto_snow3g", _enabled_cdevs + enabled_cdev_count, RTE_CRYPTO_MAX_DEVS);
-	printf("enabled_cdev_count: %d\n", enabled_cdev_count);
-	if (enabled_cdev_count == 0) 
+	cdev_nb = rte_cryptodev_devices_get("crypto_snow3g", 
+													enabled_cdevs_id + enabled_cdev_count, 
+													RTE_CRYPTO_MAX_DEVS - enabled_cdev_count);
+	if (cdev_nb == 0) 
 	{
-		RTE_LOG(ERR, USER1, "No crypto devices type %s available", _opts.device_type);
+		RTE_LOG(ERR, USER1, "No crypto devices type crypto_snow3g available");
 		return -EINVAL;
 	}
-	printf("enabled_cdev id: %d\n", _enabled_cdevs[enabled_cdev_count - 1]);
-*/
-	// TODO enable multi devices
+	if (cdev_nb > 1)
+	{
+		printf("WARN!!! crypto_snow3g dev_nb > 1 %d - use last\n", cdev_nb);
+	}
+	enabled_cdev_count += 1;
+	printf("enabled_cdev id: %d\n", enabled_cdevs_id[enabled_cdev_count - 1]);
+	_enabled_cdevs[enabled_cdev_count - 1].cdev_id = enabled_cdevs_id[enabled_cdev_count - 1];
+	_enabled_cdevs[enabled_cdev_count - 1].algo = CRYPTO_CIPHER_SNOW3G_UEA2;
+	algo2cdev_id_map[CRYPTO_CIPHER_SNOW3G_UEA2] = enabled_cdevs_id[enabled_cdev_count - 1];
 
 	nb_lcores = 1;
 
@@ -331,7 +347,7 @@ int Dpdk_cryptodev_client::init_inner()
 	
 	for (i = 0; i < enabled_cdev_count && i < RTE_CRYPTO_MAX_DEVS; i++) 
 	{
-		cdev_id = _enabled_cdevs[i];
+		cdev_id = _enabled_cdevs[i].cdev_id;
 #ifdef RTE_LIBRTE_PMD_CRYPTO_SCHEDULER
 		/*
 		 * If multi-core scheduler is used, limit the number
@@ -388,7 +404,7 @@ int Dpdk_cryptodev_client::init_inner()
 
 		// TODO per device
 		sessions_needed = MAX_SESS_NUM;
-		// Done only onece - per all devices - review?
+		// Done only onece - per all devices
 		ret = fill_session_pool_socket(socket_id, max_sess_size, sessions_needed);
 		if (ret < 0)
 			return ret;
@@ -444,7 +460,7 @@ int Dpdk_cryptodev_client::verify_devices_capabilities(Dpdk_cryptodev_options *o
 
 	for (i = 0; i < _nb_cryptodevs; i++) 
 	{
-		cdev_id = _enabled_cdevs[i];
+		cdev_id = _enabled_cdevs[i].cdev_id;
 
 		cap_idx.type = RTE_CRYPTO_SYM_XFORM_CIPHER;
 		cap_idx.algo.cipher = opts->cipher_algo;
@@ -471,12 +487,11 @@ int Dpdk_cryptodev_client::init(int argc, char **argv)
 	int ret;
 	uint32_t lcore_id;
 
-	// TODO review
-	crypto_cipher_algo_map[CRYPTO_CIPHER_AES_CBC] = RTE_CRYPTO_CIPHER_AES_CBC;
-	crypto_cipher_algo_map[CRYPTO_CIPHER_SNOW3G_UEA2] = RTE_CRYPTO_CIPHER_SNOW3G_UEA2;
+	crypto2rte_cipher_algo_map[CRYPTO_CIPHER_AES_CBC] = RTE_CRYPTO_CIPHER_AES_CBC;
+	crypto2rte_cipher_algo_map[CRYPTO_CIPHER_SNOW3G_UEA2] = RTE_CRYPTO_CIPHER_SNOW3G_UEA2;
 
-	crypto_cipher_op_map[CRYPTO_CIPHER_OP_ENCRYPT] = RTE_CRYPTO_CIPHER_OP_ENCRYPT;
-	crypto_cipher_op_map[CRYPTO_CIPHER_OP_DECRYPT] = RTE_CRYPTO_CIPHER_OP_DECRYPT;
+	crypto2rte_cipher_op_map[CRYPTO_CIPHER_OP_ENCRYPT] = RTE_CRYPTO_CIPHER_OP_ENCRYPT;
+	crypto2rte_cipher_op_map[CRYPTO_CIPHER_OP_DECRYPT] = RTE_CRYPTO_CIPHER_OP_DECRYPT;
 
 	// Initialise DPDK EAL 
 	ret = rte_eal_init(argc, argv);
@@ -536,7 +551,7 @@ err:
 	i = 0;
 
 	for (i = 0; i < _nb_cryptodevs && i < RTE_CRYPTO_MAX_DEVS; i++)
-		rte_cryptodev_stop(_enabled_cdevs[i]);
+		rte_cryptodev_stop(_enabled_cdevs[i].cdev_id);
 
 	// TODO
 	// free connections
@@ -549,32 +564,34 @@ void  Dpdk_cryptodev_client::cleanup()
 	int i = 0;
 	
 	for (i = 0; i < _nb_cryptodevs && i < RTE_CRYPTO_MAX_DEVS; i++)
-		rte_cryptodev_stop(_enabled_cdevs[i]);
+		rte_cryptodev_stop(_enabled_cdevs[i].cdev_id);
 	
 	// TODO
 	// free connections
 }
 
-int Dpdk_cryptodev_client::run_jobs(int ch_id, Crypto_operation* jobs, uint32_t size)
+/*
+					if ( 0 != memcmp((jobs[i].op.cipher_op == CRYPTO_CIPHER_OP_DECRYPT) ? ciphertext : plaintext,
+						jobs[i].cipher_buff_list[0].data,
+						jobs[i].cipher_buff_list[0].length))
+					{
+    					printf("in BAD data %d %d %d\n", ccc++, t_vecs[i].cipher_buff_list[0].length, i);
+						print_buff1(jobs[i].cipher_buff_list[0].data, jobs[i].cipher_buff_list[0].length);
+					}
+*/
+
+int Dpdk_cryptodev_client::preprocess_jobs(int ch_id,
+											Crypto_operation* jobs, 
+											uint32_t size, 
+											uint32_t* dev_ops_size_arr, 
+											Dev_vecs_idxs_t* dev_vecs_idxs_arr )
 {
-	uint16_t total_nb_qps = 0;
-	uint8_t cdev_id;
-	uint8_t buffer_size_idx = 0;
-
-	total_nb_qps = 1;
-
-	uint8_t qp_id = 0, cdev_index = 0;
-	cdev_id = _enabled_cdevs[cdev_index];
-
-//	int ccc = 0;
-
-	uint32_t i = 0, j = 0;
-	while (i < size)
+	for (uint32_t i = 0; i < size; ++i)
 	{
 		if (jobs[i].op.op_type == CRYPTO_OP_TYPE_SESS_CREATE)
 		{
 			uint32_t sess_id = -1;
-			if (0 == create_session(ch_id, cdev_id, jobs[i], &sess_id))
+			if (0 == create_session(ch_id, jobs[i], &sess_id))
 			{
 				jobs[i].op.op_status = CRYPTO_OP_STATUS_SUCC;
 				jobs[i].op.sess_id = sess_id;
@@ -587,44 +604,52 @@ int Dpdk_cryptodev_client::run_jobs(int ch_id, Crypto_operation* jobs, uint32_t 
 		}
 		else if (jobs[i].op.op_type == CRYPTO_OP_TYPE_SESS_CLOSE)
 		{
-			; // postpone remove sess to the end of burst
+			// init with succ
+			jobs[i].op.op_status = CRYPTO_OP_STATUS_SUCC;
+			// postpone remove sess to the end of burst
 		}
 		else if (jobs[i].op.op_type == CRYPTO_OP_TYPE_SESS_CIPHERING)
 		{
-			// init with failde
-			jobs[i].op.op_status = CRYPTO_OP_STATUS_FAILED;
-
-			if (NULL == get_session(ch_id, cdev_id, jobs[i]))
+			if (NULL == get_session(ch_id, jobs[i]))
 			{
-				RTE_LOG(WARNING, USER1, "session == NULL - skip op");
+				jobs[i].op.op_status = CRYPTO_OP_STATUS_FAILED;
+				jobs[i].cipher_buff_list.buff_list_length = 0;
+			
+				RTE_LOG(WARNING, USER1, "preprocess_jobs WARN!!! Verify session == NULL - skip op");
 			}
 			else
 			{	
-/*
-				if ( 0 != memcmp((jobs[i].op.cipher_op == CRYPTO_CIPHER_OP_DECRYPT) ? ciphertext : plaintext,
-					jobs[i].cipher_buff_list[0].data,
-					jobs[i].cipher_buff_list[0].length))
+				uint16_t cdev_id = (uint16_t) (jobs[i].op.sess_id >> 16);
+				//uint16_t i = (uint16_t) vec.op.sess_id & 0x0000FFFF
+
+				if( cdev_id < _nb_cryptodevs)
 				{
-    				printf("in BAD data %d %d %d\n", ccc++, t_vecs[i].cipher_buff_list[0].length, i);
-					print_buff1(jobs[i].cipher_buff_list[0].data, jobs[i].cipher_buff_list[0].length);
+					dev_vecs_idxs_arr[cdev_id].dev_vecs_idxs[dev_ops_size_arr[cdev_id]] = i;
+					dev_ops_size_arr[cdev_id]++;
+
+					// init with succ
+					jobs[i].op.op_status = CRYPTO_OP_STATUS_SUCC;
+					jobs[i].cipher_buff_list.buff_list_length = 1;
 				}
-*/
-				j++;
+				else
+				{
+					jobs[i].op.op_status = CRYPTO_OP_STATUS_FAILED;
+					jobs[i].cipher_buff_list.buff_list_length = 0;
+
+					RTE_LOG(WARNING, USER1, "preprocess_jobs wrong sess_id %d cdev_id %d", jobs[i].op.sess_id, cdev_id);
+				}		
 			}
 		}
 		else
 		{
-			RTE_LOG(WARNING, USER1, "WARN!!! unknown sess op %d i %d", jobs[i].op.op_type, i);
+			RTE_LOG(WARNING, USER1, "preprocess_jobs WARN!!! unknown op_type %d i %d", jobs[i].op.op_type, i);
 		}
-
-		i++;
 	}
+}
 
-	//_opts.total_ops = j;
-	run_jobs_inner(ch_id, cdev_id, qp_id, jobs, j);
-
-	i = 0, j = 0;
-	while (i < size)
+int Dpdk_cryptodev_client::postprocess_jobs(int ch_id, Crypto_operation* jobs, uint32_t size)
+{	
+	for (uint32_t i = 0; i < size; ++i)
 	{
 		if (jobs[i].op.op_type == CRYPTO_OP_TYPE_SESS_CREATE)
 		{
@@ -632,47 +657,71 @@ int Dpdk_cryptodev_client::run_jobs(int ch_id, Crypto_operation* jobs, uint32_t 
 		}
 		else if (jobs[i].op.op_type == CRYPTO_OP_TYPE_SESS_CLOSE)
 		{
-			if (0 == remove_session(ch_id, cdev_id, jobs[i]))
+			if (0 == remove_session(ch_id, jobs[i]))
 				jobs[i].op.op_status = CRYPTO_OP_STATUS_SUCC;
 			else
 				jobs[i].op.op_status = CRYPTO_OP_STATUS_FAILED;
 		}
 		else if (jobs[i].op.op_type == CRYPTO_OP_TYPE_SESS_CIPHERING)
 		{
-			jobs[i].op.op_status = CRYPTO_OP_STATUS_SUCC;
-			jobs[i].cipher_buff_list.buff_list_length = 1;
-
-/*
-			if ( 0 != memcmp((jobs[i].op.cipher_op == CRYPTO_CIPHER_OP_DECRYPT) ? plaintext : ciphertext,
-					t_vecs[j].cipher_buff_list[0].data,
-					t_vecs[j].cipher_buff_list[0].length))
-			{
-    			printf("out BAD data %d %d %d\n", ccc++, t_vecs[j].cipher_buff_list[0].length, i);
-				print_buff1(jobs[i].cipher_buff_list[0].data, jobs[i].cipher_buff_list[0].length);
-			}
-*/
-			j++;
+			;
 		}
 		else
 		{
-			RTE_LOG(WARNING, USER1, "WARN!!! unknown sess op %d i = %d", jobs[i].op.op_type, i);
+			RTE_LOG(WARNING, USER1, "postprocess_jobs WARN!!! unknown op_type %d i %d", jobs[i].op.op_type, i);
 		}
-
-		i++;
 	}
+}
+
+int Dpdk_cryptodev_client::run_jobs(int ch_id, Crypto_operation* jobs, uint32_t size)
+{
+	uint16_t total_nb_qps = 0;
+	uint8_t cdev_id;
+	uint8_t buffer_size_idx = 0;
+
+	total_nb_qps = 1;
+	uint8_t qp_id = 0; 
+
+	uint32_t dev_ops_size_arr[RTE_CRYPTO_MAX_DEVS] = { 0 };
+
+	Dev_vecs_idxs_t dev_vecs_idxs_arr[RTE_CRYPTO_MAX_DEVS] = { 0 };
+
+	preprocess_jobs(ch_id, jobs, size, dev_ops_size_arr, dev_vecs_idxs_arr);
+
+	for (uint8_t cdev_index = 0; cdev_index < _nb_cryptodevs && cdev_index < RTE_CRYPTO_MAX_DEVS; cdev_index++) 
+	{
+		cdev_id = _enabled_cdevs[cdev_index].cdev_id;
+
+		if (dev_ops_size_arr[cdev_index])
+			run_jobs_inner(	ch_id, 
+							cdev_id, 
+							qp_id, 
+							jobs, 
+							dev_ops_size_arr[cdev_index], 
+							dev_vecs_idxs_arr[cdev_index].dev_vecs_idxs);
+	}
+
+	postprocess_jobs(ch_id, jobs, size);
 
 	return 0;
 }
 
 // ops
-int Dpdk_cryptodev_client::set_ops_cipher(rte_crypto_op **ops, int ch_id, const Crypto_operation *vecs, uint32_t ops_nb)
+int Dpdk_cryptodev_client::set_ops_cipher(	rte_crypto_op **ops, 
+											int ch_id, 
+											uint8_t dev_id, 
+											const Crypto_operation* vecs, 
+											uint32_t ops_nb, 
+											uint32_t* dev_vecs_idxs)
 {
-	uint16_t i;
+	uint32_t i;
 	uint8_t cdev_id = 0;
 	uint16_t iv_offset = sizeof(rte_crypto_op) + sizeof(rte_crypto_sym_op);
 
 	for (i = 0; i < ops_nb; i++) 
 	{
+		uint32_t j = dev_vecs_idxs[i];
+
 		rte_crypto_sym_op *sym_op = ops[i]->sym;
 
 		ops[i]->status = RTE_CRYPTO_OP_STATUS_NOT_PROCESSED;
@@ -680,7 +729,7 @@ int Dpdk_cryptodev_client::set_ops_cipher(rte_crypto_op **ops, int ch_id, const 
 		static int count = 0;
 		ops[i]->sess_type =  RTE_CRYPTO_OP_WITH_SESSION; 
 
-		rte_cryptodev_sym_session* sess = get_session(ch_id, cdev_id, vecs[i]);
+		rte_cryptodev_sym_session* sess = get_session(ch_id, vecs[j]);
 		// [OT] No need handle not found sess == NULL - checked at input
 		rte_crypto_op_attach_sym_session(ops[i], sess);
 
@@ -694,11 +743,11 @@ int Dpdk_cryptodev_client::set_ops_cipher(rte_crypto_op **ops, int ch_id, const 
 
 		/* start of buffer is after mbuf structure and priv data */
 		m->priv_size = 0;
-		m->buf_addr = vecs[i].cipher_buff_list.buffs[0].data;
-		m->buf_iova = rte_mempool_virt2iova(vecs[i].cipher_buff_list.buffs[0].data);
-		m->buf_len = vecs[i].cipher_buff_list.buffs[0].length;
-		m->data_len = vecs[i].cipher_buff_list.buffs[0].length;
-		m->pkt_len = vecs[i].cipher_buff_list.buffs[0].length;
+		m->buf_addr = vecs[j].cipher_buff_list.buffs[0].data;
+		m->buf_iova = rte_mempool_virt2iova(vecs[j].cipher_buff_list.buffs[0].data);
+		m->buf_len = vecs[j].cipher_buff_list.buffs[0].length;
+		m->data_len = vecs[j].cipher_buff_list.buffs[0].length;
+		m->pkt_len = vecs[j].cipher_buff_list.buffs[0].length;
 
 		//printf("fill_single_seg_mbuf %d, %d\n", m, m->data_len);
 
@@ -713,21 +762,20 @@ int Dpdk_cryptodev_client::set_ops_cipher(rte_crypto_op **ops, int ch_id, const 
 		m->next = NULL;
 		}
 
-		sym_op->cipher.data.length = vecs[i].cipher_buff_list.buffs[0].length;
+		sym_op->cipher.data.length = vecs[j].cipher_buff_list.buffs[0].length;
 
-		// TODO cifer algo from session
-		//if (options->cipher_algo == RTE_CRYPTO_CIPHER_SNOW3G_UEA2 ||
-		//		options->cipher_algo == RTE_CRYPTO_CIPHER_KASUMI_F8 ||
-		//		options->cipher_algo == RTE_CRYPTO_CIPHER_ZUC_EEA3)
-		// in bits
-		//sym_op->cipher.data.length <<= 3;
+		if (_enabled_cdevs[dev_id].algo == RTE_CRYPTO_CIPHER_SNOW3G_UEA2 ||
+				_enabled_cdevs[dev_id].algo == RTE_CRYPTO_CIPHER_KASUMI_F8 ||
+				_enabled_cdevs[dev_id].algo == RTE_CRYPTO_CIPHER_ZUC_EEA3)
+			// in bits
+			sym_op->cipher.data.length <<= 3;
 
 		sym_op->cipher.data.offset = 0;
 
-		if (vecs[i].cipher_iv.length)
+		if (vecs[j].cipher_iv.length)
 		{
-			uint8_t *iv_ptr = rte_crypto_op_ctod_offset(ops[i], uint8_t *, iv_offset);
-			clib_memcpy_fast(iv_ptr, vecs[i].cipher_iv.data, vecs[i].cipher_iv.length);
+			uint8_t *iv_ptr = rte_crypto_op_ctod_offset(ops[j], uint8_t *, iv_offset);
+			clib_memcpy_fast(iv_ptr, vecs[j].cipher_iv.data, vecs[j].cipher_iv.length);
 		}
 	}
 
@@ -739,7 +787,8 @@ int Dpdk_cryptodev_client::run_jobs_inner(
 							uint8_t dev_id, 
 							uint8_t qp_id, 
 							const Crypto_operation *vecs, 
-							uint32_t vecs_size)
+							uint32_t dev_vecs_size,
+							uint32_t* dev_vecs_idxs)
 {
 	uint64_t ops_enqd = 0, ops_enqd_total = 0, ops_enqd_failed = 0;
 	uint64_t ops_deqd = 0, ops_deqd_total = 0, ops_deqd_failed = 0;
@@ -771,11 +820,14 @@ int Dpdk_cryptodev_client::run_jobs_inner(
 	}
 #endif /* CPERF_LINEARIZATION_ENABLE */
 
-	while (ops_enqd_total < vecs_size) 
+
+	// WARN!!! _opts.max_burst_size should be >  max vecs size 
+	// or we should shift vecs in set_ops_cipher
+	while (ops_enqd_total < dev_vecs_size) 
 	{
-		uint16_t burst_size = ((ops_enqd_total + _opts.max_burst_size) <= vecs_size) ?
+		uint16_t burst_size = ((ops_enqd_total + _opts.max_burst_size) <= dev_vecs_size) ?
 						_opts.max_burst_size :
-						vecs_size - ops_enqd_total;
+						dev_vecs_size - ops_enqd_total;
 	
 		uint16_t ops_needed = burst_size - ops_unused;
 	
@@ -788,10 +840,9 @@ int Dpdk_cryptodev_client::run_jobs_inner(
 				"with --pool-sz");
 			return -1;
 		}
-			
+		
 		//populate_ops
-		// TODO shift vecs
-        set_ops_cipher(ops, ch_id, vecs, ops_needed);
+        set_ops_cipher(ops, ch_id, dev_id, vecs, ops_needed, dev_vecs_idxs);
 
 #ifdef CPERF_LINEARIZATION_ENABLE
 		if (linearize) {
@@ -826,18 +877,20 @@ int Dpdk_cryptodev_client::run_jobs_inner(
 			 * relevant to hw accelerators.
 			 */
 			ops_deqd_failed++;
-			continue;
+			//continue;
 		}
-
-		/* Free crypto ops so they can be reused. */
-		rte_mempool_put_bulk(_ops_mp, (void **)ops_processed, ops_deqd);
+		else
+		{
+			/* Free crypto ops so they can be reused. */
+			rte_mempool_put_bulk(_ops_mp, (void **)ops_processed, ops_deqd);
 		
-		ops_deqd_total += ops_deqd;
+			ops_deqd_total += ops_deqd;
+		}
 	}
 
 	/* Dequeue any operations still in the crypto device */
 
-	while (ops_deqd_total < vecs_size) 
+	while (ops_deqd_total < dev_vecs_size) 
 	{
 		/* Sending 0 length burst to flush sw crypto device */
 		rte_cryptodev_enqueue_burst(dev_id, qp_id, NULL, 0);
@@ -856,28 +909,39 @@ int Dpdk_cryptodev_client::run_jobs_inner(
 		ops_deqd_total += ops_deqd;
 	}
 
+	// TODO fill ops results
+
 	return 0;
 }
 
-int Dpdk_cryptodev_client::create_session(int ch_id, uint8_t dev_id, const Crypto_operation& vec, uint32_t* sess_id)
+int Dpdk_cryptodev_client::create_session(int ch_id, const Crypto_operation& vec, uint32_t* sess_id)
 {
 	uint16_t iv_offset = sizeof(rte_crypto_op) + sizeof(rte_crypto_sym_op);
 
 	rte_crypto_sym_xform cipher_xform;
 	rte_cryptodev_sym_session *s = NULL;
 
+	if (vec.op.cipher_algo >= CRYPTO_CIPHER_ALGO_LAST)
+	{
+		RTE_LOG(ERR, USER1, "create_session invalid algo %d", vec.op.cipher_algo);
+		return -1;
+	}
+
 	s = rte_cryptodev_sym_session_create(_sess_mp);
 	if (s == NULL)
-		// TODO throw
+	{
+		RTE_LOG(ERR, USER1, "create_session rte_cryptodev_sym_session_create FAILED");
 		return -1;
+	}
 
 	cipher_xform.type = RTE_CRYPTO_SYM_XFORM_CIPHER;
 	cipher_xform.next = NULL;
 
-	// TODO check index
-	cipher_xform.cipher.algo = crypto_cipher_algo_map[vec.op.cipher_algo];
-	cipher_xform.cipher.op = crypto_cipher_op_map[vec.op.cipher_op];
+	cipher_xform.cipher.algo = crypto2rte_cipher_algo_map[vec.op.cipher_algo];
+	cipher_xform.cipher.op = crypto2rte_cipher_op_map[vec.op.cipher_op];
 	cipher_xform.cipher.iv.offset = iv_offset;
+
+	uint8_t cdev_id = algo2cdev_id_map[vec.op.cipher_algo];
 
 	RTE_LOG(INFO, USER1, "create_session alg:%d op:%d iv_offset:%d iv len %d key len %d", 
 			cipher_xform.cipher.algo, 
@@ -899,21 +963,17 @@ int Dpdk_cryptodev_client::create_session(int ch_id, uint8_t dev_id, const Crypt
 		cipher_xform.cipher.iv.length = 0;
 	}
 
-    rte_cryptodev_sym_session_init(dev_id, s, &cipher_xform, _priv_mp);
+    rte_cryptodev_sym_session_init(cdev_id, s, &cipher_xform, _priv_mp);
 
 	for (uint16_t i = 0; i < MAX_SESS_NUM; i++)
 	{
-		if (_active_sessions_registry[ch_id][dev_id][i] == NULL)
+		if (_active_sessions_registry[ch_id][cdev_id][i] == NULL)
 		{
 			// find empty slot / assign id
-			_active_sessions_registry[ch_id][dev_id][i] = s;
-			//*sess_id = i;
-			*sess_id = ( 0xFFFF0000 & ( (uint16_t) dev_id << 16 ) ) | i;
-/*
-Decoding:
-uint16_t dev_id = (uint16_t) sess_id >> 16;
-uint16_t s_id = (uint16_t) sess_id & 0x0000FFFF
-*/
+			_active_sessions_registry[ch_id][cdev_id][i] = s;
+
+			*sess_id = ( 0xFFFF0000 & ( (uint16_t) cdev_id << 16 ) ) | i;
+
 			return 0;
 		}
 	}
@@ -921,7 +981,7 @@ uint16_t s_id = (uint16_t) sess_id & 0x0000FFFF
 	RTE_LOG(ERR, USER1, "create_session NO FREE sessions");
 
 	// free sess
-	if (0 != rte_cryptodev_sym_session_clear(dev_id, s))
+	if (0 != rte_cryptodev_sym_session_clear(cdev_id, s))
 		RTE_LOG(ERR, USER1, "rte_cryptodev_sym_session_clear failed");
 	if (0 != rte_cryptodev_sym_session_free(s))
 		RTE_LOG(ERR, USER1, "rte_cryptodev_sym_session_free failed");
@@ -929,31 +989,37 @@ uint16_t s_id = (uint16_t) sess_id & 0x0000FFFF
 	return -1;
 }
 
-int Dpdk_cryptodev_client::remove_session(int ch_id, uint8_t dev_id, const Crypto_operation& vec)
+int Dpdk_cryptodev_client::remove_session(int ch_id, const Crypto_operation& vec)
 {
-	rte_cryptodev_sym_session* s = _active_sessions_registry[ch_id][dev_id][vec.op.sess_id];
+	uint16_t cdev_id = (uint16_t) (vec.op.sess_id >> 16);
+	uint16_t i = (uint16_t) (vec.op.sess_id & 0x0000FFFF);
+
+	rte_cryptodev_sym_session* s = _active_sessions_registry[ch_id][cdev_id][i];
 	if (NULL == s)
 	{
-		RTE_LOG(ERR, USER1, "remove_session s == NULL ch_id %d, sess_id %d", ch_id, vec.op.sess_id);
+		RTE_LOG(ERR, USER1, "remove_session s == NULL ch_id %d, sess_id %d (%d %d)", ch_id, vec.op.sess_id, cdev_id, i);
 		return -1;
 	}
 
-	if (0 != rte_cryptodev_sym_session_clear(dev_id, s))
+	if (0 != rte_cryptodev_sym_session_clear(cdev_id, s))
 		RTE_LOG(ERR, USER1, "rte_cryptodev_sym_session_clear failed");
 	if (0 != rte_cryptodev_sym_session_free(s))
 		RTE_LOG(ERR, USER1, "rte_cryptodev_sym_session_free failed");
 		
-	_active_sessions_registry[ch_id][dev_id][vec.op.sess_id] = NULL;
+	_active_sessions_registry[ch_id][cdev_id][i] = NULL;
 	
 	return 0;
 }
 
-rte_cryptodev_sym_session* Dpdk_cryptodev_client::get_session(int ch_id, uint8_t dev_id, const Crypto_operation& vec)
+rte_cryptodev_sym_session* Dpdk_cryptodev_client::get_session(int ch_id, const Crypto_operation& vec)
 {
-	rte_cryptodev_sym_session* s = _active_sessions_registry[ch_id][dev_id][vec.op.sess_id];
+	uint16_t cdev_id = (uint16_t) (vec.op.sess_id >> 16);
+	uint16_t i = (uint16_t) (vec.op.sess_id & 0x0000FFFF);
+
+	rte_cryptodev_sym_session* s = _active_sessions_registry[ch_id][cdev_id][i];
 	if (NULL == s)
 	{
-		RTE_LOG(ERR, USER1, "get_session s == NULL");
+		RTE_LOG(ERR, USER1, "get_session s == NULL ch_id %d, sess_id 0x%x (%d %d)", ch_id, vec.op.sess_id, cdev_id, i);
 		return NULL;
 	}
 

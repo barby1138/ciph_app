@@ -6,6 +6,21 @@
 //1k ue per vnode 2*2 sess per ue
 // 6xx = 12k
 // 12cc = 24k
+
+struct Dpdk_cryptodev_device
+{
+    // TODO algo arr
+    // needed only for spec algo rte op settings ( Ex. len << 3 )
+    uint32_t algo;
+    uint8_t cdev_id;
+};
+
+enum { MAX_JOBS_BURST_SIZE = 64 };
+struct Dev_vecs_idxs_t
+{
+	uint32_t dev_vecs_idxs[MAX_JOBS_BURST_SIZE];
+};
+
 class Dpdk_cryptodev_client
 {
 private:
@@ -28,21 +43,39 @@ private:
 
     int fill_session_pool_socket(int32_t socket_id, uint32_t session_priv_size, uint32_t nb_sessions);
 
-    // ops
-    int set_ops_cipher(rte_crypto_op **ops, int ch_id, const Crypto_operation* vecs, uint32_t vecs_size);
+    // process
+    int preprocess_jobs(int ch_id, 
+                        Crypto_operation* jobs, 
+                        uint32_t size, 
+                        uint32_t* dev_ops_size_arr, 
+                        Dev_vecs_idxs_t* dev_vecs_idxs_arr);
 
-    int run_jobs_inner(int ch_id, uint8_t dev_id, uint8_t qp_id, const Crypto_operation* vecs, uint32_t vecs_size);
+    int postprocess_jobs(int ch_id, Crypto_operation* jobs, uint32_t size);
+
+    int run_jobs_inner(int ch_id, 
+                        uint8_t dev_id, 
+                        uint8_t qp_id, 
+                        const Crypto_operation* vecs, 
+                        uint32_t dev_vecs_size, 
+                        uint32_t* dev_vecs_idxs);
+
+    int set_ops_cipher(rte_crypto_op **ops, 
+                        int ch_id, 
+                        uint8_t dev_id, 
+                        const Crypto_operation* vecs, 
+                        uint32_t ops_nb, 
+                        uint32_t* dev_vecs_idxs);
 
     // sessions
-    int create_session(int ch_id, uint8_t dev_id, const Crypto_operation& vec, uint32_t* sess_id);
+    int create_session(int ch_id, const Crypto_operation& vec, uint32_t* sess_id);
 
-    int remove_session(int ch_id, uint8_t dev_id, const Crypto_operation& vec);
+    int remove_session(int ch_id, const Crypto_operation& vec);
 
-    rte_cryptodev_sym_session* get_session(int ch_id, uint8_t dev_id, const Crypto_operation& vec);
+    rte_cryptodev_sym_session* get_session(int ch_id,  const Crypto_operation& vec);
 
 private:
     Dpdk_cryptodev_options _opts; // = {0};
-    uint8_t _enabled_cdevs[RTE_CRYPTO_MAX_DEVS]; // = { 0 };
+    Dpdk_cryptodev_device _enabled_cdevs[RTE_CRYPTO_MAX_DEVS]; // = { 0 };
     int _nb_cryptodevs; // = 0;
     
     // pools are shared between channels
@@ -57,6 +90,8 @@ private:
 
     // sess per channel
     rte_cryptodev_sym_session* _active_sessions_registry [MAX_CHANNEL_NUM][MAX_DEV_NUM][MAX_SESS_NUM];
+
+private:
 };
 
 #endif // _DPDK_CRYPTODEV_CLIENT_H_
