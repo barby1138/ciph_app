@@ -45,6 +45,6 @@ cd ciph_app_devel/examoles && ./build.sh
 taskset 0x4 ./ciph_app_test
 
 4. If your client runs inside the container, make sure to update it's configuration
-echo "lxc.mount.entry = /tmp tmp none bind,private,create=file"  >> PATH_TO_YOUR_CONT/config
+echo "lxc.mount.entry = /tmp/ciph_app tmp/ciph_app none bind,private,create=file"  >> PATH_TO_YOUR_CONT/config
 
 5. Enjoy
