@@ -39,11 +39,7 @@
 #include <stdarg.h>
 
 #include "memif_client.h"
-/*
-extern "C" {
-#include "libmemif.h"
-}
-*/
+
 #define APP_NAME "APP"
 #define IF_NAME "memif_connection"
 
@@ -58,9 +54,28 @@ typedef std::lock_guard<std::recursive_mutex> LOCK_GUARD;
 
 #define BUFF_SIZE 2048 - ICMPR_HEADROOM
 
-#define DBG 
-#define LOG 
 #define INFO 
+#define ERROR
+
+#ifdef ERROR
+#define ERROR(...) do {                                                             \
+                        printf("[E] ");  \
+                        printf(__VA_ARGS__);                                            \
+                        printf("\n");                                                   \
+                        } while (0)
+#else
+#define ERROR(...)
+#endif
+
+#ifdef INFO
+#define INFO(...) do {                                                             \
+                        printf("[I] ");  \
+                        printf(__VA_ARGS__);                                            \
+                        printf("\n");                                                   \
+                        } while (0)
+#else
+#define INFO(...)
+#endif
 
 enum { MAX_Q_SIZE = 2 };
 
@@ -92,7 +107,9 @@ typedef struct
   uint64_t tx_counter, rx_counter, tx_err_counter;
   uint64_t t_sec, t_nsec;
 
-  on_recv_cb_fn_t fn;
+  on_recv_cb_fn_t on_recv_cb_fn;
+  on_connect_fn_t on_connect_fn;
+  on_disconnect_fn_t on_disconnect_fn;
 
   int connected;
 } memif_connection_t;
@@ -106,7 +123,7 @@ int add_epoll_fd (int fd, uint32_t events)
 {
   if (fd < 0)
   {
-    DBG ("invalid fd %d", fd);
+    ERROR ("invalid fd %d", fd);
     return -1;
   }
   struct epoll_event evt;
@@ -115,10 +132,10 @@ int add_epoll_fd (int fd, uint32_t events)
   evt.data.fd = fd;
   if (epoll_ctl (epfd, EPOLL_CTL_ADD, fd, &evt) < 0)
   {
-    DBG ("epoll_ctl: %s fd %d", strerror (errno), fd);
+    ERROR ("epoll_ctl: %s fd %d", strerror (errno), fd);
     return -1;
   }
-  DBG ("fd %d added to epoll", fd);
+  INFO ("fd %d added to epoll", fd);
   return 0;
 }
 
@@ -126,7 +143,7 @@ int mod_epoll_fd (int fd, uint32_t events)
 {
   if (fd < 0)
   {
-    DBG ("invalid fd %d", fd);
+    ERROR ("invalid fd %d", fd);
     return -1;
   }
   struct epoll_event evt;
@@ -135,10 +152,10 @@ int mod_epoll_fd (int fd, uint32_t events)
   evt.data.fd = fd;
   if (epoll_ctl (epfd, EPOLL_CTL_MOD, fd, &evt) < 0)
   {
-    DBG ("epoll_ctl: %s fd %d", strerror (errno), fd);
+    ERROR ("epoll_ctl: %s fd %d", strerror (errno), fd);
     return -1;
   }
-  DBG ("fd %d moddified on epoll", fd);
+  INFO ("fd %d moddified on epoll", fd);
   return 0;
 }
 
@@ -146,17 +163,17 @@ int del_epoll_fd (int fd)
 {
   if (fd < 0)
   {
-    DBG ("invalid fd %d", fd);
+    ERROR ("invalid fd %d", fd);
     return -1;
   }
   struct epoll_event evt;
   memset (&evt, 0, sizeof (evt));
   if (epoll_ctl (epfd, EPOLL_CTL_DEL, fd, &evt) < 0)
   {
-    DBG ("epoll_ctl: %s fd %d", strerror (errno), fd);
+    ERROR ("epoll_ctl: %s fd %d", strerror (errno), fd);
     return -1;
   }
-  DBG ("fd %d removed from epoll", fd);
+  INFO ("fd %d removed from epoll", fd);
   return 0;
 }
 
@@ -164,43 +181,59 @@ int del_epoll_fd (int fd)
    connection (multiple connections WIP) */
 int on_connect (memif_conn_handle_t conn, void *private_ctx)
 {
-  printf ("on_connect\n");
+  INFO ("on_connect");
 
   // [OT] is called after create queues
   LOCK_GUARD lock(m);
 
-  memif_refill_queue (conn, 0, -1, ICMPR_HEADROOM);
-  memif_refill_queue (conn, 1, -1, ICMPR_HEADROOM);
+  for (uint32_t i = 0; i < MAX_Q_SIZE; i++)
+  {
+    int err = memif_set_rx_mode (conn, MEMIF_RX_MODE_POLLING, i);
+    
+    if (err != MEMIF_ERR_SUCCESS)
+    {
+	    ERROR ("memif_set_rx_mode: %s qid: %u", memif_strerror (err), i);
+      return -1;
+    }
+
+    memif_refill_queue (conn, i, -1, ICMPR_HEADROOM);
+  }
+
+//  memif_refill_queue (conn, 0, -1, ICMPR_HEADROOM);
+//  memif_refill_queue (conn, 1, -1, ICMPR_HEADROOM);
 
   long index = *((long *)private_ctx);
   if (index >= MAX_CONNS)
   {
-    INFO ("connection array overflow");
+    ERROR ("connection array overflow");
     return -1;
   }
   if (index < 0)
   {
-    INFO ("don't even try...");
+    ERROR ("don't even try...");
     return -1;
   }
   memif_connection_t *c = &memif_connection[index];
   if (c->index != index)
   {
-    INFO ("invalid context: %ld/%u", index, c->index);
+    ERROR ("invalid context: %ld/%u", index, c->index);
     return -1;
   }
 
   {
     c->connected = 1;
-    printf ("memif connected! %d ind %d\n", c->connected, index);
+    INFO ("memif connected! %d ind %d", c->connected, index);
   }
+
+  if (c->on_connect_fn)
+    c->on_connect_fn(index);
 
   return 0;
 }
 
 int on_disconnect (memif_conn_handle_t conn, void *private_ctx)
 {
-  printf ("on_disconnect\n");
+  INFO ("on_disconnect");
 
   // [OT] is called before delete queues
   LOCK_GUARD lock(m);
@@ -208,25 +241,28 @@ int on_disconnect (memif_conn_handle_t conn, void *private_ctx)
   long index = *((long *)private_ctx);
   if (index >= MAX_CONNS)
   {
-    INFO ("connection array overflow\n");
+    ERROR ("connection array overflow");
     return -1;
   }
   if (index < 0)
   {
-    INFO ("don't even try...\n");
+    ERROR ("don't even try...");
     return -1;
   }
   memif_connection_t *c = &memif_connection[index];
   if (c->index != index)
   {
-    INFO ("invalid context: %ld/%u\n", index, c->index);
+    ERROR ("invalid context: %ld/%u", index, c->index);
     return -1;
   }
 
   {
     c->connected = 0;
-    printf ("memif disconnected! %d ind %d\n", c->connected, index);
+    INFO ("memif disconnected! %d ind %d", c->connected, index);
   }
+
+  if (c->on_disconnect_fn)
+    c->on_disconnect_fn(index);
 
   return 0;
 }
@@ -251,84 +287,24 @@ int control_fd_update (int fd, uint8_t events, void *ctx)
 
   return add_epoll_fd (fd, evt);
 }
-/*
-int on_interrupt02 (memif_conn_handle_t conn, void *private_ctx, uint16_t qid)
+
+// rollback
+int on_interrupt00_poll (long index, uint16_t qid, uint32_t count)
 {
-  long index = *((long *)private_ctx);
-  if (index >= MAX_CONNS)
+    if (index >= MAX_CONNS)
   {
-    INFO ("connection array overflow");
-    return 0;
-  }
-  if (index < 0)
-  {
-    INFO ("don't even try...");
-    return 0;
-  }
-  memif_connection_t *c = &memif_connection[index];
-  if (c->index != index)
-  {
-    INFO ("invalid context: %ld/%u", index, c->index);
-    return 0;
-  }
-
-  int err = MEMIF_ERR_SUCCESS, ret_val;
-  int i;
-  uint16_t rx, tx;
-
-  do
-  {
-    // receive data from shared memory buffers 
-    err = memif_rx_burst (c->conn, qid, c->rx_bufs, MAX_MEMIF_BUFS, &rx);
-    ret_val = err;
-    if ((err != MEMIF_ERR_SUCCESS) && (err != MEMIF_ERR_NOBUF))
-    {
-      INFO ("memif_rx_burst: %s", memif_strerror (err));
-      goto error;
-    }
-    //printf ("recv %d\n", rx);
-
-    c->rx_buf_num += rx;
-    c->rx_counter += rx;
-
-    if (rx > 0)
-      c->fn(index, c->rx_bufs, rx);
-
-    err = memif_refill_queue (c->conn, qid, rx, ICMPR_HEADROOM);
-    if (err != MEMIF_ERR_SUCCESS)
-      INFO ("memif_buffer_free: %s", memif_strerror (err));
-    c->rx_buf_num -= rx;
-  }
-  while (ret_val == MEMIF_ERR_NOBUF);
-
-  return 0;
-
-error:
-  err = memif_refill_queue (c->conn, qid, rx, ICMPR_HEADROOM);
-  if (err != MEMIF_ERR_SUCCESS)
-    INFO ("memif_buffer_free: %s", memif_strerror (err));
-  c->rx_buf_num -= rx;
-  DBG ("freed %d buffers. %u/%u alloc/free buffers", rx, c->rx_buf_num, MAX_MEMIF_BUFS - c->rx_buf_num);
-
-  return 0;
-}
-*/
-int on_interrupt02_poll (long index, uint16_t qid, uint32_t count)
-{
-  if (index >= MAX_CONNS)
-  {
-    INFO ("connection array overflow");
+    ERROR ("connection array overflow");
     return -1;
   }
   if (index < 0)
   {
-    INFO ("don't even try...");
+    ERROR ("don't even try...");
     return -1;
   }
   memif_connection_t *c = &memif_connection[index];
   if (c->index != index)
   {
-    INFO ("invalid context: %ld/%u", index, c->index);
+    ERROR ("invalid context: %ld/%u", index, c->index);
     return -1;
   }
 
@@ -337,10 +313,7 @@ int on_interrupt02_poll (long index, uint16_t qid, uint32_t count)
   uint16_t rx, tx;
 
   if (0 == count)
-  {
-    printf ("on_interrupt02_poll 0 == count\n");
-    return 0;
-  }
+    INFO ("WARN!!! on_interrupt02_poll 0 == count use default");
 
   do
   {
@@ -353,22 +326,19 @@ int on_interrupt02_poll (long index, uint16_t qid, uint32_t count)
     ret_val = err;
     if ((err != MEMIF_ERR_SUCCESS) && (err != MEMIF_ERR_NOBUF))
     {
-      printf ("memif_rx_burst: %s\n", memif_strerror (err));
+      ERROR ("memif_rx_burst: %s", memif_strerror (err));
       goto error;
     }
 
     c->buffs[qid].rx_buf_num += rx;
     c->rx_counter += rx;
 
-    if (rx > 0)
-    {
-      //printf ("on_interrupt02_poll CB qid %d\n", qid);
-      c->fn(index, qid, c->buffs[qid].rx_bufs, rx);
-    }
+    //printf ("on_interrupt02_poll CB qid %d\n", qid);
+    c->on_recv_cb_fn(index, qid, c->buffs[qid].rx_bufs, rx);
 
     err = memif_refill_queue (c->conn, qid, rx, ICMPR_HEADROOM);
     if (err != MEMIF_ERR_SUCCESS)
-      printf ("memif_buffer_free: %s\n", memif_strerror (err));
+      ERROR ("memif_buffer_free: %s", memif_strerror (err));
     c->buffs[qid].rx_buf_num -= rx;
 
     //count -= rx;
@@ -383,9 +353,83 @@ int on_interrupt02_poll (long index, uint16_t qid, uint32_t count)
 error:
   err = memif_refill_queue (c->conn, qid, rx, ICMPR_HEADROOM);
   if (err != MEMIF_ERR_SUCCESS)
-    printf ("memif_buffer_free: %s\n", memif_strerror (err));
+    ERROR ("memif_buffer_free: %s", memif_strerror (err));
   c->buffs[qid].rx_buf_num -= rx;
-  DBG ("freed %d buffers. %u/%u alloc/free buffers", rx, c->buffs[qid].rx_buf_num, MAX_MEMIF_BUFS - c->buffs[qid].rx_buf_num);
+  ERROR ("freed %d buffers. %u/%u alloc/free buffers", rx, c->buffs[qid].rx_buf_num, MAX_MEMIF_BUFS - c->buffs[qid].rx_buf_num);
+
+  return -1;
+}
+
+int on_interrupt02_poll (long index, uint16_t qid, uint32_t count)
+{
+  if (index >= MAX_CONNS)
+  {
+    ERROR ("connection array overflow");
+    return -1;
+  }
+  if (index < 0)
+  {
+    ERROR ("don't even try...");
+    return -1;
+  }
+  memif_connection_t *c = &memif_connection[index];
+  if (c->index != index)
+  {
+    ERROR ("invalid context: %ld/%u", index, c->index);
+    return -1;
+  }
+
+  int err = MEMIF_ERR_SUCCESS, ret_val;
+  int i;
+  uint16_t rx, tx;
+
+  if (0 == count)
+    INFO ("WARN!!! on_interrupt02_poll 0 == count use default");
+
+  do
+  {
+    // receive data from shared memory buffers 
+    err = memif_rx_burst (c->conn, 
+                    qid, 
+                    c->buffs[qid].rx_bufs, 
+                    MAX_MEMIF_BUFS, 
+                    &rx);
+    ret_val = err;
+    if ((err != MEMIF_ERR_SUCCESS) && (err != MEMIF_ERR_NOBUF))
+    {
+      ERROR ("memif_rx_burst: %s", memif_strerror (err));
+      goto error;
+    }
+
+    c->buffs[qid].rx_buf_num += rx;
+    c->rx_counter += rx;
+
+    //if (rx > 0)
+    //{
+    //printf ("on_interrupt02_poll CB qid %d\n", qid);
+    c->on_recv_cb_fn(index, qid, c->buffs[qid].rx_bufs, rx);
+    //}
+
+    err = memif_refill_queue (c->conn, qid, rx, ICMPR_HEADROOM);
+    if (err != MEMIF_ERR_SUCCESS)
+      ERROR ("memif_buffer_free: %s\n", memif_strerror (err));
+    c->buffs[qid].rx_buf_num -= rx;
+
+    //count -= rx;
+  }
+  while (ret_val == MEMIF_ERR_NOBUF /*&& count*/);
+
+  //printf ("recv ret_val %d\n", ret_val);
+  //printf ("recv rx %d\n", rx);
+
+  return 0;
+
+error:
+  err = memif_refill_queue (c->conn, qid, rx, ICMPR_HEADROOM);
+  if (err != MEMIF_ERR_SUCCESS)
+    ERROR ("memif_buffer_free: %s", memif_strerror (err));
+  c->buffs[qid].rx_buf_num -= rx;
+  ERROR ("freed %d buffers. %u/%u alloc/free buffers", rx, c->buffs[qid].rx_buf_num, MAX_MEMIF_BUFS - c->buffs[qid].rx_buf_num);
 
   return -1;
 }
@@ -396,7 +440,7 @@ void Memif_client::run()
   {
     if (poll_event (/*-1*/ 1000) < 0)
     {
-      printf ("poll_event error!\n");
+      ERROR ("poll_event error!");
     }
   }
 }
@@ -412,7 +456,7 @@ int Memif_client::init()
   err = memif_init (control_fd_update, APP_NAME, NULL, NULL, NULL);
   if (err != MEMIF_ERR_SUCCESS)
   {
-    INFO ("memif_init: %s", memif_strerror (err));
+    ERROR ("memif_init: %s", memif_strerror (err));
     cleanup ();
 
     return -1;
@@ -449,7 +493,7 @@ int Memif_client::cleanup ()
 
   err = memif_cleanup ();
   if (err != MEMIF_ERR_SUCCESS)
-    INFO ("memif_delete: %s", memif_strerror (err));
+    ERROR ("memif_delete: %s", memif_strerror (err));
 
   return 0;
 }
@@ -458,16 +502,17 @@ int Memif_client::conn_alloc (long index, const Memif_client::Conn_config_t& con
 {
     if (index >= MAX_CONNS)
     {
-      INFO ("connection array overflow");
+      ERROR ("connection array overflow");
       return -1;
     }
 
     if (index < 0)
     {
-      INFO ("don't even try...");
+      ERROR ("don't even try...");
       return -1;
     }
     memif_connection_t *c = &memif_connection[index];
+    memset (c, 0, sizeof(memif_connection_t) );
 
     memif_conn_args_t args;
     memset (&args, 0, sizeof (args));
@@ -483,18 +528,11 @@ int Memif_client::conn_alloc (long index, const Memif_client::Conn_config_t& con
     int err;
 
     c->connected = 0;
-      
-    // [OT] we use polling mode
-    err = memif_create (&c->conn, &args, on_connect, on_disconnect, /*on_interrupt02*/NULL, &ctx[index]);
-    if (err != MEMIF_ERR_SUCCESS)
-    {
-      INFO ("memif_create: %s", memif_strerror (err));
-      return -1;
-    }
 
-    c->index = index;
+    c->index = index;      
+
     /* alloc memif buffers */
-    for (uint32_t qid = 0; qid < 2; ++qid)
+    for (uint32_t qid = 0; qid < MAX_Q_SIZE; ++qid)
     {
       c->buffs[qid].rx_buf_num = 0;
       c->buffs[qid].rx_bufs = (memif_buffer_t *)malloc (sizeof (memif_buffer_t) * MAX_MEMIF_BUFS);
@@ -509,16 +547,26 @@ int Memif_client::conn_alloc (long index, const Memif_client::Conn_config_t& con
 
     c->seq = c->tx_err_counter = c->tx_counter = c->rx_counter = 0;
 
-    c->fn = conn_config._on_recv_cb_fn;
+    c->on_recv_cb_fn = conn_config._on_recv_cb_fn;
+    c->on_connect_fn = conn_config._on_connect_fn;
+    c->on_disconnect_fn = conn_config._on_disconnect_fn;
+
+    // [OT] we use polling mode
+    err = memif_create (&c->conn, &args, on_connect, on_disconnect, /*on_interrupt02*/NULL, &ctx[index]);
+    if (err != MEMIF_ERR_SUCCESS)
+    {
+      ERROR ("memif_create: %s", memif_strerror (err));
+      return -1;
+    }
 
     // TODO review
     if (!args.is_master)
     {
       while(c->connected == 0)
       {
-          // accept connection
-          usleep(1000 * 1000);
-          printf ("listen for connection - memif alloc connected: %d\n", c->connected);
+        // accept connection
+        usleep(1000 * 1000);
+        INFO ("wait for connection - memif alloc connected: %d", c->connected);
       }  
     }
 
@@ -539,7 +587,15 @@ int Memif_client::conn_free (long index)
   }
   memif_connection_t *c = &memif_connection[index];
 
-  for (uint32_t qid = 0; qid < 2; ++qid)
+  int err;
+  /* disconenct then delete memif connection */
+  err = memif_delete (&c->conn);
+  if (err != MEMIF_ERR_SUCCESS)
+    INFO ("memif_delete: %s", memif_strerror (err));
+  if (c->conn != NULL)
+    INFO ("memif delete fail");
+
+  for (uint32_t qid = 0; qid < MAX_Q_SIZE; ++qid)
   {
     if (c->buffs[qid].rx_bufs)
       free (c->buffs[qid].rx_bufs);
@@ -551,13 +607,6 @@ int Memif_client::conn_free (long index)
     c->buffs[qid].tx_buf_num = 0;
   }
 
-  int err;
-  /* disconenct then delete memif connection */
-  err = memif_delete (&c->conn);
-  if (err != MEMIF_ERR_SUCCESS)
-    INFO ("memif_delete: %s", memif_strerror (err));
-  if (c->conn != NULL)
-    INFO ("memif delete fail");
   return 0;
 }
 
@@ -565,19 +614,19 @@ int Memif_client::set_rx_mode (long index, long qid, char *mode)
 {
   if (index >= MAX_CONNS)
   {
-      INFO ("connection array overflow");
+      ERROR ("connection array overflow");
       return -1;
   }
   if (index < 0)
   {
-      INFO ("don't even try...");
+      ERROR ("don't even try...");
       return -1;
   }
   memif_connection_t *c = &memif_connection[index];
 
   if (c->conn == NULL)
   {
-      INFO ("no connection at index %ld", index);
+      ERROR ("no connection at index %ld", index);
       return -1;
   }
 
@@ -595,6 +644,39 @@ int Memif_client::set_rx_mode (long index, long qid, char *mode)
   return 0;
 }
 
+int Memif_client::poll_00 (long index, uint16_t qid, uint32_t size)
+{
+  LOCK_GUARD lock(m);
+
+  int res;
+
+  if (index >= MAX_CONNS)
+  {
+    ERROR ("connection array overflow");
+    return -1;
+  }
+  if (index < 0)
+  {
+    ERROR ("don't even try...");
+    return -1;
+  }
+  memif_connection_t *c = &memif_connection[index];
+  if (c->index != index)
+  {
+    ERROR ("invalid context: %ld/%u", index, c->index);
+    return -1;
+  }
+
+  if (c->connected == 0)
+  {
+    return -2;
+  }  
+
+  res = on_interrupt00_poll (index, qid, size);
+
+  return res;
+}
+
 int Memif_client::poll (long index, uint16_t qid, uint32_t size)
 {
   LOCK_GUARD lock(m);
@@ -603,25 +685,23 @@ int Memif_client::poll (long index, uint16_t qid, uint32_t size)
 
   if (index >= MAX_CONNS)
   {
-    INFO ("connection array overflow");
+    ERROR ("connection array overflow");
     return -1;
   }
   if (index < 0)
   {
-    INFO ("don't even try...");
+    ERROR ("don't even try...");
     return -1;
   }
   memif_connection_t *c = &memif_connection[index];
   if (c->index != index)
   {
-    INFO ("invalid context: %ld/%u", index, c->index);
+    ERROR ("invalid context: %ld/%u", index, c->index);
     return -1;
   }
 
   if (c->connected == 0)
   {
-    //usleep(100);
-    //printf ("not connected\n");
     return -2;
   }  
 
@@ -651,7 +731,7 @@ void Memif_client::print_info ()
       if (err != MEMIF_ERR_SUCCESS)
       {
           if (err != MEMIF_ERR_NOCONN)
-            INFO ("%s", memif_strerror (err));
+            ERROR ("%s", memif_strerror (err));
           continue;
       }
 
@@ -722,118 +802,121 @@ void Memif_client::print_info ()
   free (buf);
 }
 
-enum { MAX_SEND_RETRIES = 1000000 };
+enum { MAX_SEND_RETRIES = 1000 };
 //enum { RETRY_WAIT_FACTOR = 2 };
 
 int Memif_client::send(long index, uint16_t qid, uint64_t size, IMsg_burst_serializer& ser)
 {
-    LOCK_GUARD guard(m);
+  LOCK_GUARD guard(m);
 
-    uint64_t count = size;
+  uint64_t count = size;
 
-    if (index >= MAX_CONNS)
-    {
-      INFO ("connection array overflow");
-      return -1;
-    }
-    if (index < 0)
-    {
-      INFO ("don't even try...");
-      return -1;
-    }
-    memif_connection_t *c = &memif_connection[index];
-    if (c->conn == NULL)
-    {
-      printf ("No connection at index %d. Thread exiting...\n", index);
-      return -1;
-    }
+  if (index >= MAX_CONNS)
+  {
+    ERROR ("connection array overflow");
+    return -1;
+  }
+  if (index < 0)
+  {
+    ERROR ("don't even try...");
+    return -1;
+  }
+  memif_connection_t *c = &memif_connection[index];
+  if (c->conn == NULL)
+  {
+    ERROR ("No connection at index %d. Thread exiting...", index);
+    return -1;
+  }
 
-    if (c->connected == 0)
-    {
-      printf ("send not connected\n");
-      return -2;
-    }  
+  if (c->connected == 0)
+  {
+    INFO ("send not connected");
+    return -2;
+  }  
     
-    uint16_t tx, i, ind = 0;
-    int err = MEMIF_ERR_SUCCESS;
-    uint32_t seq = 0;
+  uint16_t tx, i, ind = 0;
+  int err = MEMIF_ERR_SUCCESS;
+  uint32_t seq = 0;
 
-    int retries = 0;
-    int log = 0;
-    while (count)
-    {
-          retries++;
+  //int retries_cyc = 0;
+  int retries = 0;
+  int log = 0;
+  while (count)
+  {
+      retries++;
 
-          if (retries > MAX_SEND_RETRIES)
-          {
-              m.unlock();
-              usleep(100 * 1000);
+      if (retries > MAX_SEND_RETRIES)
+      {
+        /*
+        if (retries_cyc)
+          INFO ("send retries > MAX_SEND_RETRIES_TOT %d", retries_cyc);
+        retries_cyc++;
+        */
 
-              m.lock();
-              if (c->connected == 0)
-              {
-                printf ("disconnect while send - not connected\n");
-                m.unlock();
-                return -2;
-              }  
-          }
+        retries = 0;
 
-          i = 0;
-          err = memif_buffer_alloc (
+        m.unlock();
+        usleep(10 * 1000);
+
+        m.lock();
+        if (c->connected == 0)
+        {
+          INFO ("disconnect while send - not connected");
+          // not needed? called in guard destr
+          // m.unlock();
+          return -2;
+        }  
+      }
+
+      i = 0;
+      err = memif_buffer_alloc (
               c->conn, 
               qid, 
               c->buffs[qid].tx_bufs,
               MAX_MEMIF_BUFS > count ? count : MAX_MEMIF_BUFS, 
               &tx, 
               BUFF_SIZE);
-          if (log)
-              printf("buff %d %d\n", err, tx);
-          if ((err != MEMIF_ERR_SUCCESS) && (err != MEMIF_ERR_NOBUF_RING))
-          {
-              printf ("memif_buffer_alloc: failed %s\n", memif_strerror (err));
-              return -1;
-          }
+      if (log) printf("buff %d %d\n", err, tx);
+      if ((err != MEMIF_ERR_SUCCESS) && (err != MEMIF_ERR_NOBUF_RING))
+      {
+        ERROR ("memif_buffer_alloc: failed %s", memif_strerror (err));
+        return -1;
+      }
 
-          c->buffs[qid].tx_buf_num += tx;
+      c->buffs[qid].tx_buf_num += tx;
 
-//printf ("memif_buffer_alloc tx %d %d  %d %d\n", tx, size, count, c->buffs[qid].tx_buf_num);
-
-          while (tx)
-          {
-              while (tx > 2)
-              {
-                  ser.serialize((uint8_t*)c->buffs[qid].tx_bufs[i].data, &c->buffs[qid].tx_bufs[i].len, ind);
-                  ser.serialize((uint8_t*)c->buffs[qid].tx_bufs[i + 1].data, &c->buffs[qid].tx_bufs[i + 1].len, ind + 1);
+      while (tx)
+      {
+        while (tx > 2)
+        {
+          ser.serialize((uint8_t*)c->buffs[qid].tx_bufs[i].data, &c->buffs[qid].tx_bufs[i].len, ind);
+          ser.serialize((uint8_t*)c->buffs[qid].tx_bufs[i + 1].data, &c->buffs[qid].tx_bufs[i + 1].len, ind + 1);
                   
-                  i += 2;
-                  tx -= 2;
-                  ind += 2;
-              }
+          i += 2;
+          tx -= 2;
+          ind += 2;
+        }
               
-              ser.serialize((uint8_t*)c->buffs[qid].tx_bufs[i].data, &c->buffs[qid].tx_bufs[i].len, ind);
+        ser.serialize((uint8_t*)c->buffs[qid].tx_bufs[i].data, &c->buffs[qid].tx_bufs[i].len, ind);
 
-              i++;
-              tx--;
-              ind++;
-          }
+        i++;
+        tx--;
+        ind++;
+      }
 
-          err = memif_tx_burst (c->conn, qid, c->buffs[qid].tx_bufs, c->buffs[qid].tx_buf_num, &tx);
-          if (log)
-            printf("tx %d %d\n", err, tx);
-          if (err != MEMIF_ERR_SUCCESS)
-          {
-              printf ("memif_tx_burst failed: %s\n", memif_strerror (err));
-              return -1;
-          }
-          c->buffs[qid].tx_buf_num -= tx;
-          c->tx_counter += tx;
-          count -= tx;
-    }
+      err = memif_tx_burst (c->conn, qid, c->buffs[qid].tx_bufs, c->buffs[qid].tx_buf_num, &tx);
+      if (log) printf("tx %d %d\n", err, tx);
+      if (err != MEMIF_ERR_SUCCESS)
+      {
+        ERROR ("memif_tx_burst failed: %s", memif_strerror (err));
+        return -1;
+      }
+      c->buffs[qid].tx_buf_num -= tx;
+      c->tx_counter += tx;
+      count -= tx;
+  }
 
-    //if (retries > 2)
-      //printf("retr %d\n", retries);
-
-    return 0;
+  return 0;
 }
 
 int Memif_client::user_input_handler ()
@@ -892,7 +975,7 @@ int Memif_client::poll_event (int timeout)
   timespec_get (&start, TIME_UTC);
   if (en < 0)
   {
-      DBG ("epoll_pwait: %s", strerror (errno));
+      ERROR ("epoll_pwait: %s", strerror (errno));
       return -1;
   }
   if (en > 0)
@@ -911,7 +994,7 @@ int Memif_client::poll_event (int timeout)
             events |= MEMIF_FD_EVENT_ERROR;
           memif_err = memif_control_fd_handler (evt.data.fd, events);
           if (memif_err != MEMIF_ERR_SUCCESS)
-            INFO ("memif_control_fd_handler: %s", memif_strerror (memif_err));
+            ERROR ("memif_control_fd_handler: %s", memif_strerror (memif_err));
       }
       else if (evt.data.fd == 0)
       {
@@ -919,19 +1002,19 @@ int Memif_client::poll_event (int timeout)
       }
       else
       {
-          DBG ("unexpected event at memif_epfd. fd %d", evt.data.fd);
+          ERROR ("unexpected event at memif_epfd. fd %d", evt.data.fd);
       }
   }
 
   timespec_get (&end, TIME_UTC);
-  LOG ("interrupt: %ld", end.tv_nsec - start.tv_nsec);
+  //INFO ("interrupt: %ld", end.tv_nsec - start.tv_nsec);
 
   if ((app_err < 0) || (memif_err < 0))
   {
       if (app_err < 0)
-        DBG ("user input handler error");
+        ERROR ("user input handler error");
       if (memif_err < 0)
-        DBG ("memif control fd handler error");
+        ERROR ("memif control fd handler error");
       return -1;
   }
 

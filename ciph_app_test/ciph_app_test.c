@@ -274,7 +274,7 @@ uint8_t cipher_key[] = {
 
 const uint16_t QID_USER = 0, QID_CTRL = 1;
 
-enum { THR_CNT = 2 };
+enum { THR_CNT = 6 };
 enum { MAX_ACTIVE_SESS_NUM = 300 };
 enum { MAX_OUTBUFF_LEN = 1500 };
 	
@@ -318,18 +318,20 @@ pthread_t thread[THR_CNT];
 
 const uint16_t SLEEP_TO_FACTOR = 1;
 
-const int MAX_CONN_CLIENT_BURST = 64;
+const uint32_t MAX_CONN_CLIENT_BURST = 64;
 
-const int BUFFER_TOTAL_LEN = 64;
-const int BUFFER_SEGMENT_NUM = 4;
+const uint32_t BUFFER_TOTAL_LEN = 64;
+const uint32_t BUFFER_SEGMENT_NUM = 4;
 
-const int PCK_NUM = 1000000; //10000000;
+const uint32_t PCK_NUM = 10000000; //10000000;
 
-void print_buff(uint8_t* data, int len)
+const uint32_t MAX_POLL_RETRIES = 1000000;
+
+void print_buff(uint8_t* data, uint32_t len)
 {
   	printf("test app length %d\n", len);
 	
-  	int c = 0, i;
+  	uint32_t c = 0, i;
 
   	printf("%03d ", c++);
 
@@ -431,15 +433,6 @@ void on_ops_complete_cb_0 (uint32_t cid, uint16_t qid, Crypto_operation* vec, ui
 
     thread_data[cid].total_size += size;
     //printf ("cid %d Seq len: %u\n", cid, thread_data[cid].total_size);
-/*
-    if (thread_data[cid].total_size == thread_data[cid].num_pck + 
-					thread_data[cid].num_pck_per_batch + 
-					1 + 1 )
-    {
-      	printf ("data_failed %d\n", thread_data[cid].data_failed);
-      	printf ("op_failed %d\n", thread_data[cid].op_failed);
-    }
-*/
 }
 
 uint8_t dummy_ctx[1024];
@@ -466,10 +459,21 @@ int32_t create_session(long cid, uint64_t seq)
     ciph_agent_send(cid, QID_CTRL, &op_sess, 1);
 
     // poll and recv created session id
+	uint32_t retries = 0;
 	while (!thread_data[cid].setup_sess_ctx.is_recv_resp)
 	{
     	res = ciph_agent_poll(cid, QID_CTRL, MAX_CONN_CLIENT_BURST);
-		if (res == -2) printf ("ciph_agent_poll ERROR\n");;
+		if (res == -2) 
+		{
+			printf ("ciph_agent_poll ERROR\n");
+			return res;
+		}
+
+		if (++retries > MAX_POLL_RETRIES)
+		{
+			printf ("ciph_agent_poll ERROR retries > MAX_RETRIES - server is down\n");
+			return -1;
+		}
 	}
 
 	if (thread_data[cid].setup_sess_ctx.resp_status != CRYPTO_OP_STATUS_SUCC)
@@ -504,6 +508,8 @@ void* send_proc(void* data)
 	uint8_t res;
 	uint64_t seq = 0;
 	uint32_t i;
+
+	uint32_t retries;
 
 	long conn_id = *((long*) data);
   	uint32_t num_pck = thread_data[conn_id].num_pck;
@@ -567,7 +573,7 @@ void* send_proc(void* data)
 	
     timespec_get (&thread_data[conn_id].start, TIME_UTC);
 
-    int num_batch = num_pck / num_pck_per_batch;
+    uint32_t num_batch = num_pck / num_pck_per_batch;
     
 	uint32_t pps = thread_data[conn_id].target_pps;
 	int32_t send_to_usec = 2 * (1000.0 * 1000.0 * num_pck_per_batch) / pps;
@@ -576,7 +582,7 @@ void* send_proc(void* data)
 
     printf ("run ... %d\n", send_to_usec);
 	int32_t to_sleep = 0;
-	int c;
+	uint32_t c;
     for(c = 0; c < num_batch; ++c)
     {
 		memset (&start_send, 0, sizeof (start_send));
@@ -641,17 +647,14 @@ void* send_proc(void* data)
 	res = close_session(conn_id, ++seq, thread_data[conn_id].setup_sess_ctx.setup_sess_id);
 	if (0 != res) printf ("close_session ERROR\n");
 
-	//seq++;
-
+	// leave hanged sessions to check cleanup
+/*
 	res = close_session(conn_id, ++seq, (thread_data[conn_id].setup_sess_ctx.setup_sess_id - 1) );
 	if (0 != res) printf ("close_session ERROR\n");
 
-	//seq++;
-
 	res = close_session(conn_id, ++seq, (thread_data[conn_id].setup_sess_ctx.setup_sess_id - 2) );
 	if (0 != res) printf ("close_session ERROR\n");
-
-	//seq++;
+*/
 
     timespec_get (&thread_data[conn_id].end, TIME_UTC);
     printf ("\n\n");
@@ -664,10 +667,17 @@ void* send_proc(void* data)
 
     // flush
 	printf ("flush ...\n");
+	retries = 0;
     while (thread_data[conn_id].total_size < seq + 1) // num_pck + num_pck_per_batch + sess cr/cl
 	{
       	res = ciph_agent_poll(conn_id, QID_USER, MAX_CONN_CLIENT_BURST);
 		if (res == -2) printf ("ciph_agent_poll ERROR\n");;
+
+		if (++retries > MAX_POLL_RETRIES)
+		{
+			printf ("ciph_agent_poll ERROR retries > MAX_RETRIES - server is down\n");;
+			break;
+		}
 	}
 
 	printf ("Seq len: %u\n", thread_data[conn_id].total_size);
@@ -677,55 +687,62 @@ void* send_proc(void* data)
 
     ciph_agent_conn_free(conn_id);
 
-	return NULL;
+	pthread_exit (NULL);
 }
 
 int main(int argc, char* argv[])
 {
-
-    long conn_id_0 = 0;
-    long conn_id_1 = 1;
+    long cid_0 = 0;
+    long cid_1 = 1;
 
 	time_t t;
 	srand((unsigned) time(&t));
 
     ciph_agent_init();
 
+	memset(thread_data, 0, THR_CNT * sizeof(thread_data_t));
+
 	while(1)
 	{
-	thread_data[0].index = conn_id_0;
-	thread_data[0].packet_size = 200;
-  	thread_data[0].num_pck = PCK_NUM;
-	thread_data[0].target_pps = 160000;
-  	thread_data[0].num_pck_per_batch = 32;
-    memset (&thread_data[0].start, 0, sizeof (thread_data[0].start));
-    memset (&thread_data[0].end, 0, sizeof (thread_data[0].end));
-	thread_data[0].total_size = 0;
-	thread_data[0].cb = on_ops_complete_cb_0;
-	thread_data[0].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
+	thread_data[cid_0].index = cid_0;
+	thread_data[cid_0].packet_size = 200;
+  	thread_data[cid_0].num_pck = PCK_NUM;
+	thread_data[cid_0].target_pps = 160000;
+  	thread_data[cid_0].num_pck_per_batch = 32;
+    memset (&thread_data[cid_0].start, 0, sizeof (thread_data[cid_0].start));
+    memset (&thread_data[cid_0].end, 0, sizeof (thread_data[cid_0].end));
+	thread_data[cid_0].total_size = 0;
+	thread_data[cid_0].cb = on_ops_complete_cb_0;
+	thread_data[cid_0].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
 	//thread_data[0].cipher_algo = CRYPTO_CIPHER_AES_CBC;
-    thread_data[0].cipher_op = CRYPTO_CIPHER_OP_DECRYPT;
+    thread_data[cid_0].cipher_op = CRYPTO_CIPHER_OP_DECRYPT;
 	
-	thread_data[1].index = conn_id_1;
-	thread_data[1].packet_size = 200;
-  	thread_data[1].num_pck = PCK_NUM / 2;
-	thread_data[1].target_pps = 160000 / 2;
-  	thread_data[1].num_pck_per_batch = 32;
-    memset (&thread_data[1].start, 0, sizeof (thread_data[1].start));
-    memset (&thread_data[1].end, 0, sizeof (thread_data[1].end));
-	thread_data[1].total_size = 0;
-	thread_data[1].cb = on_ops_complete_cb_0;
+	thread_data[cid_1].index = cid_1;
+	thread_data[cid_1].packet_size = 200;
+  	thread_data[cid_1].num_pck = PCK_NUM / 2;
+	thread_data[cid_1].target_pps = 160000 / 2;
+  	thread_data[cid_1].num_pck_per_batch = 32;
+    memset (&thread_data[cid_1].start, 0, sizeof (thread_data[cid_1].start));
+    memset (&thread_data[cid_1].end, 0, sizeof (thread_data[cid_1].end));
+	thread_data[cid_1].total_size = 0;
+	thread_data[cid_1].cb = on_ops_complete_cb_0;
 	//thread_data[1].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
-	thread_data[1].cipher_algo = CRYPTO_CIPHER_AES_CBC;
-    thread_data[1].cipher_op = CRYPTO_CIPHER_OP_ENCRYPT;
+	thread_data[cid_1].cipher_algo = CRYPTO_CIPHER_AES_CBC;
+    thread_data[cid_1].cipher_op = CRYPTO_CIPHER_OP_ENCRYPT;
 
 	//int s;
 	void *res;
 
-    pthread_create (&thread[0], NULL, send_proc, (void *)&conn_id_0);
-	pthread_create (&thread[1], NULL, send_proc, (void *)&conn_id_1);
-	pthread_join(thread[0], &res);
-	pthread_join(thread[1], &res);
+	usleep(1000 * 1000); 
+
+    pthread_create (&thread[cid_0], NULL, send_proc, (void *)&cid_0);
+	printf("cr 0\n");
+	pthread_create (&thread[cid_1], NULL, send_proc, (void *)&cid_1);
+	printf("cr 1\nn");
+	pthread_join(thread[cid_0], &res);
+	printf("Joined with thread %ld; returned value was %s\n", cid_0, (char *) res);
+	pthread_join(thread[cid_1], &res);
+	printf("Joined with thread %ld; returned value was %s\n", cid_1, (char *) res);
 	}
 	
     ciph_agent_cleanup();

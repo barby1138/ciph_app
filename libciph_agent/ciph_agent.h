@@ -9,6 +9,8 @@
 //enum { CA_MODE_SLAVE = 0, CA_MODE_MASTER = 1 };
 
 typedef void (*on_ops_complete_CallBk_t) (uint32_t, uint16_t, Crypto_operation*, uint32_t);
+typedef void (*on_connect_CallBk_t) (uint32_t);
+typedef void (*on_disconnect_CallBk_t) (uint32_t);
 
 #define CIFER_IV_LENGTH 16
 
@@ -124,28 +126,32 @@ void crypto_job_from_buffer(uint8_t* buffer, uint32_t len, Crypto_operation* vec
     vec->cipher_buff_list.buffs[0].length = pData_len->ciphertext_length;
     vec->cipher_buff_list.buff_list_length = 1;
 
-    if (vec->op.op_type == CRYPTO_OP_TYPE_SESS_CIPHERING && vec->op.op_status == CRYPTO_OP_STATUS_SUCC)
+    if (vec->op.op_type == CRYPTO_OP_TYPE_SESS_CIPHERING)
     {
-        if (vec->op.outbuff_len < vec->cipher_buff_list.buffs[0].length)
+        if (vec->op.op_status == CRYPTO_OP_STATUS_SUCC)
         {
-            vec->op.op_status == CRYPTO_OP_STATUS_FAILED;
-			printf ("outbuff too small %u vs %u\n", vec->op.outbuff_len, vec->cipher_buff_list.buffs[0].length);	
-        }
-        else
-        {
-            // TODO check ptr / len
-            if (NULL != vec->op.outbuff_ptr)
+            if (vec->op.outbuff_len < vec->cipher_buff_list.buffs[0].length)
             {
-                clib_memcpy_fast(vec->op.outbuff_ptr, 
-					vec->cipher_buff_list.buffs[0].data, 
-					vec->cipher_buff_list.buffs[0].length);
-
-		        vec->op.outbuff_len = vec->cipher_buff_list.buffs[0].length;
+                vec->op.op_status == CRYPTO_OP_STATUS_FAILED;
+			    printf ("outbuff too small %u vs %u\n", vec->op.outbuff_len, vec->cipher_buff_list.buffs[0].length);	
             }
             else
             {
-                vec->op.op_status == CRYPTO_OP_STATUS_FAILED;
-                printf("WARN!!! BAD buff - op.outbuff_ptr == NULL\n");
+                if ( NULL != vec->op.outbuff_ptr && vec->cipher_buff_list.buffs[0].length <= vec->op.outbuff_len )
+                {
+                    clib_memcpy_fast(vec->op.outbuff_ptr, 
+					    vec->cipher_buff_list.buffs[0].data, 
+					    vec->cipher_buff_list.buffs[0].length);
+
+		            vec->op.outbuff_len = vec->cipher_buff_list.buffs[0].length;
+                }
+                else
+                {
+                    vec->op.op_status == CRYPTO_OP_STATUS_FAILED;
+                    printf("WARN!!! BAD buff or len ptr %x, %d <= %d\n", vec->op.outbuff_ptr, 
+                                    vec->cipher_buff_list.buffs[0].length,
+                                    vec->op.outbuff_len);
+                }
             }
         }
     }
@@ -188,30 +194,22 @@ public:
     int init();
     int cleanup();
 
-    int conn_alloc(uint32_t conn_id, uint32_t mode, on_ops_complete_CallBk_t cb);
+    int conn_alloc( uint32_t conn_id, 
+                    uint32_t mode, 
+                    on_ops_complete_CallBk_t on_ops_complete_CallBk,
+                    on_connect_CallBk_t on_connect_CallBk,
+                    on_disconnect_CallBk_t on_disconnect_CallBk);
     int conn_free(uint32_t conn_id);
 
     int send(uint32_t conn_id, uint16_t qid, const Crypto_operation* vecs, uint32_t size);
 
     int poll(uint32_t conn_id, uint16_t qid, uint32_t size);
+    int poll_00(uint32_t conn_id, uint16_t qid, uint32_t size);
 
 private:
-/*
-    static void jobs_2_buffs(Crypto_operation* vecs, uint32_t size, typename Comm_client::Conn_buffer_t* buffs)
-    {
-        for(int i = 0; i < size; ++i)
-            crypto_job_to_buffer((uint8_t*) buffs[i].data, &buffs[i].len, &vecs[i]);
-    }
-*/
     static void on_recv_cb (uint32_t conn_id, uint16_t qid, const typename Memif_client::Conn_buffer_t* rx_bufs, uint32_t len);
-
-    static void buffs_2_jobs(Crypto_operation* vecs, const typename Memif_client::Conn_buffer_t* buffs, uint32_t buff_size)
-    {
-        assert(buff_size <= OPS_POOL_PER_CONN_SIZE);
-
-        for(int i = 0; i < buff_size; ++i)
-            crypto_job_from_buffer((uint8_t*) buffs[i].data, buffs[i].len, &vecs[i]);
-    }
+    static void on_connected (uint32_t conn_id) {}
+    static void on_disconnected (uint32_t conn_id) {}
 
 private:
     static on_ops_complete_CallBk_t _cb[MAX_CONNECTIONS];
@@ -225,7 +223,10 @@ Crypto_operation Ciph_comm_agent::_pool_vecs[MAX_CONNECTIONS][OPS_POOL_PER_CONN_
 
 static void Ciph_comm_agent::on_recv_cb (uint32_t conn_id, uint16_t qid, const typename Memif_client::Conn_buffer_t* rx_bufs, uint32_t len)
 { 
-    buffs_2_jobs(_pool_vecs[conn_id], rx_bufs, len);
+    assert(len <= OPS_POOL_PER_CONN_SIZE);
+
+    for(int i = 0; i < len; ++i)
+        crypto_job_from_buffer((uint8_t*) rx_bufs[i].data, rx_bufs[i].len, &_pool_vecs[conn_id][i]);
 
     if (NULL != _cb[conn_id])
         _cb[conn_id](conn_id, qid, _pool_vecs[conn_id], len);
@@ -243,17 +244,23 @@ int Ciph_comm_agent::cleanup()
     return _client.cleanup();
 }
 
-int Ciph_comm_agent::conn_alloc(uint32_t conn_id, uint32_t mode, on_ops_complete_CallBk_t cb)
+int Ciph_comm_agent::conn_alloc( uint32_t conn_id, 
+                                uint32_t mode, 
+                                on_ops_complete_CallBk_t on_ops_complete_CallBk,
+                                on_connect_CallBk_t on_connect_CallBk,
+                                on_disconnect_CallBk_t on_disconnect_CallBk)
 {
     // TODO check conn_id
     // TODO check if already allocated
 
     int res;
 
-    _cb[conn_id] = cb;
+    _cb[conn_id] = on_ops_complete_CallBk;
 
     typename Memif_client::Conn_config_t conn_config;
     conn_config._on_recv_cb_fn = Ciph_comm_agent::on_recv_cb;
+    conn_config._on_connect_fn = on_connect_CallBk;
+    conn_config._on_disconnect_fn = on_disconnect_CallBk;
     conn_config._mode = mode;
     //conn_config._q_nb = q_nb;
 
@@ -279,6 +286,13 @@ int Ciph_comm_agent::send(uint32_t conn_id, uint16_t qid, const Crypto_operation
 int Ciph_comm_agent::poll(uint32_t conn_id, uint16_t qid, uint32_t size)
 {
     int res =_client.poll(conn_id, qid, size);
+
+    return res;
+}
+
+int Ciph_comm_agent::poll_00(uint32_t conn_id, uint16_t qid, uint32_t size)
+{
+    int res =_client.poll_00(conn_id, qid, size);
 
     return res;
 }

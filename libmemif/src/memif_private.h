@@ -32,9 +32,10 @@
 #include <libmemif.h>
 
 #define MEMIF_NAME_LEN 32
-_Static_assert (strlen (MEMIF_DEFAULT_APP_NAME) <= MEMIF_NAME_LEN, "MEMIF_DEFAULT_APP_NAME max length is 32");
+_Static_assert (strlen (MEMIF_DEFAULT_APP_NAME) <= MEMIF_NAME_LEN,
+		"MEMIF_DEFAULT_APP_NAME max length is 32");
 
-#define MEMIF_DEFAULT_SOCKET_PATH "/tmp/memif.sock" //"/run/vpp/memif.sock"
+#define MEMIF_DEFAULT_SOCKET_PATH "/tmp/memif.sock"
 #define MEMIF_DEFAULT_RING_SIZE 1024
 #define MEMIF_DEFAULT_LOG2_RING_SIZE 10
 #define MEMIF_DEFAULT_RX_QUEUES 1
@@ -55,7 +56,6 @@ _Static_assert (strlen (MEMIF_DEFAULT_APP_NAME) <= MEMIF_NAME_LEN, "MEMIF_DEFAUL
 #define EXPECT_TRUE(x) __builtin_expect((x),1)
 #define EXPECT_FALSE(x) __builtin_expect((x),0)
 
-//#define MEMIF_DBG
 #ifdef MEMIF_DBG
 #define DBG(...) do {                                                             \
                         printf("MEMIF_DEBUG:%s:%s:%d: ", __FILE__, __func__, __LINE__);  \
@@ -212,9 +212,9 @@ extern libmemif_main_t libmemif_main;
 /* main.c */
 
 /* if region doesn't contain shared memory, mmap region, check ring cookie */
-int memif_connect (memif_connection_t * c);
+int memif_connect1 (memif_connection_t * c);
 
-/* memory map region, initalize rings and queues */
+/* memory map region, initialize rings and queues */
 int memif_init_regions_and_queues (memif_connection_t * c);
 
 int memif_disconnect_internal (memif_connection_t * c);

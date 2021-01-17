@@ -33,6 +33,10 @@ public:
 
     int run_jobs(int ch_id, Crypto_operation* jobs, uint32_t size);
 
+    int init_conn(int ch_id);
+
+    int cleanup_conn(int ch_id);
+
 private:
     int init_inner();
 
@@ -77,6 +81,8 @@ private:
     int create_session(int ch_id, const Crypto_operation& vec, uint32_t* sess_id);
 
     int remove_session(int ch_id, const Crypto_operation& vec);
+
+    int remove_all_sessions(int ch_id);
 
     rte_cryptodev_sym_session* get_session(int ch_id,  const Crypto_operation& vec);
 

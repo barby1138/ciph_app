@@ -579,6 +579,18 @@ void  Dpdk_cryptodev_client::cleanup()
 					}
 */
 
+int Dpdk_cryptodev_client::init_conn(int ch_id) 
+{
+	return 0;
+}
+
+int Dpdk_cryptodev_client::cleanup_conn(int ch_id)
+{
+	remove_all_sessions(ch_id);
+
+	return 0;
+}
+
 int Dpdk_cryptodev_client::preprocess_jobs(int ch_id,
 											Crypto_operation* jobs, 
 											uint32_t size, 
@@ -634,7 +646,7 @@ int Dpdk_cryptodev_client::preprocess_jobs(int ch_id,
 					jobs[i].op.op_status = CRYPTO_OP_STATUS_FAILED;
 					jobs[i].cipher_buff_list.buff_list_length = 0;
 
-					RTE_LOG(ERR, USER1, "preprocess_jobs wrong sess_id %d cdev_id %d", jobs[i].op.sess_id, cdev_id);
+					RTE_LOG(ERR, USER1, "preprocess_jobs wrong cdev sess_id %d cdev_id %d", jobs[i].op.sess_id, cdev_id);
 				}		
 			}
 		}
@@ -673,15 +685,17 @@ int Dpdk_cryptodev_client::postprocess_jobs(int ch_id, Crypto_operation* jobs, u
 
 int Dpdk_cryptodev_client::run_jobs(int ch_id, Crypto_operation* jobs, uint32_t size)
 {
-	uint16_t total_nb_qps = 0;
+	if (size == 0)
+	{
+		//RTE_LOG(INFO, USER1, "run_jobs size == 0");
+		return 0;
+	}
+
 	uint8_t cdev_id;
 	uint8_t buffer_size_idx = 0;
-
-	total_nb_qps = 1;
 	uint8_t qp_id = 0; 
 
 	uint32_t dev_ops_size_arr[RTE_CRYPTO_MAX_DEVS] = { 0 };
-
 	Dev_vecs_idxs_t dev_vecs_idxs_arr[RTE_CRYPTO_MAX_DEVS] = { 0 };
 
 	preprocess_jobs(ch_id, jobs, size, dev_ops_size_arr, dev_vecs_idxs_arr);
@@ -1008,9 +1022,9 @@ int Dpdk_cryptodev_client::create_session(int ch_id, const Crypto_operation& vec
 
 	// free sess
 	if (0 != rte_cryptodev_sym_session_clear(cdev_id, s))
-		RTE_LOG(ERR, USER1, "rte_cryptodev_sym_session_clear failed");
+		RTE_LOG(ERR, USER1, "create_session rte_cryptodev_sym_session_clear failed");
 	if (0 != rte_cryptodev_sym_session_free(s))
-		RTE_LOG(ERR, USER1, "rte_cryptodev_sym_session_free failed");
+		RTE_LOG(ERR, USER1, "create_session rte_cryptodev_sym_session_free failed");
 		
 	return -1;
 }
@@ -1019,6 +1033,11 @@ int Dpdk_cryptodev_client::remove_session(int ch_id, const Crypto_operation& vec
 {
 	uint16_t cdev_id = (uint16_t) (vec.op.sess_id >> 16);
 	uint16_t i = (uint16_t) (vec.op.sess_id & 0x0000FFFF);
+	if ( !(cdev_id < _nb_cryptodevs && i < MAX_SESS_NUM) )
+	{
+		RTE_LOG(ERR, USER1, "remove_session ivalid dev or sess id ch_id %d, sess_id 0x%x (%d %d)", ch_id, vec.op.sess_id, cdev_id, i);
+		return -1;
+	}
 
 	rte_cryptodev_sym_session* s = _active_sessions_registry[ch_id][cdev_id][i];
 	if (NULL == s)
@@ -1028,9 +1047,9 @@ int Dpdk_cryptodev_client::remove_session(int ch_id, const Crypto_operation& vec
 	}
 
 	if (0 != rte_cryptodev_sym_session_clear(cdev_id, s))
-		RTE_LOG(ERR, USER1, "rte_cryptodev_sym_session_clear failed");
+		RTE_LOG(ERR, USER1, "remove_session rte_cryptodev_sym_session_clear failed");
 	if (0 != rte_cryptodev_sym_session_free(s))
-		RTE_LOG(ERR, USER1, "rte_cryptodev_sym_session_free failed");
+		RTE_LOG(ERR, USER1, "remove_session rte_cryptodev_sym_session_free failed");
 		
 	_active_sessions_registry[ch_id][cdev_id][i] = NULL;
 	
@@ -1041,7 +1060,12 @@ rte_cryptodev_sym_session* Dpdk_cryptodev_client::get_session(int ch_id, const C
 {
 	uint16_t cdev_id = (uint16_t) (vec.op.sess_id >> 16);
 	uint16_t i = (uint16_t) (vec.op.sess_id & 0x0000FFFF);
-
+	if ( !(cdev_id < _nb_cryptodevs && i < MAX_SESS_NUM) )
+	{
+		RTE_LOG(ERR, USER1, "get_session ivalid dev or sess id ch_id %d, sess_id 0x%x (%d %d)", ch_id, vec.op.sess_id, cdev_id, i);
+		return NULL;
+	}
+	
 	rte_cryptodev_sym_session* s = _active_sessions_registry[ch_id][cdev_id][i];
 	if (NULL == s)
 	{
@@ -1050,6 +1074,34 @@ rte_cryptodev_sym_session* Dpdk_cryptodev_client::get_session(int ch_id, const C
 	}
 
 	return s;
+}
+
+int Dpdk_cryptodev_client::remove_all_sessions(int ch_id)
+{
+	uint32_t cleaned_sess_cnt = 0;
+
+	for (uint16_t cdev_id = 0; cdev_id < _nb_cryptodevs; cdev_id++)
+	{
+		for (uint16_t i = 0; i < MAX_SESS_NUM; i++)
+		{
+			rte_cryptodev_sym_session* s = _active_sessions_registry[ch_id][cdev_id][i];
+			if (NULL == s)
+				continue;
+
+			if (0 != rte_cryptodev_sym_session_clear(cdev_id, s))
+				RTE_LOG(ERR, USER1, "remove_all_sessions rte_cryptodev_sym_session_clear failed");
+			if (0 != rte_cryptodev_sym_session_free(s))
+				RTE_LOG(ERR, USER1, "remove_all_sessions rte_cryptodev_sym_session_free failed");
+		
+			_active_sessions_registry[ch_id][cdev_id][i] = NULL;
+
+			cleaned_sess_cnt++;
+		}
+	}
+
+	RTE_LOG(INFO, USER1, "remove_all_sessions cleaned %d", cleaned_sess_cnt);
+		
+	return 0;
 }
 
 // TODO to class

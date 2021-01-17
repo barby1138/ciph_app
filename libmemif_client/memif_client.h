@@ -34,6 +34,9 @@ public:
     int conn_free(long index);
 
     int poll(long index, uint16_t qid, uint32_t size);
+    // rollback
+    int poll_00(long index, uint16_t qid, uint32_t size);
+
     int send(long index, uint16_t qid, uint64_t size, IMsg_burst_serializer& ser);
 
     void print_info ();
@@ -63,10 +66,14 @@ public:
 */
 
 typedef void (*on_recv_cb_fn_t) (long index, uint16_t qid, const Memif_client::Conn_buffer_t* rx_bufs, uint32_t len);
+typedef void (*on_connect_fn_t) (long index);
+typedef void (*on_disconnect_fn_t) (long index);
 
 struct Memif_client_conn_config
 {
     on_recv_cb_fn_t _on_recv_cb_fn;
+    on_connect_fn_t _on_connect_fn;
+    on_disconnect_fn_t _on_disconnect_fn;
     //uint16_t _q_nb;
     uint16_t _mode;
 };
