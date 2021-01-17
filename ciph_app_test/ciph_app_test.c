@@ -320,8 +320,8 @@ const uint16_t SLEEP_TO_FACTOR = 1;
 
 const uint32_t MAX_CONN_CLIENT_BURST = 64;
 
-const uint32_t BUFFER_TOTAL_LEN = 64;
-const uint32_t BUFFER_SEGMENT_NUM = 4;
+const uint32_t BUFFER_TOTAL_LEN = 65;
+const uint32_t BUFFER_SEGMENT_NUM = 1;
 
 const uint32_t PCK_NUM = 10000000; //10000000;
 

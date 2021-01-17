@@ -309,7 +309,7 @@ int Dpdk_cryptodev_client::init_inner()
 	enabled_cdev_count += 1;
 	printf("enabled_cdev id: %d\n", enabled_cdevs_id[enabled_cdev_count - 1]);
 	_enabled_cdevs[enabled_cdev_count - 1].cdev_id = enabled_cdevs_id[enabled_cdev_count - 1];
-	_enabled_cdevs[enabled_cdev_count - 1].algo = CRYPTO_CIPHER_AES_CBC;
+	_enabled_cdevs[enabled_cdev_count - 1].algo = crypto2rte_cipher_algo_map[CRYPTO_CIPHER_AES_CBC];
 	algo2cdev_id_map[CRYPTO_CIPHER_AES_CBC] = enabled_cdevs_id[enabled_cdev_count - 1];
 
 	cdev_nb = rte_cryptodev_devices_get("crypto_snow3g", 
@@ -327,7 +327,7 @@ int Dpdk_cryptodev_client::init_inner()
 	enabled_cdev_count += 1;
 	printf("enabled_cdev id: %d\n", enabled_cdevs_id[enabled_cdev_count - 1]);
 	_enabled_cdevs[enabled_cdev_count - 1].cdev_id = enabled_cdevs_id[enabled_cdev_count - 1];
-	_enabled_cdevs[enabled_cdev_count - 1].algo = CRYPTO_CIPHER_SNOW3G_UEA2;
+	_enabled_cdevs[enabled_cdev_count - 1].algo = crypto2rte_cipher_algo_map[CRYPTO_CIPHER_SNOW3G_UEA2];
 	algo2cdev_id_map[CRYPTO_CIPHER_SNOW3G_UEA2] = enabled_cdevs_id[enabled_cdev_count - 1];
 
 	nb_lcores = 1;
@@ -756,6 +756,7 @@ int Dpdk_cryptodev_client::set_ops_cipher(	rte_crypto_op **ops,
 		m->priv_size = 0;
 		m->buf_addr = vecs[j].cipher_buff_list.buffs[0].data;
 		m->buf_iova = rte_mempool_virt2iova(vecs[j].cipher_buff_list.buffs[0].data);
+
 		m->buf_len = vecs[j].cipher_buff_list.buffs[0].length;
 		m->data_len = vecs[j].cipher_buff_list.buffs[0].length;
 		m->pkt_len = vecs[j].cipher_buff_list.buffs[0].length;

@@ -1,4 +1,7 @@
 <properties>
-	<logger level="error"/>
-	<general />
+	<logger level="info" />
+	<dpdk init_str="ciph_app --vdev crypto_aesni_mb_pmd--vdev crypto_snow3g --" />
+	<general>
+		<conn start_id="0" size="6" />
+	</general>
 </properties>

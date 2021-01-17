@@ -61,11 +61,16 @@ void print_buff(uint8_t* data, int len)
 
 void on_job_complete_cb (uint32_t cid, uint16_t qid, Crypto_operation* pjob, uint32_t size)
 {
+  //bench_scope_low scope("ciph_app main");
+
   Dpdk_cryptodev_client_sngl::instance().run_jobs(cid, pjob, size);
 
-//printf ("APP cid %d qid %d %d\n", cid, qid, size);
+  //printf ("APP cid %d qid %d %d\n", cid, qid, size);
   //usleep(500);
+
   Ciph_agent_sngl::instance().send(cid, qid, pjob, size);
+
+	//TRACE_INFO("%s", profiler_low::instance().dump().c_str());
 }
 
 void on_connect_cb (uint32_t cid)
@@ -92,12 +97,10 @@ int main(int argc, char** argv)
 
 		props::instance().load("ciph_app.xml");
 
-		custom_tracer::instance().setFile(".ciph_app.log");
+		custom_tracer::instance().setFile("ciph_app.log");
 		custom_tracer::instance().setMask(tlInfo);
 
 		TRACE_INFO("Ver: %s", VERSION);
-
-		bench_scope_low scope("ciph_app main");
 
 	  char* v[] = { "app",
 					"--vdev", 
@@ -105,22 +108,13 @@ int main(int argc, char** argv)
           "--vdev", 
           "crypto_snow3g",
 					//"--no-huge", 
-					"--",
-					//"--devtype",
-					//"crypto_aesni_mb",
-					//"--devtype",
-					//"crypto_snow3g",
-          "--buffer-sz",
-          "1024"
+					"--"
 					};
-    int c = 8;
+    int c = 6;
 
 		Dpdk_cryptodev_client_sngl::instance().init(c, v);
     
     Ciph_agent_sngl::instance().init();
-
-    //Ciph_agent_sngl::instance().conn_alloc(0, 1, on_job_complete_cb);
-    //Ciph_agent_sngl::instance().conn_alloc(1, 1, on_job_complete_cb);
 
     for (int i = 0; i < 6; ++i)
     {
@@ -131,13 +125,7 @@ int main(int argc, char** argv)
     while(1)
     {
       usleep(100);
-        /*
-        res = Ciph_agent_sngl::instance().poll(0, 0, 64);
-        res = Ciph_agent_sngl::instance().poll(0, 1, 64);
-
-        res = Ciph_agent_sngl::instance().poll(1, 0, 64);     
-        res = Ciph_agent_sngl::instance().poll(1, 1, 64);  
-*/
+        
       for (int i = 0; i < 6; ++i)
       {
         res = Ciph_agent_sngl::instance().poll_00(i, 0, 64);     
@@ -159,6 +147,5 @@ int main(int argc, char** argv)
 		TRACE_ERROR("Exception: %s", e.what());
 	}
 
-	TRACE_INFO("%s", profiler_low::instance().dump().c_str());
 }
 
