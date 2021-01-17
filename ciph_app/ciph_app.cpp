@@ -68,6 +68,18 @@ void on_job_complete_cb (uint32_t cid, uint16_t qid, Crypto_operation* pjob, uin
   Ciph_agent_sngl::instance().send(cid, qid, pjob, size);
 }
 
+void on_connect_cb (uint32_t cid)
+{
+  TRACE_INFO("on_connect_cb %d", cid);
+}
+
+void on_disconnect_cb (uint32_t cid, uint16_t qid, Crypto_operation* pjob, uint32_t size)
+{
+  TRACE_INFO("on_disconnect_cb %d", cid);
+
+  Dpdk_cryptodev_client_sngl::instance().cleanup_conn(cid);
+}
+
 int main(int argc, char** argv)
 {
 	try
@@ -107,18 +119,30 @@ int main(int argc, char** argv)
     
     Ciph_agent_sngl::instance().init();
 
-    Ciph_agent_sngl::instance().conn_alloc(0, 1, on_job_complete_cb);
-    Ciph_agent_sngl::instance().conn_alloc(1, 1, on_job_complete_cb);
+    //Ciph_agent_sngl::instance().conn_alloc(0, 1, on_job_complete_cb);
+    //Ciph_agent_sngl::instance().conn_alloc(1, 1, on_job_complete_cb);
+
+    for (int i = 0; i < 6; ++i)
+    {
+      Ciph_agent_sngl::instance().conn_alloc(i, 1, on_job_complete_cb, on_connect_cb, on_disconnect_cb);
+    }
 
     int res;
     while(1)
     {
-        usleep(100);
+      usleep(100);
+        /*
         res = Ciph_agent_sngl::instance().poll(0, 0, 64);
         res = Ciph_agent_sngl::instance().poll(0, 1, 64);
 
         res = Ciph_agent_sngl::instance().poll(1, 0, 64);     
-        res = Ciph_agent_sngl::instance().poll(1, 1, 64);     
+        res = Ciph_agent_sngl::instance().poll(1, 1, 64);  
+*/
+      for (int i = 0; i < 6; ++i)
+      {
+        res = Ciph_agent_sngl::instance().poll_00(i, 0, 64);     
+        res = Ciph_agent_sngl::instance().poll_00(i, 1, 64);  
+      }   
     }
 
     Ciph_agent_sngl::instance().conn_free(0);
