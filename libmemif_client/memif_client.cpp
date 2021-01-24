@@ -802,7 +802,7 @@ void Memif_client::print_info ()
   free (buf);
 }
 
-enum { MAX_SEND_RETRIES = 1000 };
+enum { MAX_SEND_RETRIES = 1000000 };
 //enum { RETRY_WAIT_FACTOR = 2 };
 
 int Memif_client::send(long index, uint16_t qid, uint64_t size, IMsg_burst_serializer& ser)
@@ -856,7 +856,7 @@ int Memif_client::send(long index, uint16_t qid, uint64_t size, IMsg_burst_seria
         retries = 0;
 
         m.unlock();
-        usleep(10 * 1000);
+        usleep(100 * 1000);
 
         m.lock();
         if (c->connected == 0)

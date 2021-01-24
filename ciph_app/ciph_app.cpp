@@ -61,17 +61,65 @@ void print_buff(uint8_t* data, int len)
 
 void on_job_complete_cb (uint32_t cid, uint16_t qid, Crypto_operation* pjob, uint32_t size)
 {
-  //bench_scope_low scope("ciph_app main");
+  if (0 == size)
+    return;
 
   Dpdk_cryptodev_client_sngl::instance().run_jobs(cid, pjob, size);
+
+  Ciph_agent_sngl::instance().send(cid, qid, pjob, size);
+}
+
+void on_job_complete_cb_test_1 (uint32_t cid, uint16_t qid, Crypto_operation* pjob, uint32_t size)
+{
+  static int cnt = 0;
+  cnt++;
+
+  {
+  meson::bench_scope_low scope("on_job_complete_cb");
+
+  {
+  meson::bench_scope_low scope("run_jobs");
+
+  Dpdk_cryptodev_client_sngl::instance().run_jobs(cid, pjob, size);
+  }
 
   //printf ("APP cid %d qid %d %d\n", cid, qid, size);
   //usleep(500);
 
-  Ciph_agent_sngl::instance().send(cid, qid, pjob, size);
+  {
+  meson::bench_scope_low scope("send");
 
-	//TRACE_INFO("%s", profiler_low::instance().dump().c_str());
+  Ciph_agent_sngl::instance().send(cid, qid, pjob, size);
+  }
+
+  }
+
+  if (cnt % 10000 == 0)
+  {
+	  TRACE_INFO("%s", profiler_low::instance().dump().c_str());
+  }
 }
+
+void on_job_complete_cb_test_2 (uint32_t cid, uint16_t qid, Crypto_operation* pjob, uint32_t size)
+{
+  if (0 == size)
+    return;
+
+  if (qid == 0)
+  {
+    Dpdk_cryptodev_client_sngl::instance().run_jobs_test(cid, pjob, size);
+    //Dpdk_cryptodev_client_sngl::instance().run_jobs(cid, pjob, size);
+    Ciph_agent_sngl::instance().send(cid, qid, pjob, size);
+  }
+
+  if (qid == 1)
+  {
+    Dpdk_cryptodev_client_sngl::instance().run_jobs(cid, pjob, size);
+    Ciph_agent_sngl::instance().send(cid, qid, pjob, size);
+  }
+  
+}
+
 
 void on_connect_cb (uint32_t cid)
 {
@@ -113,24 +161,38 @@ int main(int argc, char** argv)
     int c = 6;
 
 		Dpdk_cryptodev_client_sngl::instance().init(c, v);
-    
+
+    // local test TP
+    for (int i = 0; i < 5; ++i)
+    {
+      // local test
+      Dpdk_cryptodev_client_sngl::instance().test();
+    }
+
     Ciph_agent_sngl::instance().init();
 
     for (int i = 0; i < 6; ++i)
     {
-      Ciph_agent_sngl::instance().conn_alloc(i, 1, on_job_complete_cb, on_connect_cb, on_disconnect_cb);
+      Ciph_agent_sngl::instance().conn_alloc(i, 1, 
+                          //on_job_complete_cb_test_2, 
+                          on_job_complete_cb, 
+                          on_connect_cb, on_disconnect_cb);
     }
 
     int res;
     while(1)
     {
       usleep(100);
-        
+/*
+      {
+      meson::bench_scope_low scope("poll");
+*/
       for (int i = 0; i < 6; ++i)
       {
         res = Ciph_agent_sngl::instance().poll_00(i, 0, 64);     
         res = Ciph_agent_sngl::instance().poll_00(i, 1, 64);  
       }   
+//      }
     }
 
     Ciph_agent_sngl::instance().conn_free(0);

@@ -86,6 +86,14 @@ private:
 
     rte_cryptodev_sym_session* get_session(int ch_id,  const Crypto_operation& vec);
 
+// tests
+public:
+    int test();
+    int run_jobs_test(int ch_id, Crypto_operation* jobs, uint32_t size);
+private:
+    int32_t test_create_session(long cid, uint64_t seq, Crypto_cipher_algorithm algo, Crypto_cipher_operation op_type);
+    int32_t test_cipher(long cid, uint64_t seq, uint64_t sess_id, Crypto_cipher_operation op_type);
+
 private:
     Dpdk_cryptodev_options _opts; // = {0};
     Dpdk_cryptodev_device _enabled_cdevs[RTE_CRYPTO_MAX_DEVS]; // = { 0 };

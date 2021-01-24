@@ -312,6 +312,9 @@ typedef struct
 
 	uint8_t outbuff[MAX_OUTBUFF_LEN];
 
+	uint32_t setup_sess_id_enc;
+	uint32_t setup_sess_id_dec;
+	uint64_t seq;
 } thread_data_t;
 
 thread_data_t thread_data[THR_CNT];
@@ -401,32 +404,51 @@ void on_ops_complete_cb_0 (uint32_t cid, uint16_t qid, Crypto_operation* vec, ui
       	if (vec[j].op.op_type == CRYPTO_OP_TYPE_SESS_CIPHERING)
 	  	{
 			//print_buff(vec[j].op.outbuff_ptr, vec[j].op.outbuff_len);
-			if (thread_data[cid].cipher_algo == CRYPTO_CIPHER_AES_CBC && vec[j].op.outbuff_len == 0)
+			if (thread_data[cid].setup_sess_id_enc == vec[j].op.sess_id)
 			{
-				if (thread_data[cid].cipher_op == CRYPTO_CIPHER_OP_DECRYPT)
-				{
-					//print_buff(vec[j].op.outbuff_ptr, vec[j].op.outbuff_len);
+				
+				//printf("rollback %d\n", vec[j].op.seq);
+				/*
+				int32_t res;
 
-					if ( 0 != memcmp(plaintext,
-							vec[j].op.outbuff_ptr,
-							vec[j].op.outbuff_len))
-					{
-          				thread_data[cid].data_failed++;
-						printf ("data_failed %d %d\n", cid, thread_data[cid].data_failed);
-					}
-				}
-				else  if (thread_data[cid].cipher_op == CRYPTO_CIPHER_OP_ENCRYPT)
-				{
-					//print_buff(vec[j].op.outbuff_ptr, vec[j].op.outbuff_len);
+			    Crypto_operation op;
+    			memset(&op, 0, sizeof(Crypto_operation));
+				op.op.seq = ++thread_data[cid].seq;
+    			// sess
+    			op.op.sess_id = thread_data[cid].setup_sess_id_dec;
+    			op.op.op_type = CRYPTO_OP_TYPE_SESS_CIPHERING;
+				op.op.cipher_op = CRYPTO_CIPHER_OP_DECRYPT;
 
-					if ( 0 != memcmp(ciphertext,
-							vec[j].op.outbuff_ptr,
-							vec[j].op.outbuff_len))
-					{
-        				thread_data[cid].data_failed++;
-						//print_buff(vec[j].op.outbuff_ptr, vec[j].op.outbuff_len);
-						printf ("data_failed %d %d\n", cid, thread_data[cid].data_failed);
-					}
+				op.op.op_ctx_ptr = dummy_ctx;
+
+				op.cipher_buff_list.buff_list_length = 1;
+				op.cipher_buff_list.buffs[0].length = vec[j].cipher_buff_list.buffs[0].length;
+				op.cipher_buff_list.buffs[0].data = vec[j].cipher_buff_list.buffs[0].data;
+
+    			op.cipher_iv.data = iv;
+    			op.cipher_iv.length = 16;
+				// outbuf
+				op.op.outbuff_ptr = thread_data[cid].outbuff;
+				op.op.outbuff_len = MAX_OUTBUFF_LEN;
+
+				//res = ciph_agent_send(cid, qid, &op, 1);
+				//if (res != 0) 
+				//	printf ("ciph_agent_send ERROR\n");
+				*/
+				;
+			}
+			else
+			{
+				//print_buff(vec[j].op.outbuff_ptr, vec[j].op.outbuff_len);
+				//printf("check %d %d\n", cid, vec[j].op.seq);
+
+				if ( 0 != memcmp(plaintext,
+						vec[j].cipher_buff_list.buffs[0].data,
+						vec[j].cipher_buff_list.buffs[0].length))
+				{
+        			thread_data[cid].data_failed++;
+					print_buff(vec[j].cipher_buff_list.buffs[0].data, vec[j].cipher_buff_list.buffs[0].length);
+					printf ("data_failed %d %d\n", cid, thread_data[cid].data_failed);
 				}
 		  	}
 	  	}
@@ -438,7 +460,7 @@ void on_ops_complete_cb_0 (uint32_t cid, uint16_t qid, Crypto_operation* vec, ui
 
 uint8_t dummy_ctx[1024];
 
-int32_t create_session(long cid, uint16_t qid, uint64_t seq)
+int32_t create_session(long cid, uint16_t qid, uint64_t seq, uint32_t algo, uint32_t op)
 {
 	int32_t res;
 
@@ -447,8 +469,8 @@ int32_t create_session(long cid, uint16_t qid, uint64_t seq)
 	op_sess.op.seq = seq;
 	// sess
     op_sess.op.op_type = CRYPTO_OP_TYPE_SESS_CREATE;
-    op_sess.op.cipher_algo = thread_data[cid].cipher_algo;
-    op_sess.op.cipher_op = thread_data[cid].cipher_op;
+    op_sess.op.cipher_algo = algo;
+    op_sess.op.cipher_op = op;
     op_sess.cipher_key.data = cipher_key;
     op_sess.cipher_key.length = 16;
     
@@ -506,12 +528,12 @@ int32_t cipher(long cid, uint16_t qid, uint64_t seq, uint64_t sess_id)
     // sess
     op.op.sess_id = sess_id;
     op.op.op_type = CRYPTO_OP_TYPE_SESS_CIPHERING;
-	op.op.cipher_op = thread_data[cid].cipher_op;
+	op.op.cipher_op = CRYPTO_CIPHER_OP_ENCRYPT; //thread_data[cid].cipher_op;
 	
 	op.op.op_ctx_ptr = dummy_ctx;
 
-	uint32_t BUFFER_TOTAL_LEN = 1 + rand() % 300  ; //1 + rand() % 264;
-	uint32_t BUFFER_SEGMENT_NUM = 1 ;//1 + rand() % 15;
+	uint32_t BUFFER_TOTAL_LEN = 1 + rand() % 264;
+	uint32_t BUFFER_SEGMENT_NUM = 1 + rand() % 15;
 	BUFFER_SEGMENT_NUM = (BUFFER_SEGMENT_NUM > BUFFER_TOTAL_LEN) ? 
 												BUFFER_TOTAL_LEN : 
 												BUFFER_SEGMENT_NUM;
@@ -551,7 +573,6 @@ void* send_proc(void* data)
 {
 	uint32_t cc = 0;
 	uint8_t res;
-	uint64_t seq = 0;
 	uint32_t i;
 
 	uint32_t retries;
@@ -567,24 +588,29 @@ void* send_proc(void* data)
    	}
 */
 
+	thread_data[cid].seq = 0;
+
     ciph_agent_conn_alloc(cid, CA_MODE_SLAVE, thread_data[cid].cb);
 
     printf ("start %ld ...\n", cid);
 
-	// create 3 sessions
-	res = create_session(cid, QID_CTRL, seq);
-	if (0 != res) printf ("create_session ERROR\n");
+	res = create_session(cid, QID_CTRL, thread_data[cid].seq, thread_data[cid].cipher_algo, CRYPTO_CIPHER_OP_ENCRYPT);
+	if (0 != res) 
+		printf ("create_session ERROR\n");
+	else
+		thread_data[cid].setup_sess_id_enc = thread_data[cid].setup_sess_ctx.setup_sess_id;
 
-	res = create_session(cid, QID_CTRL, ++seq);
-	if (0 != res) printf ("create_session ERROR\n");
+	res = create_session(cid, QID_CTRL, ++thread_data[cid].seq, thread_data[cid].cipher_algo, CRYPTO_CIPHER_OP_DECRYPT);
+	if (0 != res) 
+		printf ("create_session ERROR\n");
+	else
+		thread_data[cid].setup_sess_id_dec = thread_data[cid].setup_sess_ctx.setup_sess_id;
 
-	res = create_session(cid, QID_CTRL, ++seq);
-	if (0 != res) printf ("create_session ERROR\n");
 
 	// warmup
     for (i = 0; i < num_pck_per_batch; ++i)
     {
-		cipher(cid, QID_USER, ++seq, thread_data[cid].setup_sess_ctx.setup_sess_id);
+		cipher(cid, QID_USER, ++thread_data[cid].seq, thread_data[cid].setup_sess_id_enc);
     }
     
 	res = ciph_agent_poll(cid, QID_USER, MAX_CONN_CLIENT_BURST);
@@ -620,7 +646,7 @@ void* send_proc(void* data)
 			}
 			*/
 	
-			cipher(cid, QID_USER, ++seq, thread_data[cid].setup_sess_ctx.setup_sess_id);
+			cipher(cid, QID_USER, ++thread_data[cid].seq, thread_data[cid].setup_sess_id_enc);
       	}
 
     	res = ciph_agent_poll(cid, QID_USER, MAX_CONN_CLIENT_BURST);
@@ -676,7 +702,7 @@ void* send_proc(void* data)
     }
 	printf ("done send\n");
 
-	res = close_session(cid, QID_USER, ++seq, thread_data[cid].setup_sess_ctx.setup_sess_id);
+	res = close_session(cid, QID_USER, ++thread_data[cid].seq, thread_data[cid].setup_sess_id_enc);
 	if (0 != res) printf ("close_session ERROR\n");
 
 	// leave hanged sessions to check cleanup
@@ -691,7 +717,7 @@ void* send_proc(void* data)
     timespec_get (&thread_data[cid].end, TIME_UTC);
     printf ("\n\n");
     printf ("Pakcet sequence finished!\n");
-    printf ("Seq len: %lu\n", seq + 1);
+    printf ("Seq len: %lu\n", thread_data[cid].seq + 1);
 /*
     double tmp = 1000.0 * seq / get_delta_usec(thread_data[cid].start, thread_data[cid].end);
     printf ("Average Kpps: %f\n", tmp);
@@ -700,7 +726,7 @@ void* send_proc(void* data)
     // flush
 	printf ("flush ...\n");
 	retries = 0;
-    while (thread_data[cid].total_size < seq + 1) // num_pck + num_pck_per_batch + sess cr/cl
+    while (thread_data[cid].total_size < thread_data[cid].seq + 1) // num_pck + num_pck_per_batch + sess cr/cl
 	{
       	res = ciph_agent_poll(cid, QID_USER, MAX_CONN_CLIENT_BURST);
 		if (res == -2) printf ("ciph_agent_poll ERROR\n");;
@@ -711,8 +737,8 @@ void* send_proc(void* data)
 			break;
 		}
 	}
-
-    double tmp = 1000.0 * seq / get_delta_usec(thread_data[cid].start, thread_data[cid].end);
+	
+    double tmp = 1000.0 * thread_data[cid].seq / get_delta_usec(thread_data[cid].start, thread_data[cid].end);
     printf ("Average Kpps: %f\n", tmp);
     printf ("Average TP: %f Gb/s\n", (tmp * thread_data[cid].packet_size) * 8.0 / 1000000.0);
 
@@ -750,8 +776,8 @@ int main(int argc, char* argv[])
 	thread_data[cid_0].total_size = 0;
 	thread_data[cid_0].cb = on_ops_complete_cb_0;
 	//thread_data[cid_0].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
-	thread_data[cid_0].cipher_algo = CRYPTO_CIPHER_AES_CBC;
-    thread_data[cid_0].cipher_op = CRYPTO_CIPHER_OP_DECRYPT;
+	thread_data[0].cipher_algo = CRYPTO_CIPHER_AES_CBC;
+//    thread_data[cid_0].cipher_op = CRYPTO_CIPHER_OP_DECRYPT;
 	
 	thread_data[cid_1].index = cid_1;
 	thread_data[cid_1].packet_size = 200;
@@ -762,16 +788,16 @@ int main(int argc, char* argv[])
     memset (&thread_data[cid_1].end, 0, sizeof (thread_data[cid_1].end));
 	thread_data[cid_1].total_size = 0;
 	thread_data[cid_1].cb = on_ops_complete_cb_0;
-	//thread_data[cid_1].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
+	//thread_data[1].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
 	thread_data[cid_1].cipher_algo = CRYPTO_CIPHER_AES_CBC;
-    thread_data[cid_1].cipher_op = CRYPTO_CIPHER_OP_ENCRYPT;
+//    thread_data[cid_1].cipher_op = CRYPTO_CIPHER_OP_ENCRYPT;
 
 	//int s;
 	void *res;
 
 	usleep(1000 * 1000); 
 
-//  	pthread_create (&thread[cid_0], NULL, send_proc, (void *)&cid_0);
+//  pthread_create (&thread[cid_0], NULL, send_proc, (void *)&cid_0);
 //	printf("cr 0\n");
 	pthread_create (&thread[cid_1], NULL, send_proc, (void *)&cid_1);
 	printf("cr 1\nn");

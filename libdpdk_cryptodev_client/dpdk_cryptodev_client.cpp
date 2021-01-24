@@ -37,6 +37,8 @@ uint8_t algo2cdev_id_map[CRYPTO_CIPHER_ALGO_LAST];
 
 //enum { MAX_SESS_NUM = 2 * 2 * 4000 };
 
+const uint32_t BLOCK_LENGTH = 16;
+
 uint8_t plaintext[1024] = {
 0xff, 0xca, 0xfb, 0xf1, 0x38, 0x20, 0x2f, 0x7b, 0x24, 0x98, 0x26, 0x7d, 0x1d, 0x9f, 0xb3, 0x93,
 0xd9, 0xef, 0xbd, 0xad, 0x4e, 0x40, 0xbd, 0x60, 0xe9, 0x48, 0x59, 0x90, 0x67, 0xd7, 0x2b, 0x7b,
@@ -569,16 +571,6 @@ void  Dpdk_cryptodev_client::cleanup()
 	// free connections
 }
 
-/*
-					if ( 0 != memcmp((jobs[i].op.cipher_op == CRYPTO_CIPHER_OP_DECRYPT) ? ciphertext : plaintext,
-						jobs[i].cipher_buff_list[0].data,
-						jobs[i].cipher_buff_list[0].length))
-					{
-    					printf("in BAD data %d %d %d\n", ccc++, t_vecs[i].cipher_buff_list[0].length, i);
-						print_buff1(jobs[i].cipher_buff_list[0].data, jobs[i].cipher_buff_list[0].length);
-					}
-*/
-
 int Dpdk_cryptodev_client::init_conn(int ch_id) 
 {
 	return 0;
@@ -597,11 +589,14 @@ int Dpdk_cryptodev_client::preprocess_jobs(int ch_id,
 											uint32_t* dev_ops_size_arr, 
 											Dev_vecs_idxs_t* dev_vecs_idxs_arr )
 {
+	static int ccc = 0;
+
 	for (uint32_t i = 0; i < size; ++i)
 	{
 		if (jobs[i].op.op_type == CRYPTO_OP_TYPE_SESS_CREATE)
 		{
 			uint32_t sess_id = -1;
+
 			if (0 == create_session(ch_id, jobs[i], &sess_id))
 			{
 				jobs[i].op.op_status = CRYPTO_OP_STATUS_SUCC;
@@ -640,6 +635,16 @@ int Dpdk_cryptodev_client::preprocess_jobs(int ch_id,
 					// init with succ
 					jobs[i].op.op_status = CRYPTO_OP_STATUS_SUCC;
 					jobs[i].cipher_buff_list.buff_list_length = 1;
+/*
+					if (jobs[i].op.cipher_op == CRYPTO_CIPHER_OP_ENCRYPT)
+						if ( 0 != memcmp((jobs[i].op.cipher_op == CRYPTO_CIPHER_OP_DECRYPT) ? ciphertext : plaintext,
+							jobs[i].cipher_buff_list.buffs[0].data,
+							jobs[i].cipher_buff_list.buffs[0].length))
+						{
+    						printf("in BAD data %d %d %d\n", ccc++, jobs[i].cipher_buff_list.buffs[0].length, i);
+							print_buff1(jobs[i].cipher_buff_list.buffs[0].data, jobs[i].cipher_buff_list.buffs[0].length);
+						}
+*/
 				}
 				else
 				{
@@ -698,7 +703,16 @@ int Dpdk_cryptodev_client::run_jobs(int ch_id, Crypto_operation* jobs, uint32_t 
 	uint32_t dev_ops_size_arr[RTE_CRYPTO_MAX_DEVS] = { 0 };
 	Dev_vecs_idxs_t dev_vecs_idxs_arr[RTE_CRYPTO_MAX_DEVS] = { 0 };
 
+//printf("1\n");
+	{
+  	meson::bench_scope_low scope("preprocess_jobs");
+
 	preprocess_jobs(ch_id, jobs, size, dev_ops_size_arr, dev_vecs_idxs_arr);
+	}
+//printf("2\n");
+
+	{
+  	meson::bench_scope_low scope("run_jobs_inner");
 
 	for (uint8_t cdev_index = 0; cdev_index < _nb_cryptodevs && cdev_index < RTE_CRYPTO_MAX_DEVS; cdev_index++) 
 	{
@@ -712,8 +726,16 @@ int Dpdk_cryptodev_client::run_jobs(int ch_id, Crypto_operation* jobs, uint32_t 
 							dev_ops_size_arr[cdev_index], 
 							dev_vecs_idxs_arr[cdev_index].dev_vecs_idxs);
 	}
+	}
+//printf("3\n");
+
+
+	{
+  	meson::bench_scope_low scope("postprocess_jobs");
 
 	postprocess_jobs(ch_id, jobs, size);
+	}
+//printf("4\n");
 
 	return 0;
 }
@@ -752,7 +774,7 @@ int Dpdk_cryptodev_client::set_ops_cipher(	rte_crypto_op **ops,
 
 		uint32_t mbuf_hdr_size = sizeof(rte_mbuf);
 
-		/* start of buffer is after mbuf structure and priv data */
+		// start of buffer is after mbuf structure and priv data 
 		m->priv_size = 0;
 		m->buf_addr = vecs[j].cipher_buff_list.buffs[0].data;
 		m->buf_iova = rte_mempool_virt2iova(vecs[j].cipher_buff_list.buffs[0].data);
@@ -763,26 +785,61 @@ int Dpdk_cryptodev_client::set_ops_cipher(	rte_crypto_op **ops,
 
 		//printf("fill_single_seg_mbuf %d, %d\n", m, m->data_len);
 
-		/* Use headroom specified for the buffer */
+		// Use headroom specified for the buffer 
 		m->data_off = _opts.headroom_sz;
 
-		/* init some constant fields */
+		// init some constant fields 
 		m->pool = _ops_mp;
 		m->nb_segs = 1;
 		m->port = 0xff;
 		rte_mbuf_refcnt_set(m, 1);
 		m->next = NULL;
+		/*
+		do {
+			// start of buffer is after mbuf structure and priv data 
+			m->priv_size = 0;
+			m->buf_addr = (char *)m + mbuf_hdr_size;
+			m->buf_iova = next_seg_phys_addr;
+			next_seg_phys_addr += mbuf_hdr_size + segment_sz;
+			m->buf_len = segment_sz;
+			m->data_len = data_len;
+			printf("fill_multi_seg_mbuf %d, %d\n", m, m->data_len);
+
+			// Use headroom specified for the buffer 
+			m->data_off = headroom;
+
+			// init some constant fields 
+			m->pool = mp;
+			m->nb_segs = segments_nb;
+			m->port = 0xff;
+			rte_mbuf_refcnt_set(m, 1);
+			next_mbuf = (struct rte_mbuf *) ((uint8_t *) m + mbuf_hdr_size + segment_sz);
+			m->next = next_mbuf;
+			m = next_mbuf;
+			remaining_segments--;
+		} while (remaining_segments > 0);
+		*/
 		//////////////////////////////////////
 
-		sym_op->cipher.data.length = vecs[j].cipher_buff_list.buffs[0].length;
+		sym_op->cipher.data.length = (vecs[j].cipher_buff_list.buffs[0].length < BLOCK_LENGTH) ? 
+													BLOCK_LENGTH + vecs[j].cipher_buff_list.buffs[0].length: 
+													vecs[j].cipher_buff_list.buffs[0].length;
+
+		sym_op->cipher.data.offset = (vecs[j].cipher_buff_list.buffs[0].length < BLOCK_LENGTH) ? 
+													BLOCK_LENGTH :
+													0;
+
+		//sym_op->cipher.data.length = vecs[j].cipher_buff_list.buffs[0].length;
+		//sym_op->cipher.data.offset = 0;	
 
 		if (_enabled_cdevs[dev_id].algo == RTE_CRYPTO_CIPHER_SNOW3G_UEA2 ||
 				_enabled_cdevs[dev_id].algo == RTE_CRYPTO_CIPHER_KASUMI_F8 ||
 				_enabled_cdevs[dev_id].algo == RTE_CRYPTO_CIPHER_ZUC_EEA3)
+		{
 			// in bits
 			sym_op->cipher.data.length <<= 3;
-
-		sym_op->cipher.data.offset = 0;
+			sym_op->cipher.data.offset <<= 3;
+		}
 
 		if (vecs[j].cipher_iv.length)
 		{
@@ -906,10 +963,14 @@ int Dpdk_cryptodev_client::run_jobs_inner(
 		ops_unused = burst_size - ops_enqd;
 		ops_enqd_total += ops_enqd;
 
+//printf("d 1\n");
+
 		/* Dequeue processed burst of ops from crypto device */
 		ops_deqd = rte_cryptodev_dequeue_burst(dev_id, qp_id, ops_processed, ops_needed);//ctx->options->max_burst_size);
 		if (ops_deqd == 0) 
 		{
+//printf("d 1.5\n");
+
 			/**
 			 * Count dequeue polls which didn't return any
 			 * processed operations. This statistic is mainly
@@ -920,6 +981,8 @@ int Dpdk_cryptodev_client::run_jobs_inner(
 		}
 		else
 		{
+//printf("d 1.6\n");
+
 			set_ops_cipher_result(ops_processed, vecs, ops_deqd, dev_vecs_idxs, ops_deqd_total);
 
 			/* Free crypto ops so they can be reused. */
@@ -927,6 +990,8 @@ int Dpdk_cryptodev_client::run_jobs_inner(
 		
 			ops_deqd_total += ops_deqd;
 		}
+//printf("d 2\n");
+
 	}
 
 	/* Dequeue any operations still in the crypto device */
@@ -936,6 +1001,8 @@ int Dpdk_cryptodev_client::run_jobs_inner(
 		/* Sending 0 length burst to flush sw crypto device */
 		rte_cryptodev_enqueue_burst(dev_id, qp_id, NULL, 0);
 
+//printf("d 3\n");
+
 		/* dequeue burst */
 		ops_deqd = rte_cryptodev_dequeue_burst(dev_id, qp_id, ops_processed, _opts.max_burst_size);
 		if (ops_deqd == 0) 
@@ -943,6 +1010,7 @@ int Dpdk_cryptodev_client::run_jobs_inner(
 			ops_deqd_failed++;
 			continue;
 		}
+//printf("d 4\n");
 
 		set_ops_cipher_result(ops_processed, vecs, ops_deqd, dev_vecs_idxs, ops_deqd_total);
 
@@ -984,11 +1052,11 @@ int Dpdk_cryptodev_client::create_session(int ch_id, const Crypto_operation& vec
 
 	uint8_t cdev_id = algo2cdev_id_map[vec.op.cipher_algo];
 
-	RTE_LOG(INFO, USER1, "create_session alg:%d op:%d iv_offset:%d iv len %d key len %d", 
+	RTE_LOG(INFO, USER1, "create_session alg:%d op:%s iv_offset:%d iv len %d key len %d", 
 			cipher_xform.cipher.algo, 
-			cipher_xform.cipher.op, 
+			(cipher_xform.cipher.op == RTE_CRYPTO_CIPHER_OP_ENCRYPT) ? "ENC" : "DEC", 
 			cipher_xform.cipher.iv.offset, 
-			vec.cipher_iv.length,
+			16,
 			vec.cipher_key.length);
 
 	if (cipher_xform.cipher.algo != RTE_CRYPTO_CIPHER_NULL) 
@@ -1262,16 +1330,17 @@ int Dpdk_cryptodev_client::alloc_common_memory(
 
 	uint16_t crypto_op_total_size = crypto_op_size + crypto_op_private_size;
 	uint16_t crypto_op_total_size_padded = RTE_CACHE_LINE_ROUNDUP(crypto_op_total_size);
-
+/*
 	uint32_t mbuf_size = sizeof(rte_mbuf) + _opts.segment_sz;
 	uint32_t max_size = _opts.max_buffer_size + _opts.digest_sz;
 	uint16_t segments_nb = (max_size % _opts.segment_sz) ?
 			(max_size / _opts.segment_sz) + 1 :
 			max_size / _opts.segment_sz;
 	printf("segments_nb %d\n", segments_nb);
-
+*/
 	//uint32_t obj_size = crypto_op_total_size_padded + (mbuf_size * segments_nb);
-	uint32_t obj_size = crypto_op_total_size_padded + sizeof(rte_mbuf);
+	// MAX - 25 mbufs
+	uint32_t obj_size = crypto_op_total_size_padded + (sizeof(rte_mbuf));
 
 	snprintf(pool_name, sizeof(pool_name), "pool_cdev_%u_qp_%u", dev_id, qp_id);
 
@@ -1325,6 +1394,264 @@ int Dpdk_cryptodev_client::alloc_common_memory(
 	}
 
 	rte_mempool_obj_iter(_ops_mp, mempool_obj_init, (void *)&params);
+
+	return 0;
+}
+
+////////////////////////////////////////////
+double get_delta_usec(struct timespec start, struct timespec end)
+{
+    uint64_t t1 = end.tv_sec - start.tv_sec;
+    uint64_t t2;
+    if (end.tv_nsec > start.tv_nsec)
+    {
+        t2 = end.tv_nsec - start.tv_nsec;
+    }
+    else
+    {
+        t2 = start.tv_nsec - end.tv_nsec;
+        t1--;
+    }
+        
+	double tmp = t1 * 1000 * 1000;
+    tmp += t2 / 1000.0;
+
+	return tmp;
+}
+
+int32_t g_setup_sess_id;
+
+int32_t Dpdk_cryptodev_client::test_create_session(long cid, uint64_t seq, Crypto_cipher_algorithm algo, Crypto_cipher_operation op_type)
+{
+	int32_t res;
+
+    Crypto_operation op_sess;
+    memset(&op_sess, 0, sizeof(Crypto_operation));
+	op_sess.op.seq = seq;
+	// sess
+    op_sess.op.op_type = CRYPTO_OP_TYPE_SESS_CREATE;
+    op_sess.op.cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
+    op_sess.op.cipher_op = op_type;
+    op_sess.cipher_key.data = cipher_key;
+    op_sess.cipher_key.length = 16;
+
+	printf ("test_create_session algo %d\n", op_sess.op.cipher_algo);
+
+    run_jobs(0, &op_sess, 1);
+
+	if (op_sess.op.op_status != CRYPTO_OP_STATUS_SUCC)
+	{
+		printf ("test_create_session FAILED\n");
+		return -1;
+	}
+
+	g_setup_sess_id = op_sess.op.sess_id;
+	printf ("test_create_session SUCC %d\n", g_setup_sess_id);
+
+	return 0;
+}
+
+int32_t Dpdk_cryptodev_client::test_cipher(long cid, uint64_t seq, uint64_t sess_id, Crypto_cipher_operation op_type)
+{
+	int32_t res;
+
+    Crypto_operation op;
+    memset(&op, 0, sizeof(Crypto_operation));
+	op.op.seq = seq;
+    // sess
+    op.op.sess_id = sess_id;
+    op.op.op_type = CRYPTO_OP_TYPE_SESS_CIPHERING;
+	op.op.cipher_op = op_type;
+	
+	op.op.op_ctx_ptr = NULL;
+
+	uint32_t BUFFER_TOTAL_LEN = 1 + rand() % 300  ; //1 + rand() % 264;
+	uint32_t BUFFER_SEGMENT_NUM = 1 ;//1 + rand() % 15;
+	BUFFER_SEGMENT_NUM = (BUFFER_SEGMENT_NUM > BUFFER_TOTAL_LEN) ? 
+												BUFFER_TOTAL_LEN : 
+												BUFFER_SEGMENT_NUM;
+	op.cipher_buff_list.buff_list_length = BUFFER_SEGMENT_NUM;
+
+	uint32_t total_len = 0;
+	uint32_t step = BUFFER_TOTAL_LEN / BUFFER_SEGMENT_NUM;
+	/*
+	for (uint32_t i = 0; i < op.cipher_buff_list.buff_list_length; ++i)
+	{
+    	//op.cipher_buff_list.buffs[i].data = ((op_type == CRYPTO_CIPHER_OP_ENCRYPT) ? plaintext : ciphertext) + i*step;
+
+		op.cipher_buff_list.buffs[i].data = ((op_type == CRYPTO_CIPHER_OP_ENCRYPT) ? plaintext : ciphertext) + i*step;
+
+		
+		op.cipher_buff_list.buffs[i].length = step;
+		total_len += step;
+		// last segment
+		if (i == op.cipher_buff_list.buff_list_length - 1)
+			op.cipher_buff_list.buffs[i].length += (BUFFER_TOTAL_LEN - total_len);
+	}
+	*/
+	void * pt = (op_type == CRYPTO_CIPHER_OP_ENCRYPT) ? plaintext : ciphertext;
+  	std::size_t space = sizeof(plaintext)-1;
+
+	op.cipher_buff_list.buffs[0].data = (uint8_t*) std::align(16, 64, pt, space);
+
+	op.cipher_buff_list.buffs[0].length = step;
+
+	//printf ("BUFFER_TOTAL_LEN %d BUFFER_SEGMENT_NUM %d\n", BUFFER_TOTAL_LEN, BUFFER_SEGMENT_NUM);
+
+    op.cipher_iv.data = iv;
+    op.cipher_iv.length = 16;
+	// outbuf
+	op.op.outbuff_ptr = NULL;
+	op.op.outbuff_len = 0;
+
+    run_jobs(0, &op, 1);
+
+	if (op.op.op_status != CRYPTO_OP_STATUS_SUCC)
+	{
+		printf ("cipher FAILED\n");
+	}
+
+	return 0;
+}
+
+int Dpdk_cryptodev_client::test()
+{
+	uint32_t cc = 0;
+	uint8_t res;
+	uint64_t seq = 0;
+	uint32_t i;
+	Crypto_cipher_operation op_type = CRYPTO_CIPHER_OP_ENCRYPT;
+	Crypto_cipher_algorithm algo = CRYPTO_CIPHER_SNOW3G_UEA2;
+	//Crypto_cipher_algorithm algo = CRYPTO_CIPHER_AES_CBC;
+	struct timespec start;
+	struct timespec end;
+
+	uint32_t retries;
+
+  	uint32_t num_pck = 1000000;
+  	uint32_t num_pck_per_batch = 32;
+  	uint32_t pck_size = 200;
+
+    printf ("start ...\n");
+
+	// create 3 sessions
+	res = test_create_session(0, seq, algo, op_type);
+	if (0 != res) 
+		return -1;
+
+	// warmup
+    for (i = 0; i < num_pck_per_batch; ++i)
+    {
+		test_cipher(0, ++seq, g_setup_sess_id, op_type);
+    }
+    
+    timespec_get (&start, TIME_UTC);
+
+    uint32_t num_batch = num_pck / num_pck_per_batch;
+
+    printf ("run ...\n");
+	uint32_t c;
+    for(c = 0; c < num_batch; ++c)
+    {
+      	for (i = 0; i < num_pck_per_batch; ++i)
+      	{
+			test_cipher(0, ++seq, g_setup_sess_id, op_type);
+      	}
+
+/*
+		cc++;
+		// control pps
+		if (cc > 1000) 
+		{
+			cc = 0;
+      		timespec_get (&end, TIME_UTC);
+
+      		double tmp = 1000.0 * seq / get_delta_usec(start, end);
+	  		printf ("Curr pps %ld %f\n", cid, tmp);
+		}
+*/
+    	//printf ("num %ld %ld ...\n", cid, send_to_usec);
+    }
+
+    timespec_get (&end, TIME_UTC);
+    printf ("\n\n");
+    printf ("Pakcet sequence finished!\n");
+    printf ("Seq len: %lu\n", seq + 1);
+
+    double tmp = 1000.0 * seq / get_delta_usec(start, end);
+    printf ("Average Kpps: %f\n", tmp);
+    printf ("Average TP: %f Gb/s\n", (tmp * pck_size) * 8.0 / 1000000.0);
+	
+	return 0;	
+}
+
+/////////////
+int Dpdk_cryptodev_client::run_jobs_test(int ch_id, Crypto_operation* jobs, uint32_t size)
+{
+	struct timespec start;
+	struct timespec end;
+
+  	uint32_t num_pck = 10000000;
+  	uint32_t num_pck_per_batch = size;
+  	uint32_t pck_size = 200;
+	
+	timespec_get (&start, TIME_UTC);
+
+    uint32_t num_batch = num_pck / num_pck_per_batch;
+
+	//printf ("size %d\n", size);
+
+	uint32_t c;
+    for(c = 0; c < num_batch; ++c)
+	{
+		if (size == 0)	
+		{
+			//RTE_LOG(INFO, USER1, "run_jobs size == 0");
+			return 0;
+		}
+
+		uint8_t cdev_id;
+		uint8_t buffer_size_idx = 0;
+		uint8_t qp_id = 0; 
+
+		uint32_t dev_ops_size_arr[RTE_CRYPTO_MAX_DEVS] = { 0 };
+		Dev_vecs_idxs_t dev_vecs_idxs_arr[RTE_CRYPTO_MAX_DEVS] = { 0 };
+
+//printf("1\n");
+
+		preprocess_jobs(ch_id, jobs, size, dev_ops_size_arr, dev_vecs_idxs_arr);
+
+//printf("2\n");
+
+		for (uint8_t cdev_index = 0; cdev_index < _nb_cryptodevs && cdev_index < RTE_CRYPTO_MAX_DEVS; cdev_index++) 
+		{
+			cdev_id = _enabled_cdevs[cdev_index].cdev_id;
+
+//printf("2.5 %d %d\n", dev_ops_size_arr[cdev_index], size);
+
+			if (dev_ops_size_arr[cdev_index])
+				run_jobs_inner(	ch_id, 
+							cdev_id, 
+							qp_id, 
+							jobs, 
+							dev_ops_size_arr[cdev_index], 
+							dev_vecs_idxs_arr[cdev_index].dev_vecs_idxs);
+		}
+
+//printf("3\n");
+
+		postprocess_jobs(ch_id, jobs, size);
+	}
+//printf("4\n");
+
+    timespec_get (&end, TIME_UTC);
+    printf ("\n\n");
+    printf ("Pakcet sequence finished!\n");
+    printf ("Seq len: %lu\n", num_pck);
+
+    double tmp = 1000.0 * num_pck / get_delta_usec(start, end);
+    printf ("Average Kpps: %f\n", tmp);
+    printf ("Average TP: %f Gb/s\n", (tmp * pck_size) * 8.0 / 1000000.0);
 
 	return 0;
 }

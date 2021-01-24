@@ -12,12 +12,14 @@ typedef void (*on_ops_complete_CallBk_t) (uint32_t, uint16_t, Crypto_operation*,
 typedef void (*on_connect_CallBk_t) (uint32_t);
 typedef void (*on_disconnect_CallBk_t) (uint32_t);
 
-#define CIFER_IV_LENGTH 16
+const uint32_t CIFER_IV_LENGTH = 16;
+const uint32_t BLOCK_LENGTH = 16;
 
 typedef struct Data_lengths {
     uint32_t ciphertext_length;
     uint32_t cipher_key_length;
     uint32_t cipher_iv_length;
+    uint32_t data_offset;
 }Data_lengths;
 
 void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len,  Crypto_operation* vec)
@@ -35,13 +37,21 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len,  Crypto_operation* vec
 	buffer_op->cipher_algo = vec->op.cipher_algo;
 	buffer_op->cipher_op = vec->op.cipher_op;
     
-    buffer += sizeof(vec->op);
-    *len += sizeof(vec->op);
+    buffer += sizeof(Crypto_operation_context);
+    *len += sizeof(Crypto_operation_context);
 
     Data_lengths data_len;
     data_len.ciphertext_length = 0;
     for (int i = 0; i < vec->cipher_buff_list.buff_list_length; i++)
         data_len.ciphertext_length += vec->cipher_buff_list.buffs[i].length;
+    
+    int data_offset = 0;
+    if (data_len.ciphertext_length < BLOCK_LENGTH)
+    {
+        data_offset = BLOCK_LENGTH;
+        // for AESNI decoder
+        data_len.ciphertext_length += BLOCK_LENGTH;
+    }
 
     data_len.cipher_key_length = vec->cipher_key.length;
     data_len.cipher_iv_length = vec->cipher_iv.length;
@@ -50,9 +60,17 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len,  Crypto_operation* vec
     buffer_data_len->ciphertext_length = data_len.ciphertext_length;
     buffer_data_len->cipher_key_length = data_len.cipher_key_length;
     buffer_data_len->cipher_iv_length = data_len.cipher_iv_length;
+    buffer_data_len->data_offset = data_offset;
 
     buffer += sizeof(Data_lengths);
     *len += sizeof(Data_lengths);
+
+    if (data_offset)
+    {
+        memset(buffer, 0, data_offset);
+        buffer += data_offset;
+        *len += data_offset;
+    }
 
     for (int i = 0; i < vec->cipher_buff_list.buff_list_length; i++)
     {
@@ -116,42 +134,34 @@ void crypto_job_from_buffer(uint8_t* buffer, uint32_t len, Crypto_operation* vec
 	vec->op.cipher_algo = buffer_op->cipher_algo;
 	vec->op.cipher_op = buffer_op->cipher_op;
 
-    buffer += sizeof(vec->op);
+    buffer += sizeof(Crypto_operation_context);
 
     Data_lengths* pData_len = (Data_lengths*)buffer;
     buffer += sizeof(Data_lengths);
 
     // [OT] this is temp patch will be done automatically inside server in REL2 (with dpdk shared mem)
-    vec->cipher_buff_list.buffs[0].data = buffer;
-    vec->cipher_buff_list.buffs[0].length = pData_len->ciphertext_length;
+    vec->cipher_buff_list.buffs[0].data = buffer + pData_len->data_offset;
+    vec->cipher_buff_list.buffs[0].length = pData_len->ciphertext_length - pData_len->data_offset;
     vec->cipher_buff_list.buff_list_length = 1;
 
     if (vec->op.op_type == CRYPTO_OP_TYPE_SESS_CIPHERING)
     {
         if (vec->op.op_status == CRYPTO_OP_STATUS_SUCC)
         {
-            if (vec->op.outbuff_len < vec->cipher_buff_list.buffs[0].length)
+            if ( NULL != vec->op.outbuff_ptr && vec->cipher_buff_list.buffs[0].length <= vec->op.outbuff_len )
             {
-                vec->op.op_status == CRYPTO_OP_STATUS_FAILED;
-			    printf ("outbuff too small %u vs %u\n", vec->op.outbuff_len, vec->cipher_buff_list.buffs[0].length);	
+                clib_memcpy_fast(vec->op.outbuff_ptr, 
+					vec->cipher_buff_list.buffs[0].data, 
+					vec->cipher_buff_list.buffs[0].length);
+
+		        vec->op.outbuff_len = vec->cipher_buff_list.buffs[0].length;
             }
             else
             {
-                if ( NULL != vec->op.outbuff_ptr && vec->cipher_buff_list.buffs[0].length <= vec->op.outbuff_len )
-                {
-                    clib_memcpy_fast(vec->op.outbuff_ptr, 
-					    vec->cipher_buff_list.buffs[0].data, 
-					    vec->cipher_buff_list.buffs[0].length);
-
-		            vec->op.outbuff_len = vec->cipher_buff_list.buffs[0].length;
-                }
-                else
-                {
-                    vec->op.op_status == CRYPTO_OP_STATUS_FAILED;
-                    printf("WARN!!! BAD buff or len ptr %x, %d <= %d\n", vec->op.outbuff_ptr, 
+                vec->op.op_status == CRYPTO_OP_STATUS_FAILED;
+                printf("ERROR!!! BAD buff or len ptr %x, %d <= %d\n", vec->op.outbuff_ptr, 
                                     vec->cipher_buff_list.buffs[0].length,
                                     vec->op.outbuff_len);
-                }
             }
         }
     }

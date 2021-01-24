@@ -47,6 +47,7 @@ CFLAGS+=$(DEFINE) $(INCLUDE)
 
 SRC= \
 	$(SRCDIR)/ciph_app_test.c
+#	$(SRCDIR)/ciph_app_test_v.c
 HDR= \
 	$(SRCDIR)/*.h
 
