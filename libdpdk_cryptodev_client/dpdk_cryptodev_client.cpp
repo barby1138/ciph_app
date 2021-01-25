@@ -1421,7 +1421,10 @@ double get_delta_usec(struct timespec start, struct timespec end)
 
 int32_t g_setup_sess_id;
 
-int32_t Dpdk_cryptodev_client::test_create_session(long cid, uint64_t seq, Crypto_cipher_algorithm algo, Crypto_cipher_operation op_type)
+int32_t Dpdk_cryptodev_client::test_create_session(long cid, 
+													uint64_t seq, 
+													Crypto_cipher_algorithm algo, 
+													Crypto_cipher_operation op_type)
 {
 	int32_t res;
 
@@ -1430,23 +1433,21 @@ int32_t Dpdk_cryptodev_client::test_create_session(long cid, uint64_t seq, Crypt
 	op_sess.op.seq = seq;
 	// sess
     op_sess.op.op_type = CRYPTO_OP_TYPE_SESS_CREATE;
-    op_sess.op.cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
+    op_sess.op.cipher_algo = algo;
     op_sess.op.cipher_op = op_type;
     op_sess.cipher_key.data = cipher_key;
     op_sess.cipher_key.length = 16;
-
-	printf ("test_create_session algo %d\n", op_sess.op.cipher_algo);
 
     run_jobs(0, &op_sess, 1);
 
 	if (op_sess.op.op_status != CRYPTO_OP_STATUS_SUCC)
 	{
-		printf ("test_create_session FAILED\n");
+		TRACE_ERROR ("test_create_session FAILED");
 		return -1;
 	}
 
 	g_setup_sess_id = op_sess.op.sess_id;
-	printf ("test_create_session SUCC %d\n", g_setup_sess_id);
+	TRACE_INFO ("test_create_session SUCC %d", g_setup_sess_id);
 
 	return 0;
 }
@@ -1489,12 +1490,14 @@ int32_t Dpdk_cryptodev_client::test_cipher(long cid, uint64_t seq, uint64_t sess
 			op.cipher_buff_list.buffs[i].length += (BUFFER_TOTAL_LEN - total_len);
 	}
 	*/
+
 	void * pt = (op_type == CRYPTO_CIPHER_OP_ENCRYPT) ? plaintext : ciphertext;
   	std::size_t space = sizeof(plaintext)-1;
 
-	op.cipher_buff_list.buffs[0].data = (uint8_t*) std::align(16, 64, pt, space);
+	//op.cipher_buff_list.buffs[0].data = (uint8_t*) std::align(16, 64, pt, space);
+	op.cipher_buff_list.buffs[0].data = (uint8_t*) pt;
 
-	op.cipher_buff_list.buffs[0].length = step;
+	op.cipher_buff_list.buffs[0].length = 1;//step;
 
 	//printf ("BUFFER_TOTAL_LEN %d BUFFER_SEGMENT_NUM %d\n", BUFFER_TOTAL_LEN, BUFFER_SEGMENT_NUM);
 
@@ -1508,21 +1511,20 @@ int32_t Dpdk_cryptodev_client::test_cipher(long cid, uint64_t seq, uint64_t sess
 
 	if (op.op.op_status != CRYPTO_OP_STATUS_SUCC)
 	{
-		printf ("cipher FAILED\n");
+		TRACE_ERROR ("cipher FAILED");
 	}
 
 	return 0;
 }
 
-int Dpdk_cryptodev_client::test()
+int Dpdk_cryptodev_client::test(Crypto_cipher_algorithm a, Crypto_cipher_operation ot)
 {
 	uint32_t cc = 0;
 	uint8_t res;
 	uint64_t seq = 0;
 	uint32_t i;
-	Crypto_cipher_operation op_type = CRYPTO_CIPHER_OP_ENCRYPT;
-	Crypto_cipher_algorithm algo = CRYPTO_CIPHER_SNOW3G_UEA2;
-	//Crypto_cipher_algorithm algo = CRYPTO_CIPHER_AES_CBC;
+	Crypto_cipher_operation op_type = ot;
+	Crypto_cipher_algorithm algo = a;
 	struct timespec start;
 	struct timespec end;
 
@@ -1532,8 +1534,9 @@ int Dpdk_cryptodev_client::test()
   	uint32_t num_pck_per_batch = 32;
   	uint32_t pck_size = 200;
 
-    printf ("start ...\n");
-
+	TRACE_INFO("a: %s ot: %s", (algo == CRYPTO_CIPHER_SNOW3G_UEA2)? "SNOW" : "AES",
+								(op_type == CRYPTO_CIPHER_OP_ENCRYPT)? "ENC" : "DEC");
+    
 	// create 3 sessions
 	res = test_create_session(0, seq, algo, op_type);
 	if (0 != res) 
@@ -1549,7 +1552,6 @@ int Dpdk_cryptodev_client::test()
 
     uint32_t num_batch = num_pck / num_pck_per_batch;
 
-    printf ("run ...\n");
 	uint32_t c;
     for(c = 0; c < num_batch; ++c)
     {
@@ -1557,7 +1559,6 @@ int Dpdk_cryptodev_client::test()
       	{
 			test_cipher(0, ++seq, g_setup_sess_id, op_type);
       	}
-
 /*
 		cc++;
 		// control pps
@@ -1574,13 +1575,12 @@ int Dpdk_cryptodev_client::test()
     }
 
     timespec_get (&end, TIME_UTC);
-    printf ("\n\n");
-    printf ("Pakcet sequence finished!\n");
-    printf ("Seq len: %lu\n", seq + 1);
+    TRACE_INFO ("Pakcet sequence finished!");
+    TRACE_INFO ("Seq len: %lu", seq + 1);
 
     double tmp = 1000.0 * seq / get_delta_usec(start, end);
-    printf ("Average Kpps: %f\n", tmp);
-    printf ("Average TP: %f Gb/s\n", (tmp * pck_size) * 8.0 / 1000000.0);
+    TRACE_INFO ("Average Kpps: %f", tmp);
+    TRACE_INFO ("Average TP: %f Gb/s", (tmp * pck_size) * 8.0 / 1000000.0);
 	
 	return 0;	
 }
@@ -1645,13 +1645,12 @@ int Dpdk_cryptodev_client::run_jobs_test(int ch_id, Crypto_operation* jobs, uint
 //printf("4\n");
 
     timespec_get (&end, TIME_UTC);
-    printf ("\n\n");
-    printf ("Pakcet sequence finished!\n");
-    printf ("Seq len: %lu\n", num_pck);
+    TRACE_INFO ("Pakcet sequence finished!");
+    TRACE_INFO ("Seq len: %lu", num_pck);
 
     double tmp = 1000.0 * num_pck / get_delta_usec(start, end);
-    printf ("Average Kpps: %f\n", tmp);
-    printf ("Average TP: %f Gb/s\n", (tmp * pck_size) * 8.0 / 1000000.0);
+    TRACE_INFO ("Average Kpps: %f", tmp);
+    TRACE_INFO ("Average TP: %f Gb/s", (tmp * pck_size) * 8.0 / 1000000.0);
 
 	return 0;
 }

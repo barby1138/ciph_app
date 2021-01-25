@@ -88,7 +88,7 @@ private:
 
 // tests
 public:
-    int test();
+    int test(Crypto_cipher_algorithm algo, Crypto_cipher_operation op_type);
     int run_jobs_test(int ch_id, Crypto_operation* jobs, uint32_t size);
 private:
     int32_t test_create_session(long cid, uint64_t seq, Crypto_cipher_algorithm algo, Crypto_cipher_operation op_type);

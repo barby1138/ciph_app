@@ -163,12 +163,14 @@ int main(int argc, char** argv)
 		Dpdk_cryptodev_client_sngl::instance().init(c, v);
 
     // local test TP
-    for (int i = 0; i < 5; ++i)
-    {
-      // local test
-      Dpdk_cryptodev_client_sngl::instance().test();
-    }
+    Dpdk_cryptodev_client_sngl::instance().test(CRYPTO_CIPHER_SNOW3G_UEA2, CRYPTO_CIPHER_OP_ENCRYPT);
 
+    Dpdk_cryptodev_client_sngl::instance().test(CRYPTO_CIPHER_AES_CBC, CRYPTO_CIPHER_OP_ENCRYPT);
+
+    Dpdk_cryptodev_client_sngl::instance().test(CRYPTO_CIPHER_SNOW3G_UEA2, CRYPTO_CIPHER_OP_DECRYPT);
+
+    Dpdk_cryptodev_client_sngl::instance().test(CRYPTO_CIPHER_AES_CBC, CRYPTO_CIPHER_OP_DECRYPT);
+    
     Ciph_agent_sngl::instance().init();
 
     for (int i = 0; i < 6; ++i)

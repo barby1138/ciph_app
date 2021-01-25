@@ -13,13 +13,19 @@ typedef void (*on_connect_CallBk_t) (uint32_t);
 typedef void (*on_disconnect_CallBk_t) (uint32_t);
 
 const uint32_t CIFER_IV_LENGTH = 16;
+
+// is it needed for SNOW?
+#ifdef DO_BLOCK_PAD
 const uint32_t BLOCK_LENGTH = 16;
+#endif
 
 typedef struct Data_lengths {
     uint32_t ciphertext_length;
     uint32_t cipher_key_length;
     uint32_t cipher_iv_length;
+#ifdef DO_BLOCK_PAD
     uint32_t data_offset;
+#endif
 }Data_lengths;
 
 void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len,  Crypto_operation* vec)
@@ -44,7 +50,8 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len,  Crypto_operation* vec
     data_len.ciphertext_length = 0;
     for (int i = 0; i < vec->cipher_buff_list.buff_list_length; i++)
         data_len.ciphertext_length += vec->cipher_buff_list.buffs[i].length;
-    
+
+#ifdef DO_BLOCK_PAD
     int data_offset = 0;
     if (data_len.ciphertext_length < BLOCK_LENGTH)
     {
@@ -52,6 +59,7 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len,  Crypto_operation* vec
         // for AESNI decoder
         data_len.ciphertext_length += BLOCK_LENGTH;
     }
+#endif
 
     data_len.cipher_key_length = vec->cipher_key.length;
     data_len.cipher_iv_length = vec->cipher_iv.length;
@@ -60,17 +68,20 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len,  Crypto_operation* vec
     buffer_data_len->ciphertext_length = data_len.ciphertext_length;
     buffer_data_len->cipher_key_length = data_len.cipher_key_length;
     buffer_data_len->cipher_iv_length = data_len.cipher_iv_length;
+#ifdef DO_BLOCK_PAD
     buffer_data_len->data_offset = data_offset;
-
+#endif
     buffer += sizeof(Data_lengths);
     *len += sizeof(Data_lengths);
 
+#ifdef DO_BLOCK_PAD
     if (data_offset)
     {
         memset(buffer, 0, data_offset);
         buffer += data_offset;
         *len += data_offset;
     }
+#endif
 
     for (int i = 0; i < vec->cipher_buff_list.buff_list_length; i++)
     {
@@ -140,8 +151,14 @@ void crypto_job_from_buffer(uint8_t* buffer, uint32_t len, Crypto_operation* vec
     buffer += sizeof(Data_lengths);
 
     // [OT] this is temp patch will be done automatically inside server in REL2 (with dpdk shared mem)
-    vec->cipher_buff_list.buffs[0].data = buffer + pData_len->data_offset;
-    vec->cipher_buff_list.buffs[0].length = pData_len->ciphertext_length - pData_len->data_offset;
+#ifdef DO_BLOCK_PAD
+    //vec->cipher_buff_list.buffs[0].data = buffer + pData_len->data_offset;
+    //vec->cipher_buff_list.buffs[0].length = pData_len->ciphertext_length - pData_len->data_offset;
+#else
+    vec->cipher_buff_list.buffs[0].data = buffer;
+    vec->cipher_buff_list.buffs[0].length = pData_len->ciphertext_length;
+#endif
+
     vec->cipher_buff_list.buff_list_length = 1;
 
     if (vec->op.op_type == CRYPTO_OP_TYPE_SESS_CIPHERING)

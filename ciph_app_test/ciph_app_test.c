@@ -510,8 +510,8 @@ int32_t cipher(long cid, uint16_t qid, uint64_t seq, uint64_t sess_id)
 	
 	op.op.op_ctx_ptr = dummy_ctx;
 
-	uint32_t BUFFER_TOTAL_LEN = 64;//1 + rand() % 300  ; //1 + rand() % 264;
-	uint32_t BUFFER_SEGMENT_NUM = 1 ;//1 + rand() % 15;
+	uint32_t BUFFER_TOTAL_LEN = 1; //64;//1 + rand() % 300  ; //1 + rand() % 264;
+	uint32_t BUFFER_SEGMENT_NUM = 1; //1 + rand() % 15;
 	BUFFER_SEGMENT_NUM = (BUFFER_SEGMENT_NUM > BUFFER_TOTAL_LEN) ? 
 												BUFFER_TOTAL_LEN : 
 												BUFFER_SEGMENT_NUM;
@@ -544,7 +544,7 @@ int32_t cipher(long cid, uint16_t qid, uint64_t seq, uint64_t sess_id)
 	return 0;
 }
 
-#define TARGET_PPS
+//#define TARGET_PPS
 // TODO negative cases
 // bad sessid, too big buffer
 void* send_proc(void* data)
