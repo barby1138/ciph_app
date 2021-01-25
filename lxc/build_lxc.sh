@@ -21,6 +21,7 @@ cd $DEPLPATH
 cp -f config $LXCPATH/ciph_app
 cp VERSION $LXCPATH/ciph_app
 mkdir $LXCPATH/ciph_app/rootfs/home/ciph_app
+mkdir $LXCPATH/ciph_app/rootfs/tmp/ciph_app
 # dpdk-crypto-app, ciph_app.xml
 cp bin/* $LXCPATH/ciph_app/rootfs/home/ciph_app
 chmod 0755 $LXCPATH/ciph_app/rootfs/home/ciph_app/dpdk-crypto-app

@@ -2,7 +2,7 @@
 ROOT=$PWD 
 echo $ROOT
 VER=$(cat VERSION)
-echo $VER
+echo ${VER}
 
 echo ============== COPY ARTIFACTORY =====================
 cd $ROOT
@@ -82,7 +82,7 @@ cp /tmp/rootfs_centos-7-amd64.tar.gz $RPMBUILD/ciph_app/lxc
 
 echo =========== BUILD RPM ==============
 cd $ROOT/lxc
-rpmbuild -bb --define '_ver $VER' ciph_app.spec
+rpmbuild -bb --define "_ver $VER" ciph_app.spec
 
 echo =========== PACK RPM ==============
 cd $ROOT/dist

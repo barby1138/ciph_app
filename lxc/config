@@ -21,4 +21,4 @@ lxc.net.0.link = br0
 lxc.net.0.flags = up
 lxc.net.0.hwaddr = 00:16:3e:f5:7a:29
 
-lxc.mount.entry = /tmp tmp none bind,private,create=file
+lxc.mount.entry = /tmp/ciph_app tmp/ciph_app none bind,private,create=file
