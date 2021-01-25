@@ -510,7 +510,7 @@ int32_t cipher(long cid, uint16_t qid, uint64_t seq, uint64_t sess_id)
 	
 	op.op.op_ctx_ptr = dummy_ctx;
 
-	uint32_t BUFFER_TOTAL_LEN = 1 + rand() % 300  ; //1 + rand() % 264;
+	uint32_t BUFFER_TOTAL_LEN = 64;//1 + rand() % 300  ; //1 + rand() % 264;
 	uint32_t BUFFER_SEGMENT_NUM = 1 ;//1 + rand() % 15;
 	BUFFER_SEGMENT_NUM = (BUFFER_SEGMENT_NUM > BUFFER_TOTAL_LEN) ? 
 												BUFFER_TOTAL_LEN : 
@@ -544,7 +544,7 @@ int32_t cipher(long cid, uint16_t qid, uint64_t seq, uint64_t sess_id)
 	return 0;
 }
 
-#define MAX_TP
+#define TARGET_PPS
 // TODO negative cases
 // bad sessid, too big buffer
 void* send_proc(void* data)
@@ -626,20 +626,7 @@ void* send_proc(void* data)
     	res = ciph_agent_poll(cid, QID_USER, MAX_CONN_CLIENT_BURST);
 		if (res == -2) printf ("ciph_agent_poll ERROR\n");
 
-#ifdef MAX_TP
-/*
-		cc++;
-		// control pps
-		if (cc > 1000) 
-		{
-			cc = 0;
-      		timespec_get (&thread_data[cid].end, TIME_UTC);
-
-      		double tmp = 1000.0 * seq / get_delta_usec(thread_data[cid].start, thread_data[cid].end);
-	  		printf ("Curr pps %ld %f\n", cid, tmp);
-		}
-*/
-#else
+#ifdef TARGET_PPS
 		memset (&end_send, 0, sizeof (end_send));
         timespec_get (&end_send, TIME_UTC);
 
@@ -671,6 +658,20 @@ void* send_proc(void* data)
 			int32_t slept = (int32_t) get_delta_usec(start_sleep, end_sleep);
 			to_sleep -= slept;
 		}
+
+#else
+/*
+		cc++;
+		// control pps
+		if (cc > 1000) 
+		{
+			cc = 0;
+      		timespec_get (&thread_data[cid].end, TIME_UTC);
+
+      		double tmp = 1000.0 * seq / get_delta_usec(thread_data[cid].start, thread_data[cid].end);
+	  		printf ("Curr pps %ld %f\n", cid, tmp);
+		}
+*/
 #endif //MAX_TP
     	//printf ("num %ld %ld ...\n", cid, send_to_usec);
     }
@@ -692,11 +693,7 @@ void* send_proc(void* data)
     printf ("\n\n");
     printf ("Pakcet sequence finished!\n");
     printf ("Seq len: %lu\n", seq + 1);
-/*
-    double tmp = 1000.0 * seq / get_delta_usec(thread_data[cid].start, thread_data[cid].end);
-    printf ("Average Kpps: %f\n", tmp);
-    printf ("Average TP: %f Gb/s\n", (tmp * thread_data[cid].packet_size) * 8.0 / 1000000.0);
-*/
+
     // flush
 	printf ("flush ...\n");
 	retries = 0;
@@ -728,8 +725,8 @@ void* send_proc(void* data)
 
 int main(int argc, char* argv[])
 {
-    long cid_0 = 0;
-    long cid_1 = 1;
+    long cid_0 = 2;
+    long cid_1 = 3;
 
 	time_t t;
 	srand((unsigned) time(&t));
@@ -762,8 +759,8 @@ int main(int argc, char* argv[])
     memset (&thread_data[cid_1].end, 0, sizeof (thread_data[cid_1].end));
 	thread_data[cid_1].total_size = 0;
 	thread_data[cid_1].cb = on_ops_complete_cb_0;
-	//thread_data[cid_1].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
-	thread_data[cid_1].cipher_algo = CRYPTO_CIPHER_AES_CBC;
+	thread_data[cid_1].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
+	//thread_data[cid_1].cipher_algo = CRYPTO_CIPHER_AES_CBC;
     thread_data[cid_1].cipher_op = CRYPTO_CIPHER_OP_ENCRYPT;
 
 	//int s;
@@ -771,12 +768,16 @@ int main(int argc, char* argv[])
 
 	usleep(1000 * 1000); 
 
-//  	pthread_create (&thread[cid_0], NULL, send_proc, (void *)&cid_0);
-//	printf("cr 0\n");
+#ifdef TARGET_PPS
+  	pthread_create (&thread[cid_0], NULL, send_proc, (void *)&cid_0);
+	printf("cr 0\n");
+#endif
 	pthread_create (&thread[cid_1], NULL, send_proc, (void *)&cid_1);
 	printf("cr 1\nn");
-//	pthread_join(thread[cid_0], &res);
-//	printf("Joined with thread %ld; returned value was %s\n", cid_0, (char *) res);
+#ifdef TARGET_PPS
+	pthread_join(thread[cid_0], &res);
+	printf("Joined with thread %ld; returned value was %s\n", cid_0, (char *) res);
+#endif
 	pthread_join(thread[cid_1], &res);
 	printf("Joined with thread %ld; returned value was %s\n", cid_1, (char *) res);
 	}
