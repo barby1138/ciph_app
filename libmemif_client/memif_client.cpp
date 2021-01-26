@@ -236,7 +236,11 @@ int on_disconnect (memif_conn_handle_t conn, void *private_ctx)
   INFO ("on_disconnect");
 
   // [OT] is called before delete queues
+
+  INFO ("wait");
   LOCK_GUARD lock(m);
+
+  INFO ("wait done");
 
   long index = *((long *)private_ctx);
   if (index >= MAX_CONNS)
@@ -414,8 +418,6 @@ int on_interrupt02_poll (long index, uint16_t qid, uint32_t count)
     if (err != MEMIF_ERR_SUCCESS)
       ERROR ("memif_buffer_free: %s\n", memif_strerror (err));
     c->buffs[qid].rx_buf_num -= rx;
-
-    //count -= rx;
   }
   while (ret_val == MEMIF_ERR_NOBUF /*&& count*/);
 
