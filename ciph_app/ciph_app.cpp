@@ -213,7 +213,7 @@ int main(int argc, char** argv)
     int res;
     while(1)
     {
-      usleep(1000);
+      usleep(100);
 /*
       {
       meson::bench_scope_low scope("poll");
