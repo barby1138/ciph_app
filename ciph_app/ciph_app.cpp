@@ -18,6 +18,8 @@
 
 #include <unistd.h> //usleep
 
+#include <regex>
+
 typedef tracer
 <
 thread_formatter<>,
@@ -120,7 +122,6 @@ void on_job_complete_cb_test_2 (uint32_t cid, uint16_t qid, Crypto_operation* pj
   
 }
 
-
 void on_connect_cb (uint32_t cid)
 {
   TRACE_INFO("on_connect_cb %d", cid);
@@ -145,22 +146,50 @@ int main(int argc, char** argv)
 
 		props::instance().load("ciph_app.xml");
 
+    quark::pstring level = getProperty<quark::pstring>(props::instance(), "properties.logger", "level");
+    quark::pstring dpdk_init_str = getProperty<quark::pstring>(props::instance(), "properties.dpdk", "init_str");
+    quark::pstring memif_conn_ids = getProperty<quark::pstring>(props::instance(), "properties.memif", "conn_ids");
+
+    //printf("%s\n", level.c_str());
+    //printf("%s\n", dpdk_init_str.c_str());
+    //printf("%s\n", memif_conn_ids.c_str());
+
+    // DPDK params
+    std::string str_dpdk(dpdk_init_str.c_str());
+    std::regex regex_dpdk("\\s+");
+ 
+    std::vector<std::string> out_dpdk(
+                    std::sregex_token_iterator(str_dpdk.begin(), str_dpdk.end(), regex_dpdk, -1),
+                    std::sregex_token_iterator()
+                    );
+
+    std::vector<const char*> pchar_dpdk_init_str(out_dpdk.size(), nullptr);
+    for (int i = 0; i < out_dpdk.size(); i++)
+      pchar_dpdk_init_str[i]= out_dpdk[i].c_str();
+
+    // ids
+    std::string str_ids(memif_conn_ids.c_str());
+    std::regex regex_ids(",\\s*");
+ 
+    std::vector<std::string> out_ids(
+                    std::sregex_token_iterator(str_ids.begin(), str_ids.end(), regex_ids, -1),
+                    std::sregex_token_iterator()
+                    );
+
+    std::vector<uint32_t> uint_memif_ids(out_ids.size(), 0);
+    for (int i = 0; i < out_ids.size(); i++)
+    {
+      quark::u32 val;
+      quark::strings::fromString(quark::pstring(out_ids[i].c_str()), val);
+      uint_memif_ids[i] = val;
+    }
+
 		custom_tracer::instance().setFile("ciph_app.log");
 		custom_tracer::instance().setMask(tlInfo);
 
 		TRACE_INFO("Ver: %s", VERSION);
 
-	  char* v[] = { "app",
-					"--vdev", 
-					"crypto_aesni_mb_pmd", 
-          "--vdev", 
-          "crypto_snow3g",
-					//"--no-huge", 
-					"--"
-					};
-    int c = 6;
-
-		Dpdk_cryptodev_client_sngl::instance().init(c, v);
+		Dpdk_cryptodev_client_sngl::instance().init(pchar_dpdk_init_str.size(), &pchar_dpdk_init_str[0]);
 
     // local test TP
     Dpdk_cryptodev_client_sngl::instance().test(CRYPTO_CIPHER_SNOW3G_UEA2, CRYPTO_CIPHER_OP_ENCRYPT);
@@ -173,7 +202,7 @@ int main(int argc, char** argv)
     
     Ciph_agent_sngl::instance().init();
 
-    for (int i = 0; i < 6; ++i)
+    for (uint32_t i : uint_memif_ids)
     {
       Ciph_agent_sngl::instance().conn_alloc(i, 1, 
                           //on_job_complete_cb_test_2, 
@@ -184,12 +213,12 @@ int main(int argc, char** argv)
     int res;
     while(1)
     {
-      usleep(100);
+      usleep(1000);
 /*
       {
       meson::bench_scope_low scope("poll");
 */
-      for (int i = 0; i < 6; ++i)
+      for (uint32_t i : uint_memif_ids)
       {
         res = Ciph_agent_sngl::instance().poll_00(i, 0, 64);     
         res = Ciph_agent_sngl::instance().poll_00(i, 1, 64);  

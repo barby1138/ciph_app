@@ -21,25 +21,29 @@ namespace
 	protected:
 		BEGIN_ATTRIBUTE_MAP()
 			MANDATORY_ATTRIBUTE_ENTRY(str_attribute, "level")
-			MANDATORY_ATTRIBUTE_ENTRY(str_attribute, "path")
+			//MANDATORY_ATTRIBUTE_ENTRY(str_attribute, "path")
 		END_ATTRIBUTE_MAP()
 	};
 
-	class general_element : public element
+	class dpdk_element : public element
 	{
 	public:
-		DECLARE_ELEMENT("general")
+		DECLARE_ELEMENT("dpdk")
 
 	protected:
 		BEGIN_ATTRIBUTE_MAP()
-			// TODO combine name and type
-			MANDATORY_ATTRIBUTE_ENTRY(str_attribute, "feed_name")
-			MANDATORY_ATTRIBUTE_ENTRY(str_attribute, "archive_path")
-			INITIALIZED_ATTRIBUTE_ENTRY(u32_attribute, "chunk_duration_sec", 300)
-			MANDATORY_ATTRIBUTE_ENTRY(str_attribute, "source_type")
-			MANDATORY_ATTRIBUTE_ENTRY(str_attribute, "source_name")
-			//format digit+[m, h, d]
-			INITIALIZED_ATTRIBUTE_ENTRY(str_attribute, "archive_duration", "15m")
+			MANDATORY_ATTRIBUTE_ENTRY(str_attribute, "init_str")
+		END_ATTRIBUTE_MAP()
+	};
+
+	class memif_element : public element
+	{
+	public:
+		DECLARE_ELEMENT("memif")
+
+	protected:
+		BEGIN_ATTRIBUTE_MAP()
+			MANDATORY_ATTRIBUTE_ENTRY(str_attribute, "conn_ids")
 		END_ATTRIBUTE_MAP()
 	};
 
@@ -54,7 +58,8 @@ namespace
 	protected:
 		BEGIN_ELEMENT_MAP()
 			MANDATORY_ELEMENT_ENTRY(logger_element)
-			MANDATORY_ELEMENT_ENTRY(general_element)
+			MANDATORY_ELEMENT_ENTRY(dpdk_element)
+			MANDATORY_ELEMENT_ENTRY(memif_element)
 		END_ELEMENT_MAP()
 	};
 
