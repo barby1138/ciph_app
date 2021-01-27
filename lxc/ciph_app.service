@@ -1,0 +1,15 @@
+[Unit]
+Description=SW ciph Service
+
+Wants=network.target
+After=syslog.target
+
+[Service]
+Type=simple
+ExecStart=/home/ciph_app/ciph_app.sh
+Restart=on-failure
+RestartSec=10
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target

@@ -16,7 +16,7 @@ cd $DEPLPATH/lxc
 mkdir $LXCPATH/ciph_app
 tar zxf rootfs_centos-7-amd64.tar.gz -C $LXCPATH/ciph_app
 
-echo =========== PREPARE ==============
+echo =========== PREPARE APP ==============
 cd $DEPLPATH
 cp -f config $LXCPATH/ciph_app
 cp VERSION $LXCPATH/ciph_app
@@ -28,6 +28,14 @@ chmod 0755 $LXCPATH/ciph_app/rootfs/home/ciph_app/dpdk-crypto-app
 # libnuma, libIPSec_MB
 cp lib/* $LXCPATH/ciph_app/rootfs/usr/lib64
 # TODO put app to startup
+
+echo =========== PREPARE SERVICE ==============
+cp svc/ciph_app.service $LXCPATH/ciph_app/rootfs/etc/systemd/system
+cp svc/ciph_app.sh $LXCPATH/ciph_app/rootfs/home/ciph_app
+chmod 0755 $LXCPATH/ciph_app/rootfs/home/ciph_app/ciph_app.sh
+#systemctl daemon-reload
+#systemctl enable ciph_app
+#systemctl start ciph_app
 
 echo =========== START ==============
 lxc-start -n ciph_app
