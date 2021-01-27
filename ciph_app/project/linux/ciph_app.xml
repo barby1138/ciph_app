@@ -1,5 +1,5 @@
 <properties>
 	<logger level="info" />
 	<dpdk init_str="ciph_app -c 0x1 --vdev crypto_aesni_mb_pmd --vdev crypto_snow3g --" />
-	<memif conn_ids="0,1,2,3,4,5" />
+	<memif conn_ids="0,1,2,3,4,5,20,21,22,23,24,25" />
 </properties>
