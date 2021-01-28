@@ -6,6 +6,8 @@ CXX=gcc
 CXXFLAGS=$(CFLAGS) -W -fexceptions -fPIC -fpermissive -w -mavx2 -std=c++11
 AR=ar
 ARFLAGS=rus
+LD=$(CXX) $(CXXFLAGS)
+LDFLAGS=-shared
 
 OS=linux
 
@@ -15,12 +17,19 @@ ROOTDIR=../../..
 LIBDIR=$(ROOTDIR)/$(LIBNAME)
 OBJDIR=$(ROOTDIR)/obj/$(OS)/$(CFG)
 DESTDIR=$(ROOTDIR)/lib/$(OS)/$(CFG)
-TARGET=$(DESTDIR)/$(LIBNAME).a
+
+#TARGET=$(DESTDIR)/$(LIBNAME).a
+TARGET=$(DESTDIR)/$(LIBNAME).so
+
+COMMONLIBS=
+SHAREDLIBS= -lmemif_client -lstdc++
 
 DEFINE=-D_LINUX -D_REDHAT
 
 INCLUDE=-I$(ROOTDIR) -I$(ROOTDIR)/libmemif_client -I$(ROOTDIR)/libdpdk_cryptodev_client \
 		-I$(ROOTDIR)/libmemcpy -I$(ROOTDIR)/libmemif/src
+
+LDFLAGS+=-L$(DESTDIR) 
 
 ifndef CFG
 CFG=debug
@@ -55,8 +64,13 @@ $(OBJS):
 	-mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -o $@ -c $(wildcard $(patsubst %.o,%.c*,$(subst $(OBJDIR),$(ROOTDIR),$@)))
 
+#
+#$(TARGET): $(OBJS) $(DESTDIR)
+#	$(AR) $(ARFLAGS) $@ $(OBJS)
+#endif
+
 $(TARGET): $(OBJS) $(DESTDIR)
-	$(AR) $(ARFLAGS) $@ $(OBJS)
+	$(LD) $(LDFLAGS) -o $@ $(OBJS) $(SHAREDLIBS) $(COMMONLIBS)
 
 .PHONY: clean
 clean:

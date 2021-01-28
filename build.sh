@@ -48,8 +48,7 @@ mkdir dist/ciph_app_devel/examples
 cp libdpdk_cryptodev_client/data_vectors.h dist/ciph_app_devel/include
 cp libciph_agent/ciph_agent_c.h dist/ciph_app_devel/include
 
-cp lib/linux/release/libciph_agent.a dist/ciph_app_devel/lib
-cp lib/linux/release/libmemif_client.a dist/ciph_app_devel/lib
+cp lib/linux/release/libciph_agent.so dist/ciph_app_devel/lib
 
 cp ciph_app_test/ciph_app_test.c dist/ciph_app_devel/examples
 cp ciph_app_test/build.sh dist/ciph_app_devel/examples

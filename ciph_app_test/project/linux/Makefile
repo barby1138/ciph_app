@@ -18,7 +18,7 @@ DESTDIR=$(ROOTDIR)/bin/$(OS)/$(CFG)
 TARGET=$(DESTDIR)/ciph_app_test
 
 COMMONLIBS= 
-SHAREDLIBS= -lpthread -lrt -lciph_agent -lmemif_client -lstdc++
+SHAREDLIBS= -lpthread -lrt -lciph_agent
 
 DEFINE=-D_LINUX -D_REDHAT
 
