@@ -27,15 +27,12 @@ cp bin/* $LXCPATH/ciph_app/rootfs/home/ciph_app
 chmod 0755 $LXCPATH/ciph_app/rootfs/home/ciph_app/dpdk-crypto-app
 # libnuma, libIPSec_MB
 cp lib/* $LXCPATH/ciph_app/rootfs/usr/lib64
-# TODO put app to startup
 
 echo =========== PREPARE SERVICE ==============
+cd $DEPLPATH
 cp svc/ciph_app.service $LXCPATH/ciph_app/rootfs/etc/systemd/system
 cp svc/ciph_app.sh $LXCPATH/ciph_app/rootfs/home/ciph_app
 chmod 0755 $LXCPATH/ciph_app/rootfs/home/ciph_app/ciph_app.sh
-#systemctl daemon-reload
-#systemctl enable ciph_app
-#systemctl start ciph_app
 
 echo =========== START ==============
 lxc-start -n ciph_app
