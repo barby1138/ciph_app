@@ -166,7 +166,7 @@ int main(int argc, char** argv)
     {
       if (!out_dpdk[i].empty())
       {
-        printf("%s\n", out_dpdk[i].c_str());
+        //printf("%s\n", out_dpdk[i].c_str());
         pchar_dpdk_init_str.push_back(out_dpdk[i].c_str());;
       }
     }
@@ -182,7 +182,7 @@ int main(int argc, char** argv)
       {
         quark::u32 val;
         quark::strings::fromString(quark::pstring(out_ids[i].c_str()), val);
-        printf("%d\n", val);
+        //printf("%d\n", val);
         uint_memif_ids.push_back(val);
       }
     }
