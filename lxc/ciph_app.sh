@@ -1,6 +1,9 @@
 #!/bin/bash
 
+#DEBHELPER#
+
 echo "ciph_app.service: ## Starting ##" | systemd-cat -p info
+cd /home/ciph_app
 ./dpdk-crypto-app cfg
 
 #while :
