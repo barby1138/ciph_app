@@ -29,10 +29,17 @@ chmod 0755 $LXCPATH/ciph_app/rootfs/home/ciph_app/dpdk-crypto-app
 cp lib/* $LXCPATH/ciph_app/rootfs/usr/lib64
 
 echo =========== PREPARE SERVICE ==============
-cd $DEPLPATH
-cp svc/ciph_app.service $LXCPATH/ciph_app/rootfs/etc/systemd/system
-cp svc/ciph_app.sh $LXCPATH/ciph_app/rootfs/home/ciph_app
-chmod 0755 $LXCPATH/ciph_app/rootfs/home/ciph_app/ciph_app.sh
+cd $LXCPATH/ciph_app/rootfs
+cp $DEPLPATH/svc/ciph_app.service etc/systemd/system
+cp $DEPLPATH/svc/ciph_app.sh home/ciph_app
+chmod 0755 home/ciph_app/ciph_app.sh
+# enable
+#if [ ! -L etc/systemd/system/multi-user.target.wants/ciph_app.service ]; then
+echo "create ciph_app.service link"
+#ln -s -r usr/lib/systemd/system/ciph_app.service etc/systemd/system/multi-user.target.wants/ciph_app.service
+ln -s -r etc/systemd/system/ciph_app.service etc/systemd/system/multi-user.target.wants/ciph_app.service
+#fi
+ls -lrt etc/systemd/system/multi-user.target.wants/ciph_app.service
 
 echo =========== START ==============
 lxc-start -n ciph_app

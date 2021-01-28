@@ -12,5 +12,4 @@ RestartSec=10
 KillMode=process
 
 [Install]
-Alias=ciph_app
 WantedBy=multi-user.target
