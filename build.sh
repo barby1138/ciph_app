@@ -69,6 +69,7 @@ mkdir -p ~/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 mkdir $RPMBUILD/ciph_app
 mkdir $RPMBUILD/ciph_app/bin
 mkdir $RPMBUILD/ciph_app/lib
+mkdir $RPMBUILD/ciph_app/svc
 cp VERSION $RPMBUILD/ciph_app
 cp lxc/config $RPMBUILD/ciph_app
 cp lxc/build_lxc.sh $RPMBUILD/ciph_app

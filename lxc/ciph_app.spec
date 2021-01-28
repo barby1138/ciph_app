@@ -29,8 +29,8 @@ install -v -m 0644 config -D %{buildroot}/tmp/ciph_app/%{version}/config
 
 install -v -m 0644 lxc/rootfs_centos-7-amd64.tar.gz -D %{buildroot}/tmp/ciph_app/%{version}/lxc/rootfs_centos-7-amd64.tar.gz
 
-install -v -m 0644 ciph_app.service -D %{buildroot}/tmp/ciph_app/%{version}/svc/ciph_app.service
-install -v -m 0644 ciph_app.sh -D %{buildroot}/tmp/ciph_app/%{version}/svc/ciph_app.sh
+install -v -m 0644 svc/ciph_app.service -D %{buildroot}/tmp/ciph_app/%{version}/svc/ciph_app.service
+install -v -m 0644 svc/ciph_app.sh -D %{buildroot}/tmp/ciph_app/%{version}/svc/ciph_app.sh
 
 %files
 /tmp/ciph_app/%{version}/
