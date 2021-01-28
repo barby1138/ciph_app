@@ -156,32 +156,35 @@ int main(int argc, char** argv)
 
     // DPDK params
     std::string str_dpdk(dpdk_init_str.c_str());
-    std::regex regex_dpdk("\\s+");
- 
-    std::vector<std::string> out_dpdk(
-                    std::sregex_token_iterator(str_dpdk.begin(), str_dpdk.end(), regex_dpdk, -1),
-                    std::sregex_token_iterator()
-                    );
 
-    std::vector<const char*> pchar_dpdk_init_str(out_dpdk.size(), nullptr);
+    enum { MAX_PARAMS_CNT = 100 };
+    std::vector<quark::pstring> out_dpdk(MAX_PARAMS_CNT);
+    quark::strings::split(dpdk_init_str, " ", out_dpdk.begin());
+
+    std::vector<const char*> pchar_dpdk_init_str;
     for (int i = 0; i < out_dpdk.size(); i++)
-      pchar_dpdk_init_str[i]= out_dpdk[i].c_str();
+    {
+      if (!out_dpdk[i].empty())
+      {
+        printf("%s\n", out_dpdk[i].c_str());
+        pchar_dpdk_init_str.push_back(out_dpdk[i].c_str());;
+      }
+    }
 
     // ids
-    std::string str_ids(memif_conn_ids.c_str());
-    std::regex regex_ids(",\\s*");
- 
-    std::vector<std::string> out_ids(
-                    std::sregex_token_iterator(str_ids.begin(), str_ids.end(), regex_ids, -1),
-                    std::sregex_token_iterator()
-                    );
+    std::vector<quark::pstring> out_ids(MAX_PARAMS_CNT);
+    quark::strings::split(memif_conn_ids, ",", out_ids.begin());
 
-    std::vector<uint32_t> uint_memif_ids(out_ids.size(), 0);
+    std::vector<uint32_t> uint_memif_ids;
     for (int i = 0; i < out_ids.size(); i++)
     {
-      quark::u32 val;
-      quark::strings::fromString(quark::pstring(out_ids[i].c_str()), val);
-      uint_memif_ids[i] = val;
+      if (!out_ids[i].empty())
+      {
+        quark::u32 val;
+        quark::strings::fromString(quark::pstring(out_ids[i].c_str()), val);
+        printf("%d\n", val);
+        uint_memif_ids.push_back(val);
+      }
     }
 
 		custom_tracer::instance().setFile("ciph_app.log");
