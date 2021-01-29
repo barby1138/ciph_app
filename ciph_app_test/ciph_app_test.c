@@ -816,7 +816,7 @@ void* send_proc(void* data)
 	printf ("flush ...\n");
 	retries = 0;
 
-	uint32_t all_pck_count = thread_data[cid].seq + 1;
+	uint32_t all_pck_count = thread_data[cid].seq + 1;  // num_pck + num_pck_per_batch + sess cr
 
 /*
 	// NOTE. for test - close session before flush
@@ -825,7 +825,9 @@ void* send_proc(void* data)
 	if (0 != res) printf ("close_session ERROR\n");
 */
 
-    while (thread_data[cid].total_size < all_pck_count) // num_pck + num_pck_per_batch + sess cr/cl
+	// disconnect while send (client crash simulation)
+    while (thread_data[cid].total_size < all_pck_count / 2)
+    //while (thread_data[cid].total_size < all_pck_count)
 	{
       	res = ciph_agent_poll(cid, QID_USER, MAX_CONN_CLIENT_BURST);
 		if (res == -2) printf ("ciph_agent_poll ERROR\n");;

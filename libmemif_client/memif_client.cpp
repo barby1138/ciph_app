@@ -199,9 +199,6 @@ int on_connect (memif_conn_handle_t conn, void *private_ctx)
     memif_refill_queue (conn, i, -1, ICMPR_HEADROOM);
   }
 
-//  memif_refill_queue (conn, 0, -1, ICMPR_HEADROOM);
-//  memif_refill_queue (conn, 1, -1, ICMPR_HEADROOM);
-
   long index = *((long *)private_ctx);
   if (index >= MAX_CONNS)
   {
@@ -220,10 +217,8 @@ int on_connect (memif_conn_handle_t conn, void *private_ctx)
     return -1;
   }
 
-  {
-    c->connected = 1;
-    INFO ("memif connected! %d ind %d", c->connected, index);
-  }
+  c->connected = 1;
+  INFO ("memif connected! %d ind %d", c->connected, index);
 
   if (c->on_connect_fn)
     c->on_connect_fn(index);
@@ -237,11 +232,6 @@ int on_disconnect (memif_conn_handle_t conn, void *private_ctx)
 
   // [OT] is called before delete queues
 
-  INFO ("wait");
-  LOCK_GUARD lock(m);
-
-  INFO ("wait done");
-
   long index = *((long *)private_ctx);
   if (index >= MAX_CONNS)
   {
@@ -260,11 +250,12 @@ int on_disconnect (memif_conn_handle_t conn, void *private_ctx)
     return -1;
   }
 
-  {
-    c->connected = 0;
-    INFO ("memif disconnected! %d ind %d", c->connected, index);
-  }
+  INFO ("memif disconnected! %d ind %d", c->connected, index);
+  c->connected = 0;
 
+  // ensure we out of send and poll before releasing the rings
+  LOCK_GUARD lock(m);
+  
   if (c->on_disconnect_fn)
     c->on_disconnect_fn(index);
 
@@ -295,7 +286,7 @@ int control_fd_update (int fd, uint8_t events, void *ctx)
 // rollback
 int on_interrupt00_poll (long index, uint16_t qid, uint32_t count)
 {
-    if (index >= MAX_CONNS)
+  if (index >= MAX_CONNS)
   {
     ERROR ("connection array overflow");
     return -1;
@@ -804,7 +795,7 @@ void Memif_client::print_info ()
   free (buf);
 }
 
-enum { MAX_SEND_RETRIES = 1000 };
+enum { MAX_SEND_RETRIES = 1000000 };
 //enum { RETRY_WAIT_FACTOR = 2 };
 
 int Memif_client::send(long index, uint16_t qid, uint64_t size, IMsg_burst_serializer& ser)
@@ -849,23 +840,16 @@ int Memif_client::send(long index, uint16_t qid, uint64_t size, IMsg_burst_seria
 
       if (retries > MAX_SEND_RETRIES)
       {
-        /*
-        if (retries_cyc)
-          INFO ("send retries > MAX_SEND_RETRIES_TOT %d", retries_cyc);
-        retries_cyc++;
-        */
-
+        //INFO ("send retries > MAX_SEND_RETRIES");
         retries = 0;
+        //m.unlock();
 
-        m.unlock();
         usleep(10 * 1000);
 
-        m.lock();
+        //m.lock();
         if (c->connected == 0)
         {
           INFO ("disconnect while send - not connected");
-          // not needed? called in guard destr
-          // m.unlock();
           return -2;
         }  
       }

@@ -226,7 +226,8 @@ int main(int argc, char** argv)
         res = Ciph_agent_sngl::instance().poll_00(i, 0, 64);     
         res = Ciph_agent_sngl::instance().poll_00(i, 1, 64);  
       }   
-//      }
+
+//    }
     }
 
     Ciph_agent_sngl::instance().conn_free(0);
