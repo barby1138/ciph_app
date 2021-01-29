@@ -45,20 +45,20 @@ void usage()
 
 void print_buff(uint8_t* data, int len)
 {
-  fprintf(stdout, "ciph app length %d\n", len);
+  printf("ciph app length %d\n", len);
 
   int c = 0;
-  fprintf(stdout, "%03d ", c++);
+  printf("%03d ", c++);
 
   for(int i = 0; i < len; ++i)
   {
-    fprintf(stdout, "%02X%s", data[i], ( i + 1 ) % 16 == 0 ? "\r\n" : " " );
+    printf("%02X%s", data[i], ( i + 1 ) % 16 == 0 ? "\r\n" : " " );
 
     if (( i + 1 ) % 16 == 0)
-      fprintf(stdout, "%03d ", c++);
+      printf("%03d ", c++);
   }
 
-  fprintf(stdout, "\r\n");
+  printf("\r\n");
 }
 
 void on_job_complete_cb (uint32_t cid, uint16_t qid, Crypto_operation* pjob, uint32_t size)
