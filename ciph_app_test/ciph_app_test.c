@@ -641,9 +641,9 @@ enum TEST_TYPE
 	TT_VERIFY
 };
 
-enum TEST_TYPE test_type = TT_VERIFY;
+//enum TEST_TYPE test_type = TT_VERIFY;
 //enum TEST_TYPE test_type = TT_MAX_TP;
-//enum TEST_TYPE test_type = TT_TARGET_TP;
+enum TEST_TYPE test_type = TT_TARGET_TP;
 
 // TODO negative cases
 // bad sessid, too big buffer
@@ -826,8 +826,8 @@ void* send_proc(void* data)
 */
 
 	// disconnect while send (client crash simulation)
-    while (thread_data[cid].total_size < all_pck_count / 2)
-    //while (thread_data[cid].total_size < all_pck_count)
+    //while (thread_data[cid].total_size < all_pck_count / 2)
+    while (thread_data[cid].total_size < all_pck_count)
 	{
       	res = ciph_agent_poll(cid, QID_USER, MAX_CONN_CLIENT_BURST);
 		if (res == -2) printf ("ciph_agent_poll ERROR\n");;
