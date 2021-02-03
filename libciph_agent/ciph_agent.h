@@ -217,8 +217,11 @@ enum { MAX_CONNECTIONS = 20, OPS_POOL_PER_CONN_SIZE = 256 };
 
 class Ciph_comm_agent
 {
+private:
+    enum { MAX_CONN_PER_CLIENT = 2 };
+
 public:
-    int init();
+    int init(int32_t client_id = -1);
     int cleanup();
 
     int conn_alloc( uint32_t conn_id, 
@@ -238,18 +241,51 @@ private:
     static void on_connected (uint32_t conn_id) {}
     static void on_disconnected (uint32_t conn_id) {}
 
+    static inline uint32_t get_memif_conn_id(uint32_t conn_id) 
+    { 
+        //printf("get_memif_conn_id conn_id (%d)\n", conn_id);
+
+        return (_client_id == -1 ) ? conn_id : conn_id + MAX_CONN_PER_CLIENT * _client_id; 
+    }
+
+    static inline uint32_t get_conn_id(uint32_t memif_conn_id) 
+    { 
+        //printf("get_conn_id memif_conn_id (%d)\n", memif_conn_id);
+
+        return (_client_id == -1 ) ? memif_conn_id : memif_conn_id - MAX_CONN_PER_CLIENT * _client_id; 
+    }
+
+    static inline int32_t check_conn_id(uint32_t conn_id) 
+    {
+        if (_client_id == -1)
+            return 0;
+
+        if (conn_id < MAX_CONN_PER_CLIENT)
+            return 0;
+
+        printf("conn_id out of range conn_id (%d) >= MAX_CONN_PER_CLIENT (%d)\n", conn_id, MAX_CONN_PER_CLIENT);
+
+        return -1;
+    }
+
 private:
     static on_ops_complete_CallBk_t _cb[MAX_CONNECTIONS];
     static Crypto_operation _pool_vecs[MAX_CONNECTIONS][OPS_POOL_PER_CONN_SIZE];
 
     Memif_client _client;
+
+    static int32_t _client_id;
 };
 
+int32_t Ciph_comm_agent::_client_id = -1;
 on_ops_complete_CallBk_t Ciph_comm_agent::_cb[MAX_CONNECTIONS] = { 0 };
 Crypto_operation Ciph_comm_agent::_pool_vecs[MAX_CONNECTIONS][OPS_POOL_PER_CONN_SIZE] = { 0 };
 
-static void Ciph_comm_agent::on_recv_cb (uint32_t conn_id, uint16_t qid, const typename Memif_client::Conn_buffer_t* rx_bufs, uint32_t len)
+static void Ciph_comm_agent::on_recv_cb (uint32_t memif_conn_id, uint16_t qid, const typename Memif_client::Conn_buffer_t* rx_bufs, uint32_t len)
 { 
+    uint32_t conn_id = get_conn_id(memif_conn_id);
+
+    assert(0 == check_conn_id(conn_id));
     assert(len <= OPS_POOL_PER_CONN_SIZE);
 
     for(int i = 0; i < len; ++i)
@@ -259,8 +295,10 @@ static void Ciph_comm_agent::on_recv_cb (uint32_t conn_id, uint16_t qid, const t
         _cb[conn_id](conn_id, qid, _pool_vecs[conn_id], len);
 }
 
-int Ciph_comm_agent::init()
+int Ciph_comm_agent::init(int32_t client_id)
 {
+    _client_id = client_id;
+
     memset(_pool_vecs, 0, MAX_CONNECTIONS * OPS_POOL_PER_CONN_SIZE * sizeof(Crypto_operation));
 
     return _client.init();
@@ -271,16 +309,14 @@ int Ciph_comm_agent::cleanup()
     return _client.cleanup();
 }
 
-int Ciph_comm_agent::conn_alloc( uint32_t conn_id, 
+int Ciph_comm_agent::conn_alloc(uint32_t conn_id, 
                                 uint32_t mode, 
                                 on_ops_complete_CallBk_t on_ops_complete_CallBk,
                                 on_connect_CallBk_t on_connect_CallBk,
                                 on_disconnect_CallBk_t on_disconnect_CallBk)
 {
-    // TODO check conn_id
-    // TODO check if already allocated
-
-    int res;
+    if (0 != check_conn_id(conn_id))
+        return -1;
 
     _cb[conn_id] = on_ops_complete_CallBk;
 
@@ -289,39 +325,46 @@ int Ciph_comm_agent::conn_alloc( uint32_t conn_id,
     conn_config._on_connect_fn = on_connect_CallBk;
     conn_config._on_disconnect_fn = on_disconnect_CallBk;
     conn_config._mode = mode;
-    //conn_config._q_nb = q_nb;
 
-    res = _client.conn_alloc(conn_id, conn_config);
+    int res = _client.conn_alloc(get_memif_conn_id(conn_id), conn_config);
 
-    return 0;
+    return res;
 }
 
 int Ciph_comm_agent::conn_free(uint32_t conn_id)
 {
+    if (0 != check_conn_id(conn_id))
+        return -1;
+
     _cb[conn_id] = NULL;
 
-    return _client.conn_free(conn_id);
+    return _client.conn_free(get_memif_conn_id(conn_id));
 }
 
 int Ciph_comm_agent::send(uint32_t conn_id, uint16_t qid, const Crypto_operation* vecs, uint32_t size)
 {
+    if (0 != check_conn_id(conn_id))
+        return -1;
+
     Ciph_vec_burst_serializer ser(vecs, size);
 
-    return _client.send(conn_id, qid, size, ser);
+    return _client.send(get_memif_conn_id(conn_id), qid, size, ser);
 }
 
 int Ciph_comm_agent::poll(uint32_t conn_id, uint16_t qid, uint32_t size)
 {
-    int res =_client.poll(conn_id, qid, size);
+    if (0 != check_conn_id(conn_id))
+        return -1;
 
-    return res;
+    return _client.poll(get_memif_conn_id(conn_id), qid, size);
 }
 
 int Ciph_comm_agent::poll_00(uint32_t conn_id, uint16_t qid, uint32_t size)
 {
-    int res =_client.poll_00(conn_id, qid, size);
+    if (0 != check_conn_id(conn_id))
+        return -1;
 
-    return res;
+    return _client.poll_00(get_memif_conn_id(conn_id), qid, size);
 }
 
 template<typename T>

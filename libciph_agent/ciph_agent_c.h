@@ -14,7 +14,7 @@ extern "C"
 /*
 * initializes communication client
 */
-int32_t ciph_agent_init();
+int32_t ciph_agent_init(uint32_t client_id);
 
 /*
 * frees and cleans up communication client

@@ -18,7 +18,8 @@
 
 #include <unistd.h> //usleep
 
-#include <regex>
+#include <thread>
+#include <mutex> 
 
 typedef tracer
 <
@@ -122,14 +123,26 @@ void on_job_complete_cb_test_2 (uint32_t cid, uint16_t qid, Crypto_operation* pj
   
 }
 
+std::set<uint32_t> _active_connections;
+std::mutex m;
+typedef std::lock_guard<std::mutex> LOCK_GUARD;
+
 void on_connect_cb (uint32_t cid)
 {
+  LOCK_GUARD lock (m);
+
   TRACE_INFO("on_connect_cb %d", cid);
+
+  _active_connections.insert(cid);
 }
 
 void on_disconnect_cb (uint32_t cid, uint16_t qid, Crypto_operation* pjob, uint32_t size)
 {
+  LOCK_GUARD lock (m);
+
   TRACE_INFO("on_disconnect_cb %d", cid);
+
+  _active_connections.erase(cid);
 
   Dpdk_cryptodev_client_sngl::instance().cleanup_conn(cid);
 }
@@ -176,6 +189,7 @@ int main(int argc, char** argv)
     quark::strings::split(memif_conn_ids, ",", out_ids.begin());
 
     std::vector<uint32_t> uint_memif_ids;
+    std::vector<uint32_t> uint_client_ids;
     for (int i = 0; i < out_ids.size(); i++)
     {
       if (!out_ids[i].empty())
@@ -183,7 +197,7 @@ int main(int argc, char** argv)
         quark::u32 val;
         quark::strings::fromString(quark::pstring(out_ids[i].c_str()), val);
         //printf("%d\n", val);
-        uint_memif_ids.push_back(val);
+        uint_client_ids.push_back(val);
       }
     }
 
@@ -205,8 +219,16 @@ int main(int argc, char** argv)
     
     Ciph_agent_sngl::instance().init();
 
+    for (uint32_t i : uint_client_ids)
+    {
+      uint_memif_ids.push_back(i*2);
+      uint_memif_ids.push_back(i*2 + 1);
+    }
+
     for (uint32_t i : uint_memif_ids)
     {
+      TRACE_INFO("conn_alloc id %d", i);
+
       Ciph_agent_sngl::instance().conn_alloc(i, 1, 
                           //on_job_complete_cb_test_2, 
                           on_job_complete_cb, 
@@ -217,17 +239,18 @@ int main(int argc, char** argv)
     while(1)
     {
       usleep(100);
-/*
-      {
-      meson::bench_scope_low scope("poll");
-*/
-      for (uint32_t i : uint_memif_ids)
-      {
-        res = Ciph_agent_sngl::instance().poll_00(i, 0, 64);     
-        res = Ciph_agent_sngl::instance().poll_00(i, 1, 64);  
-      }   
 
-//    }
+      {
+          LOCK_GUARD lock (m);
+
+          //meson::bench_scope_low scope("poll");
+
+          for (uint32_t i : _active_connections)
+          {
+            res = Ciph_agent_sngl::instance().poll_00(i, 0, 64);     
+            res = Ciph_agent_sngl::instance().poll_00(i, 1, 64);  
+          }   
+      }
     }
 
     Ciph_agent_sngl::instance().conn_free(0);

@@ -867,13 +867,13 @@ void* send_proc(void* data)
 
 int main(int argc, char* argv[])
 {
-    long cid_0 = 2;
-    long cid_1 = 3;
+    long cid_0 = 0;
+    long cid_1 = 1;
 
 	time_t t;
 	srand((unsigned) time(&t));
 
-    ciph_agent_init();
+    ciph_agent_init(0);
 
 	memset(thread_data, 0, THR_CNT * sizeof(thread_data_t));
 
@@ -910,18 +910,21 @@ int main(int argc, char* argv[])
 
 	usleep(1000 * 1000); 
 
-	if (TT_TARGET_TP == test_type)
+	//if (TT_TARGET_TP == test_type)
 	{
   		pthread_create (&thread[cid_0], NULL, send_proc, (void *)&cid_0);
 		printf("cr 0\n");
 	}
+
 	pthread_create (&thread[cid_1], NULL, send_proc, (void *)&cid_1);
 	printf("cr 1\nn");
-	if (TT_TARGET_TP == test_type)
+
+	//if (TT_TARGET_TP == test_type)
 	{
 		pthread_join(thread[cid_0], &res);
 		printf("Joined with thread %ld; returned value was %s\n", cid_0, (char *) res);
 	}
+
 	pthread_join(thread[cid_1], &res);
 	printf("Joined with thread %ld; returned value was %s\n", cid_1, (char *) res);
 	}

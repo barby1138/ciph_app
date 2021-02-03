@@ -3,9 +3,9 @@
 #include "ciph_agent.h"
 #include "ciph_agent_c.h"
 
-int32_t ciph_agent_init()
+int32_t ciph_agent_init(uint32_t client_id)
 {
-    return Ciph_agent_sngl::instance().init();
+    return Ciph_agent_sngl::instance().init(client_id);
 }
 
 int32_t ciph_agent_cleanup()

@@ -43,13 +43,9 @@
 #define APP_NAME "APP"
 #define IF_NAME "memif_connection"
 
-#include <mutex> 
-std::recursive_mutex m;
-typedef std::lock_guard<std::recursive_mutex> LOCK_GUARD;
-
 /* maximum tx/rx memif buffers */
 #define MAX_MEMIF_BUFS 64
-#define MAX_CONNS 50
+#define MAX_CONNS 100
 #define ICMPR_HEADROOM 64
 
 #define BUFF_SIZE 2048 - ICMPR_HEADROOM
@@ -112,6 +108,7 @@ typedef struct
   on_disconnect_fn_t on_disconnect_fn;
 
   int connected;
+
 } memif_connection_t;
 
 int epfd;
@@ -184,25 +181,11 @@ int on_connect (memif_conn_handle_t conn, void *private_ctx)
   INFO ("on_connect");
 
   // [OT] is called after create queues
-  LOCK_GUARD lock(m);
-
-  for (uint32_t i = 0; i < MAX_Q_SIZE; i++)
-  {
-    int err = memif_set_rx_mode (conn, MEMIF_RX_MODE_POLLING, i);
-    
-    if (err != MEMIF_ERR_SUCCESS)
-    {
-	    ERROR ("memif_set_rx_mode: %s qid: %u", memif_strerror (err), i);
-      return -1;
-    }
-
-    memif_refill_queue (conn, i, -1, ICMPR_HEADROOM);
-  }
 
   long index = *((long *)private_ctx);
   if (index >= MAX_CONNS)
   {
-    ERROR ("connection array overflow");
+    ERROR ("connection array overflow %d", index);
     return -1;
   }
   if (index < 0)
@@ -215,6 +198,19 @@ int on_connect (memif_conn_handle_t conn, void *private_ctx)
   {
     ERROR ("invalid context: %ld/%u", index, c->index);
     return -1;
+  }
+
+  for (uint32_t i = 0; i < MAX_Q_SIZE; i++)
+  {
+    int err = memif_set_rx_mode (conn, MEMIF_RX_MODE_POLLING, i);
+    
+    if (err != MEMIF_ERR_SUCCESS)
+    {
+	    ERROR ("memif_set_rx_mode: %s qid: %u", memif_strerror (err), i);
+      return -1;
+    }
+
+    memif_refill_queue (conn, i, -1, ICMPR_HEADROOM);
   }
 
   c->connected = 1;
@@ -235,7 +231,7 @@ int on_disconnect (memif_conn_handle_t conn, void *private_ctx)
   long index = *((long *)private_ctx);
   if (index >= MAX_CONNS)
   {
-    ERROR ("connection array overflow");
+    ERROR ("connection array overflow %d", index);
     return -1;
   }
   if (index < 0)
@@ -253,9 +249,6 @@ int on_disconnect (memif_conn_handle_t conn, void *private_ctx)
   INFO ("memif disconnected! %d ind %d", c->connected, index);
   c->connected = 0;
 
-  // ensure we out of send and poll before releasing the rings
-  LOCK_GUARD lock(m);
-  
   if (c->on_disconnect_fn)
     c->on_disconnect_fn(index);
 
@@ -288,7 +281,7 @@ int on_interrupt00_poll (long index, uint16_t qid, uint32_t count)
 {
   if (index >= MAX_CONNS)
   {
-    ERROR ("connection array overflow");
+    ERROR ("connection array overflow %d", index);
     return -1;
   }
   if (index < 0)
@@ -302,6 +295,11 @@ int on_interrupt00_poll (long index, uint16_t qid, uint32_t count)
     ERROR ("invalid context: %ld/%u", index, c->index);
     return -1;
   }
+
+  if (c->connected == 0)
+  {
+    return -2;
+  }  
 
   int err = MEMIF_ERR_SUCCESS, ret_val;
   int i;
@@ -359,7 +357,7 @@ int on_interrupt02_poll (long index, uint16_t qid, uint32_t count)
 {
   if (index >= MAX_CONNS)
   {
-    ERROR ("connection array overflow");
+    ERROR ("connection array overflow %d", index);
     return -1;
   }
   if (index < 0)
@@ -373,6 +371,11 @@ int on_interrupt02_poll (long index, uint16_t qid, uint32_t count)
     ERROR ("invalid context: %ld/%u", index, c->index);
     return -1;
   }
+
+  if (c->connected == 0)
+  {
+    return -2;
+  }  
 
   int err = MEMIF_ERR_SUCCESS, ret_val;
   int i;
@@ -399,11 +402,7 @@ int on_interrupt02_poll (long index, uint16_t qid, uint32_t count)
     c->buffs[qid].rx_buf_num += rx;
     c->rx_counter += rx;
 
-    //if (rx > 0)
-    //{
-    //printf ("on_interrupt02_poll CB qid %d\n", qid);
     c->on_recv_cb_fn(index, qid, c->buffs[qid].rx_bufs, rx);
-    //}
 
     err = memif_refill_queue (c->conn, qid, rx, ICMPR_HEADROOM);
     if (err != MEMIF_ERR_SUCCESS)
@@ -495,7 +494,7 @@ int Memif_client::conn_alloc (long index, const Memif_client::Conn_config_t& con
 {
     if (index >= MAX_CONNS)
     {
-      ERROR ("connection array overflow");
+      ERROR ("connection array overflow %d", index);
       return -1;
     }
 
@@ -570,12 +569,12 @@ int Memif_client::conn_free (long index)
 {
   if (index >= MAX_CONNS)
   {
-      INFO ("connection array overflow");
+      ERROR ("connection array overflow %d", index);
       return -1;
   }
   if (index < 0)
   {
-      INFO ("don't even try...");
+      ERROR ("don't even try...");
       return -1;
   }
   memif_connection_t *c = &memif_connection[index];
@@ -584,9 +583,9 @@ int Memif_client::conn_free (long index)
   /* disconenct then delete memif connection */
   err = memif_delete (&c->conn);
   if (err != MEMIF_ERR_SUCCESS)
-    INFO ("memif_delete: %s", memif_strerror (err));
+    ERROR ("memif_delete: %s", memif_strerror (err));
   if (c->conn != NULL)
-    INFO ("memif delete fail");
+    ERROR ("memif delete fail");
 
   for (uint32_t qid = 0; qid < MAX_Q_SIZE; ++qid)
   {
@@ -607,7 +606,7 @@ int Memif_client::set_rx_mode (long index, long qid, char *mode)
 {
   if (index >= MAX_CONNS)
   {
-      ERROR ("connection array overflow");
+      ERROR ("connection array overflow %d", index);
       return -1;
   }
   if (index < 0)
@@ -632,73 +631,23 @@ int Memif_client::set_rx_mode (long index, long qid, char *mode)
       memif_set_rx_mode (c->conn, MEMIF_RX_MODE_POLLING, qid);
   }
   else
-    INFO ("expected rx mode <interrupt|polling>");
+  {
+      INFO ("expected rx mode <interrupt|polling>");
+  }
 
   return 0;
 }
 
 int Memif_client::poll_00 (long index, uint16_t qid, uint32_t size)
 {
-  LOCK_GUARD lock(m);
-
-  int res;
-
-  if (index >= MAX_CONNS)
-  {
-    ERROR ("connection array overflow");
-    return -1;
-  }
-  if (index < 0)
-  {
-    ERROR ("don't even try...");
-    return -1;
-  }
-  memif_connection_t *c = &memif_connection[index];
-  if (c->index != index)
-  {
-    ERROR ("invalid context: %ld/%u", index, c->index);
-    return -1;
-  }
-
-  if (c->connected == 0)
-  {
-    return -2;
-  }  
-
-  res = on_interrupt00_poll (index, qid, size);
+  int res = on_interrupt00_poll (index, qid, size);
 
   return res;
 }
 
 int Memif_client::poll (long index, uint16_t qid, uint32_t size)
 {
-  LOCK_GUARD lock(m);
-
-  int res;
-
-  if (index >= MAX_CONNS)
-  {
-    ERROR ("connection array overflow");
-    return -1;
-  }
-  if (index < 0)
-  {
-    ERROR ("don't even try...");
-    return -1;
-  }
-  memif_connection_t *c = &memif_connection[index];
-  if (c->index != index)
-  {
-    ERROR ("invalid context: %ld/%u", index, c->index);
-    return -1;
-  }
-
-  if (c->connected == 0)
-  {
-    return -2;
-  }  
-
-  res = on_interrupt02_poll (index, qid, size);
+  int res = on_interrupt02_poll (index, qid, size);
 
   return res;
 }
@@ -800,13 +749,11 @@ enum { MAX_SEND_RETRIES = 1000000 };
 
 int Memif_client::send(long index, uint16_t qid, uint64_t size, IMsg_burst_serializer& ser)
 {
-  LOCK_GUARD guard(m);
-
   uint64_t count = size;
 
   if (index >= MAX_CONNS)
   {
-    ERROR ("connection array overflow");
+    ERROR ("connection array overflow %d", index);
     return -1;
   }
   if (index < 0)
@@ -826,7 +773,7 @@ int Memif_client::send(long index, uint16_t qid, uint64_t size, IMsg_burst_seria
     INFO ("send not connected");
     return -2;
   }  
-    
+
   uint16_t tx, i, ind = 0;
   int err = MEMIF_ERR_SUCCESS;
   uint32_t seq = 0;
@@ -842,11 +789,9 @@ int Memif_client::send(long index, uint16_t qid, uint64_t size, IMsg_burst_seria
       {
         //INFO ("send retries > MAX_SEND_RETRIES");
         retries = 0;
-        //m.unlock();
 
         usleep(10 * 1000);
 
-        //m.lock();
         if (c->connected == 0)
         {
           INFO ("disconnect while send - not connected");
