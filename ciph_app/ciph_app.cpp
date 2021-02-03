@@ -18,7 +18,7 @@
 
 #include <unistd.h> //usleep
 
-#include <thread>
+//#include <thread>
 #include <mutex> 
 
 typedef tracer
@@ -69,7 +69,7 @@ void on_job_complete_cb (uint32_t cid, uint16_t qid, Crypto_operation* pjob, uin
 
   Dpdk_cryptodev_client_sngl::instance().run_jobs(cid, pjob, size);
 
-  Ciph_agent_sngl::instance().send(cid, qid, pjob, size);
+  Ciph_agent_server_sngl::instance().send(cid, qid, pjob, size);
 }
 
 void on_job_complete_cb_test_1 (uint32_t cid, uint16_t qid, Crypto_operation* pjob, uint32_t size)
@@ -92,7 +92,7 @@ void on_job_complete_cb_test_1 (uint32_t cid, uint16_t qid, Crypto_operation* pj
   {
   meson::bench_scope_low scope("send");
 
-  Ciph_agent_sngl::instance().send(cid, qid, pjob, size);
+  Ciph_agent_server_sngl::instance().send(cid, qid, pjob, size);
   }
 
   }
@@ -112,13 +112,13 @@ void on_job_complete_cb_test_2 (uint32_t cid, uint16_t qid, Crypto_operation* pj
   {
     Dpdk_cryptodev_client_sngl::instance().run_jobs_test(cid, pjob, size);
     //Dpdk_cryptodev_client_sngl::instance().run_jobs(cid, pjob, size);
-    Ciph_agent_sngl::instance().send(cid, qid, pjob, size);
+    Ciph_agent_server_sngl::instance().send(cid, qid, pjob, size);
   }
 
   if (qid == 1)
   {
     Dpdk_cryptodev_client_sngl::instance().run_jobs(cid, pjob, size);
-    Ciph_agent_sngl::instance().send(cid, qid, pjob, size);
+    Ciph_agent_server_sngl::instance().send(cid, qid, pjob, size);
   }
   
 }
@@ -217,7 +217,7 @@ int main(int argc, char** argv)
 
     Dpdk_cryptodev_client_sngl::instance().test(CRYPTO_CIPHER_AES_CBC, CRYPTO_CIPHER_OP_DECRYPT);
     
-    Ciph_agent_sngl::instance().init();
+    Ciph_agent_server_sngl::instance().init(-1);
 
     for (uint32_t i : uint_client_ids)
     {
@@ -229,10 +229,11 @@ int main(int argc, char** argv)
     {
       TRACE_INFO("conn_alloc id %d", i);
 
-      Ciph_agent_sngl::instance().conn_alloc(i, 1, 
+      Ciph_agent_server_sngl::instance().conn_alloc(i, 
                           //on_job_complete_cb_test_2, 
                           on_job_complete_cb, 
-                          on_connect_cb, on_disconnect_cb);
+                          on_connect_cb, 
+                          on_disconnect_cb);
     }
 
     int res;
@@ -247,16 +248,17 @@ int main(int argc, char** argv)
 
           for (uint32_t i : _active_connections)
           {
-            res = Ciph_agent_sngl::instance().poll_00(i, 0, 64);     
-            res = Ciph_agent_sngl::instance().poll_00(i, 1, 64);  
+            res = Ciph_agent_server_sngl::instance().poll(i, 0, 64);     
+            res = Ciph_agent_server_sngl::instance().poll(i, 1, 64);  
           }   
       }
     }
 
-    Ciph_agent_sngl::instance().conn_free(0);
-    Ciph_agent_sngl::instance().conn_free(1);
+    // TODO
+    Ciph_agent_server_sngl::instance().conn_free(0);
+    Ciph_agent_server_sngl::instance().conn_free(1);
 
-    Ciph_agent_sngl::instance().cleanup();
+    Ciph_agent_server_sngl::instance().cleanup();
 
     Dpdk_cryptodev_client_sngl::instance().cleanup();
 

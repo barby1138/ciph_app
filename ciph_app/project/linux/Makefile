@@ -42,7 +42,8 @@ CFLAGS += -DVERSION=\"$(_VERSION_)\" -DALLOW_EXPERIMENTAL_API -D_LINUX -D_REDHAT
 #CFLAGS += -O3
 
 # all source are stored in SRCS-y
-SRCS-y := ../../ciph_app.cpp
+SRCS-y := $(ROOTDIR)/ciph_app/ciph_app.cpp \
+			$(ROOTDIR)/libciph_agent/ciph_agent.cpp
 
 INCLUDE = -I$(ROOTDIR) -I$(ROOTDIR)/dpdk -I$(ROOTDIR)/libdpdk_cryptodev_client -I$(ROOTDIR)/libciph_agent \
 		-I$(ROOTDIR)/libmemif_client \

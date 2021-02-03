@@ -668,7 +668,7 @@ void* send_proc(void* data)
 
 	thread_data[cid].seq = 0;
 
-    ciph_agent_conn_alloc(cid, CA_MODE_SLAVE, thread_data[cid].cb);
+    ciph_agent_conn_alloc(cid, thread_data[cid].cb);
 
     printf ("start %ld ...\n", cid);
 

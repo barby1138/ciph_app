@@ -3,8 +3,6 @@
 
 #include "data_vectors.h"
 
-enum { CA_MODE_SLAVE = 0, CA_MODE_MASTER = 1 };
-
 typedef void (*on_ops_complete_CallBk_t) (uint32_t, uint16_t, Crypto_operation*, uint32_t);
 
 #ifdef __cplusplus
@@ -26,7 +24,7 @@ int32_t ciph_agent_cleanup();
 * cid - connection unique id
 * cb - call back which is called for batch of completed jobs during polling and in polling context
 */
-int32_t ciph_agent_conn_alloc(uint32_t cid, uint32_t mode, on_ops_complete_CallBk_t cb);
+int32_t ciph_agent_conn_alloc(uint32_t cid, on_ops_complete_CallBk_t cb);
 
 /*
 * frees connection
