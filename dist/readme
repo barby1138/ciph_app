@@ -1,9 +1,9 @@
 1. Cleanup
-rpm -e ciph_app-1.0.1-1.el7.centos.x86_64
+rpm -e ciph_app-<VERSION>-rel.centos.x86_64
 
 2. Install
 cd ~/ciph_app
-rpm -i ciph_app-1.0.1-1.el7.centos.x86_64.rpm
+rpm -i ciph_app-<VERSION>-rel.centos.x86_64.rpm
 
 #manipulate container
 lxc-stop -n ciph_app
@@ -19,12 +19,11 @@ lxc-attach -n ciph_app
 3. Build and run CIPH_APP_TEST
 cd ~/ciph_app
 # Unpack DEVEL packadge
-tar zxf dist/ciph_app_devel-1.0.1.tar.gz
+tar zxf dist/ciph_app_devel-<VERSION>.tar.gz
 
 [ciph_app_devel]
     |-- [lib]
-    |      |-- libciph_agent.a
-    |      |-- libmemif_client.a
+    |      |-- libciph_agent.so
     |
     |-- [include]
     |      |-- ciph_agent_c.h
@@ -37,7 +36,7 @@ tar zxf dist/ciph_app_devel-1.0.1.tar.gz
     |-- VERSION
 
 # build CIPH_APP_TEST
-cd ciph_app_devel/examoles && ./build.sh
+cd ciph_app_devel/examoles && . ./build.sh
 
 # run CIPH_APP_TEST
 ./ciph_app_test
