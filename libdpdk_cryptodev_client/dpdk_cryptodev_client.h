@@ -37,6 +37,8 @@ public:
 
     int cleanup_conn(int ch_id);
 
+    //review
+    int _print_dbg;
 private:
     int init_inner();
 

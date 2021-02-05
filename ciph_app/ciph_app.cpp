@@ -202,13 +202,22 @@ int main(int argc, char** argv)
     }
 
 		custom_tracer::instance().setFile("ciph_app.log");
-		custom_tracer::instance().setMask(tlInfo);
+
+    uint32_t tl = tlWarning;
+    if (level.compare("info") == 0)
+      tl = tlInfo;
+    if (level.compare("debug") == 0)
+      tl = tlDebug;
+
+    custom_tracer::instance().setMask(tl);
 
 		TRACE_INFO("Ver: %s", VERSION);
 
 		Dpdk_cryptodev_client_sngl::instance().init(pchar_dpdk_init_str.size(), &pchar_dpdk_init_str[0]);
-
+    Dpdk_cryptodev_client_sngl::instance()._print_dbg = (tl == tlDebug) ? 1 : 0;
+    
     // local test TP
+    /*
     Dpdk_cryptodev_client_sngl::instance().test(CRYPTO_CIPHER_SNOW3G_UEA2, CRYPTO_CIPHER_OP_ENCRYPT);
 
     Dpdk_cryptodev_client_sngl::instance().test(CRYPTO_CIPHER_AES_CBC, CRYPTO_CIPHER_OP_ENCRYPT);
@@ -216,7 +225,7 @@ int main(int argc, char** argv)
     Dpdk_cryptodev_client_sngl::instance().test(CRYPTO_CIPHER_SNOW3G_UEA2, CRYPTO_CIPHER_OP_DECRYPT);
 
     Dpdk_cryptodev_client_sngl::instance().test(CRYPTO_CIPHER_AES_CBC, CRYPTO_CIPHER_OP_DECRYPT);
-    
+    */
     Ciph_agent_server_sngl::instance().init(-1);
 
     for (uint32_t i : uint_client_ids)

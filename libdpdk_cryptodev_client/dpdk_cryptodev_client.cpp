@@ -215,20 +215,72 @@ uint8_t cipher_key[] = {
 
 void print_buff1(uint8_t* data, int len)
 {
-  	fprintf(stdout, "test app length %d\n", len);
+	enum { BUFF_STR_MAX_LEN = 16 * 3 };
 
-  	int c = 0;
-  	fprintf(stdout, "%03d ", c++);
+	char buff_str[BUFF_STR_MAX_LEN];
 
-  	for(int i = 0; i < len; ++i)
-  	{
-		fprintf(stdout, "%02X%s", data[i], ( i + 1 ) % 16 == 0 ? "\r\n" : " " );
+	int i = 0;
+  	while(i < len)
+	{
+		int lim = (len - i > 16) ? 16 : len - i;
+		
+		for(int j = 0; j < lim; ++j)
+	  		snprintf(buff_str + j*3, BUFF_STR_MAX_LEN, "%02X%s", data[i + j], (( j + 1 ) % 16 == 0) ? " " : " ");
 
-    	if (( i + 1 ) % 16 == 0)
-      		fprintf(stdout, "%03d ", c++);
-  	}
+		RTE_LOG(INFO, USER1, buff_str);
 
-  	fprintf(stdout, "\r\n");
+		i += lim;
+	}
+
+	RTE_LOG(INFO, USER1, " ");
+}
+
+void print_buff_dbg(uint8_t* data, int len)
+{
+	enum { BUFF_STR_MAX_LEN = 16 * 3 };
+
+	char buff_str[BUFF_STR_MAX_LEN];
+
+	int i = 0;
+  	while(i < len)
+	{
+		int lim = (len - i > 16) ? 16 : len - i;
+		
+		for(int j = 0; j < lim; ++j)
+	  		snprintf(buff_str + j*3, BUFF_STR_MAX_LEN, "%02X%s", data[i + j], (( j + 1 ) % 16 == 0) ? " " : " ");
+
+		RTE_LOG(DEBUG, USER1, buff_str);
+
+		i += lim;
+	}
+
+	RTE_LOG(DEBUG, USER1, " ");
+}
+
+void print_buff_4_dbg(uint8_t* data, int len)
+{
+  	if (len < 4)
+	{
+	  	RTE_LOG(DEBUG, USER1, "< 4 bytes");
+	}
+	else
+	{
+	  	RTE_LOG(DEBUG, USER1, "%02X %02X %02X %02X", data[0], data[1], data[2], data[3]);
+	}
+}
+
+void print_buff_8_dbg(uint8_t* data, int len)
+{
+  	if (len < 4)
+	{
+	  	RTE_LOG(DEBUG, USER1, "< 4 bytes");
+	}
+	else
+	{
+	  	RTE_LOG(DEBUG, USER1, "%02X %02X %02X %02X", data[0], data[1], data[2], data[3]);
+
+	  	RTE_LOG(DEBUG, USER1, "%02X %02X %02X %02X", data[4], data[5], data[6], data[7]);
+	}
 }
 
 int Dpdk_cryptodev_client::fill_session_pool_socket(int32_t socket_id, uint32_t session_priv_size, uint32_t nb_sessions)
@@ -485,6 +537,8 @@ int Dpdk_cryptodev_client::init(int argc, char **argv)
 {
 	uint8_t i;
 
+	_print_dbg = 0;
+
 	int ret;
 	uint32_t lcore_id;
 
@@ -635,6 +689,15 @@ int Dpdk_cryptodev_client::preprocess_jobs(int ch_id,
 					// init with succ
 					jobs[i].op.op_status = CRYPTO_OP_STATUS_SUCC;
 					jobs[i].cipher_buff_list.buff_list_length = 1;
+
+					if (_print_dbg)
+					{
+						RTE_LOG(DEBUG, USER1, "sess_id %d", jobs[i].op.sess_id);
+						RTE_LOG(DEBUG, USER1, "IN DATA");
+						print_buff_dbg(jobs[i].cipher_buff_list.buffs[0].data, jobs[i].cipher_buff_list.buffs[0].length);
+						RTE_LOG(DEBUG, USER1, "IV");
+						print_buff_dbg(jobs[i].cipher_iv.data, jobs[i].cipher_iv.length);
+					}
 /*
 					if (jobs[i].op.cipher_op == CRYPTO_CIPHER_OP_ENCRYPT)
 						if ( 0 != memcmp((jobs[i].op.cipher_op == CRYPTO_CIPHER_OP_DECRYPT) ? ciphertext : plaintext,
@@ -679,6 +742,14 @@ int Dpdk_cryptodev_client::postprocess_jobs(int ch_id, Crypto_operation* jobs, u
 		}
 		else if (jobs[i].op.op_type == CRYPTO_OP_TYPE_SESS_CIPHERING)
 		{
+			if (_print_dbg)
+			{
+				RTE_LOG(DEBUG, USER1, "sess_id %d", jobs[i].op.sess_id);
+				RTE_LOG(DEBUG, USER1, "OUT DATA");
+				print_buff_dbg(jobs[i].cipher_buff_list.buffs[0].data, jobs[i].cipher_buff_list.buffs[0].length);
+				RTE_LOG(DEBUG, USER1, "IV");
+				print_buff_dbg(jobs[i].cipher_iv.data, jobs[i].cipher_iv.length);
+			}
 			;
 		}
 		else
@@ -1059,6 +1130,8 @@ int Dpdk_cryptodev_client::create_session(int ch_id, const Crypto_operation& vec
 			16,
 			vec.cipher_key.length);
 
+	print_buff1(vec.cipher_key.data, vec.cipher_key.length);
+
 	if (cipher_xform.cipher.algo != RTE_CRYPTO_CIPHER_NULL) 
 	{
 		cipher_xform.cipher.key.data = vec.cipher_key.data;
@@ -1082,6 +1155,8 @@ int Dpdk_cryptodev_client::create_session(int ch_id, const Crypto_operation& vec
 			_active_sessions_registry[ch_id][cdev_id][i] = s;
 
 			*sess_id = ( 0xFFFF0000 & ( (uint16_t) cdev_id << 16 ) ) | i;
+
+			RTE_LOG(INFO, USER1, "create_session SUCC id %d", *sess_id);
 
 			return 0;
 		}
