@@ -214,7 +214,7 @@ int main(int argc, char** argv)
 		TRACE_INFO("Ver: %s", VERSION);
 
 		Dpdk_cryptodev_client_sngl::instance().init(pchar_dpdk_init_str.size(), &pchar_dpdk_init_str[0]);
-    Dpdk_cryptodev_client_sngl::instance()._print_dbg = (tl == tlDebug) ? 1 : 0;
+    Dpdk_cryptodev_client_sngl::instance().set_print_dbg((tl == tlDebug) ? 1 : 0) ;
     
     // local test TP
     /*

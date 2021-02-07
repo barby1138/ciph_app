@@ -231,10 +231,9 @@ void print_buff1(uint8_t* data, int len)
 
 		i += lim;
 	}
-
-	RTE_LOG(INFO, USER1, " ");
 }
 
+#define PRINT_PCK_DBG
 void print_buff_dbg(uint8_t* data, int len)
 {
 	enum { BUFF_STR_MAX_LEN = 16 * 3 };
@@ -255,32 +254,6 @@ void print_buff_dbg(uint8_t* data, int len)
 	}
 
 	RTE_LOG(DEBUG, USER1, " ");
-}
-
-void print_buff_4_dbg(uint8_t* data, int len)
-{
-  	if (len < 4)
-	{
-	  	RTE_LOG(DEBUG, USER1, "< 4 bytes");
-	}
-	else
-	{
-	  	RTE_LOG(DEBUG, USER1, "%02X %02X %02X %02X", data[0], data[1], data[2], data[3]);
-	}
-}
-
-void print_buff_8_dbg(uint8_t* data, int len)
-{
-  	if (len < 4)
-	{
-	  	RTE_LOG(DEBUG, USER1, "< 4 bytes");
-	}
-	else
-	{
-	  	RTE_LOG(DEBUG, USER1, "%02X %02X %02X %02X", data[0], data[1], data[2], data[3]);
-
-	  	RTE_LOG(DEBUG, USER1, "%02X %02X %02X %02X", data[4], data[5], data[6], data[7]);
-	}
 }
 
 int Dpdk_cryptodev_client::fill_session_pool_socket(int32_t socket_id, uint32_t session_priv_size, uint32_t nb_sessions)
@@ -692,10 +665,10 @@ int Dpdk_cryptodev_client::preprocess_jobs(int ch_id,
 
 					if (_print_dbg)
 					{
-						RTE_LOG(DEBUG, USER1, "sess_id %d", jobs[i].op.sess_id);
-						RTE_LOG(DEBUG, USER1, "IN DATA");
+						RTE_LOG(DEBUG, USER1, "sess_id %d ch %d", jobs[i].op.sess_id, ch_id);
+						RTE_LOG(DEBUG, USER1, "IN DATA len %d ind %d", jobs[i].cipher_buff_list.buffs[0].length, i);
 						print_buff_dbg(jobs[i].cipher_buff_list.buffs[0].data, jobs[i].cipher_buff_list.buffs[0].length);
-						RTE_LOG(DEBUG, USER1, "IV");
+						RTE_LOG(DEBUG, USER1, "IV %d", jobs[i].cipher_iv.length);
 						print_buff_dbg(jobs[i].cipher_iv.data, jobs[i].cipher_iv.length);
 					}
 /*
@@ -744,10 +717,10 @@ int Dpdk_cryptodev_client::postprocess_jobs(int ch_id, Crypto_operation* jobs, u
 		{
 			if (_print_dbg)
 			{
-				RTE_LOG(DEBUG, USER1, "sess_id %d", jobs[i].op.sess_id);
-				RTE_LOG(DEBUG, USER1, "OUT DATA");
+				RTE_LOG(DEBUG, USER1, "sess_id %d ch %d", jobs[i].op.sess_id, ch_id);
+				RTE_LOG(DEBUG, USER1, "OUT DATA len %d ind %d", jobs[i].cipher_buff_list.buffs[0].length, i);
 				print_buff_dbg(jobs[i].cipher_buff_list.buffs[0].data, jobs[i].cipher_buff_list.buffs[0].length);
-				RTE_LOG(DEBUG, USER1, "IV");
+				RTE_LOG(DEBUG, USER1, "IV len %d", jobs[i].cipher_iv.length);
 				print_buff_dbg(jobs[i].cipher_iv.data, jobs[i].cipher_iv.length);
 			}
 			;
@@ -900,6 +873,10 @@ int Dpdk_cryptodev_client::set_ops_cipher(	rte_crypto_op **ops,
 													BLOCK_LENGTH :
 													0;
 
+/*
+		sym_op->cipher.data.length = vecs[j].cipher_buff_list.buffs[0].length;
+		sym_op->cipher.data.offset = 0;
+*/
 		//sym_op->cipher.data.length = vecs[j].cipher_buff_list.buffs[0].length;
 		//sym_op->cipher.data.offset = 0;	
 
@@ -1123,7 +1100,8 @@ int Dpdk_cryptodev_client::create_session(int ch_id, const Crypto_operation& vec
 
 	uint8_t cdev_id = algo2cdev_id_map[vec.op.cipher_algo];
 
-	RTE_LOG(INFO, USER1, "create_session alg:%d op:%s iv_offset:%d iv len %d key len %d", 
+	RTE_LOG(INFO, USER1, "create_session ch %d, alg:%d op:%s iv_offset:%d iv len %d key len %d", 
+			ch_id,
 			cipher_xform.cipher.algo, 
 			(cipher_xform.cipher.op == RTE_CRYPTO_CIPHER_OP_ENCRYPT) ? "ENC" : "DEC", 
 			cipher_xform.cipher.iv.offset, 

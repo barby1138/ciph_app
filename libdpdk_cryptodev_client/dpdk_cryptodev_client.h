@@ -37,8 +37,9 @@ public:
 
     int cleanup_conn(int ch_id);
 
-    //review
-    int _print_dbg;
+    int set_print_dbg(int do_enable)
+    { _print_dbg = (do_enable == 0) ? 0 : 1 ; }
+
 private:
     int init_inner();
 
@@ -113,8 +114,8 @@ private:
 
     // sess per channel
     rte_cryptodev_sym_session* _active_sessions_registry [MAX_CHANNEL_NUM][MAX_DEV_NUM][MAX_SESS_NUM];
-
-private:
+    
+    int _print_dbg;
 };
 
 #endif // _DPDK_CRYPTODEV_CLIENT_H_

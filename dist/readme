@@ -46,4 +46,13 @@ taskset 0x4 ./ciph_app_test
 4. If your client runs inside the container, make sure to update it's configuration
 echo "lxc.mount.entry = /tmp/ciph_app tmp/ciph_app none bind,private,create=file"  >> PATH_TO_YOUR_CONT/config
 
-5. Enjoy
+5. Iside stack Dockerfile add
+
+HASH=
+jfrog rt use pwartifactory
+jfrog rt dl --flat=true --fail-no-op=true --props "commitID=${HASH}" --sort-by=created --sort-order=desc --limit=1 "pw-products/ciph_app/"
+tar zxf *.tar.gz
+cd DIR
+rpm -i RPM
+
+6. Enjoy

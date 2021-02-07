@@ -5,6 +5,7 @@ enum { CA_MODE_SLAVE = 0, CA_MODE_MASTER = 1 };
 const uint32_t CIFER_IV_LENGTH = 16;
 
 // is it needed for SNOW?
+#define DO_BLOCK_PAD
 #ifdef DO_BLOCK_PAD
 const uint32_t BLOCK_LENGTH = 16;
 #endif
@@ -142,8 +143,8 @@ void crypto_job_from_buffer(uint8_t* buffer, uint32_t len, Crypto_operation* vec
 
     // [OT] this is temp patch will be done automatically inside server in REL2 (with dpdk shared mem)
 #ifdef DO_BLOCK_PAD
-    //vec->cipher_buff_list.buffs[0].data = buffer + pData_len->data_offset;
-    //vec->cipher_buff_list.buffs[0].length = pData_len->ciphertext_length - pData_len->data_offset;
+    vec->cipher_buff_list.buffs[0].data = buffer + pData_len->data_offset;
+    vec->cipher_buff_list.buffs[0].length = pData_len->ciphertext_length - pData_len->data_offset;
 #else
     vec->cipher_buff_list.buffs[0].data = buffer;
     vec->cipher_buff_list.buffs[0].length = pData_len->ciphertext_length;

@@ -54,6 +54,7 @@ cp ciph_app_test/ciph_app_test.c dist/ciph_app_devel/examples
 cp ciph_app_test/build.sh dist/ciph_app_devel/examples
 
 cp VERSION dist/ciph_app_devel
+cp dist/readme dist/ciph_app_devel
 
 echo =========== PACK DEVEL ==============
 cd $ROOT/dist
@@ -89,4 +90,3 @@ rpmbuild -bb --define "_ver $VER" ciph_app.spec
 echo =========== PACK RPM ==============
 cd $ROOT/dist
 cp ~/rpmbuild/RPMS/x86_64/*.rpm .
-

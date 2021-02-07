@@ -1,0 +1,120 @@
+node('docker_build'){
+   withCredentials([usernameColonPassword(credentialsId: 'BuildStatus', variable: 'BuildStatus')]) {
+      properties([
+           [$class: 'JiraProjectProperty', siteName: 'https://jira.parallelwireless.net/'],
+           [$class: 'RebuildSettings', autoRebuild: false, rebuildDisabled: false],
+           parameters([
+               string(defaultValue: '', description: 'Branch Name:', name: 'push_changes_0_new_name', trim: true),
+               string(defaultValue: '', description: 'Commit:', name: 'push_changes_0_new_target_hash', trim: true),
+           ]),
+           pipelineTriggers([
+               GenericTrigger(
+                   causeString: 'Push to branch \$push_changes_0_new_name',
+                   genericVariables: [
+                       [defaultValue: '', key: 'push', regexpFilter: '', value: '$.push'],
+                       [defaultValue: '', key: 'repository', regexpFilter: '', value: '$.repository']
+                   ],
+                   printContributedVariables: true,
+                   printPostContent: true,
+                   regexpFilterExpression: '',
+                   regexpFilterText: '',
+                   token: 'ciph_app'
+               )
+           ])
+      ])
+      def verCode = UUID.randomUUID().toString()
+      dir("${verCode}") {
+
+          def BRANCH = "${push_changes_0_new_name}"
+          env.GIT_COMMIT = "${push_changes_0_new_target_hash}"
+          commitId = env.GIT_COMMIT
+
+          //tell bitbucket that a build has started!
+          notifyBitbucket(
+            considerUnstableAsSuccess: true,
+            credentialsId: 'BuildStatus',
+            commitSha1: commitId,
+            disableInprogressNotification: false,
+            includeBuildNumberInKey: false,
+            stashServerBaseUrl: 'https://git.parallelwireless.net')
+
+          stage('Node Setup'){
+                  currentBuild.description = "${BRANCH}"
+                  currentBuild.displayName = "${BRANCH}"
+                sh """
+                 
+                  cd ../../ciph_app
+                  echo "Creating working directory ${verCode}"
+                  mkdir -p ${verCode}
+                  cd ${verCode}
+                """
+            }//stage
+      }//dir vercode
+
+      dir("../../ciph_app/${verCode}/"){
+
+          //find the commit hash
+          env.GIT_COMMIT = "${push_changes_0_new_target_hash}"
+          commitId = env.GIT_COMMIT
+          env.BRANCH_NAME = "${push_changes_0_new_name}"
+          def BRANCH = env.BRANCH_NAME
+
+          //try a build - test - publish pipeline
+          try{
+
+            stage('Fetch'){
+             
+                def retryAttempt = 0
+                retry(2) {
+                  if (retryAttempt > 0)
+                  { sleep 60 }
+                  retryAttempt = retryAttempt + 1
+                  sh """
+                  rm -rf ciph_app/
+                  echo "Cloning repository ciph_app branch name ${BRANCH}"
+                  git lfs clone ssh://git@git.parallelwireless.net:7999/cd/ciph_app -b ${BRANCH}
+                  cd ciph_app
+                  echo "Checking out commit ${push_changes_0_new_target_hash}"
+                  git checkout -f ${push_changes_0_new_target_hash}
+                  """
+                }
+            }
+            stage('Building'){
+                sh '''
+                  echo "Building: Current level folders"
+                  ls
+                  cd ciph_app
+                  pwd
+                  ./ci-build.sh
+                '''
+            }
+            stage('Publishing'){
+                sh """
+                echo "Publishing: Current level folders"
+                ls
+                cd ciph_app
+                pwd
+                sh -xe ci-publish.sh
+                """
+            }
+            currentBuild.result = 'SUCCESS'
+          }
+          catch (Exception Error) {
+              currentBuild.result = 'FAILURE'
+          }
+          finally {
+              sh '''
+                docker images purge
+              '''
+              cleanWs()
+              notifyBitbucket(
+                  considerUnstableAsSuccess: true,
+                  credentialsId: 'BuildStatus',
+                  commitSha1: commitId,
+                  disableInprogressNotification: true,
+                  includeBuildNumberInKey: false,
+                  stashServerBaseUrl: 'https://git.parallelwireless.net')
+          }//end finally
+      }//end vercode dir
+  }//end credentials
+}//end node
