@@ -233,7 +233,6 @@ void print_buff1(uint8_t* data, int len)
 	}
 }
 
-#define PRINT_PCK_DBG
 void print_buff_dbg(uint8_t* data, int len)
 {
 	enum { BUFF_STR_MAX_LEN = 16 * 3 };
