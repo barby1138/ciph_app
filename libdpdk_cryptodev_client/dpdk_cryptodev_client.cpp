@@ -863,7 +863,7 @@ int Dpdk_cryptodev_client::set_ops_cipher(	rte_crypto_op **ops,
 		} while (remaining_segments > 0);
 		*/
 		//////////////////////////////////////
-#define DO_BLOCK_PAD
+//#define DO_BLOCK_PAD
 #ifdef DO_BLOCK_PAD
 		sym_op->cipher.data.length = (vecs[j].cipher_buff_list.buffs[0].length < BLOCK_LENGTH) ? 
 													BLOCK_LENGTH + vecs[j].cipher_buff_list.buffs[0].length: 

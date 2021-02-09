@@ -1000,8 +1000,8 @@ int main(int argc, char* argv[])
     memset (&thread_data[cid_0].end, 0, sizeof (thread_data[cid_0].end));
 	thread_data[cid_0].total_size = 0;
 	thread_data[cid_0].cb = (TT_VERIFY == test_type) ? on_ops_complete_cb_0_v : on_ops_complete_cb_0;
-	//thread_data[cid_0].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
-	thread_data[cid_0].cipher_algo = CRYPTO_CIPHER_AES_CBC;
+	thread_data[cid_0].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
+	//thread_data[cid_0].cipher_algo = CRYPTO_CIPHER_AES_CBC;
     thread_data[cid_0].cipher_op = CRYPTO_CIPHER_OP_DECRYPT;
 	
 	thread_data[cid_1].index = cid_1;
