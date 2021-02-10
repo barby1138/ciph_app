@@ -14,8 +14,27 @@ echo "Current branch name: ${BRANCH_NAME}; ${BUILD_DISPLAY_NAME}"
 BRANCH=${BRANCH_NAME}
 UBRANCH=$(echo $BRANCH | sed 's/\//:/g')
 DATE=$(git log --format=format:%cd --date=format:%Y%m%d.%H%M -n 1)
-#GZ_DATA=${UBRANCH}:${DATE}-${HASH}:${DATE}-${HASH}
+
 export PATH=$PATH:/opt/swtools/bin/depot_tools/jfrog_CLI/
+
+upload_to_artifactory()
+{
+    local image_name="${1}"
+
+    echo "Publish file: $image_name"
+    tfname="${image_name%.*}"
+    tfext="${image_name##*.}"
+    GZ_DATA=${UBRANCH}:${DATE}-${HASH}:$tfname.${DATE}-${HASH}
+    tfile=${GZ_DATA}.$tfext
+    FSTRING=$(echo $tfile | sed 's/:/\//g')
+    MYDIR=$(dirname ${FSTRING})/
+    MYFILE=$(basename ${FSTRING})
+    mv $image_name "$MYFILE"
+    echo "To publish '$MYFILE' into dir '$MYDIR'"
+    echo "please the find the tgz files in dist dir !"
+    jfrog rt use pwartifactory
+    jfrog rt u --props "commitID=${HASH}" $MYFILE pw-products/ciph-app/"$MYDIR"
+}
 
 echo "Checking current folder and content"
 pwd
@@ -24,26 +43,11 @@ ls -la
 if [ -d dist ]; then
     cd dist
 
-    for tgzfile in *.tar.gz; do
-        echo "Publish file: $tgzfile"
-        tfname="${tgzfile%.*}"
-        tfext="${tgzfile##*.}"
-        GZ_DATA=${UBRANCH}:${DATE}-${HASH}:$tfname.${DATE}-${HASH}
-        tfile=${GZ_DATA}.$tfext
-        FSTRING=$(echo $tfile | sed 's/:/\//g')
-        MYDIR=$(dirname ${FSTRING})/
-        MYFILE=$(basename ${FSTRING})
-        mv $tgzfile "$MYFILE"
-        echo "To publish '$MYFILE' into dir '$MYDIR'"
-        #if [[ $vmname == "docker-pipeline"*  || $vmname == "c7-nhbld"* ]]; then
-            echo "please the find the tgz files in dist dir !"
-            jfrog rt use pwartifactory
-            jfrog rt u --props "commitID=${HASH}" $MYFILE pw-products/ciph_app/"$MYDIR"
-        #else
-        #    jfrog rt use artifactory
-        #    jfrog rt u  $MYFILE Developer-Sandbox/ciph_app/"$MYDIR"
-        #fi
-    done
+    cont_image=$(ls -a |grep -ie ciph_app*.rpm)
+    upload_to_artifactory $cont_image
+
+    devel_image=$(ls -a |grep -ie ciph_app_devel*.tar.gz)
+    upload_to_artifactory $devel_image
 fi
 
 echo "Done ci-publish.sh"

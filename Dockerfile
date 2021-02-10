@@ -1,4 +1,5 @@
-FROM centos:7.4.1708
+#FROM centos:7.4.1708
+FROM pwartifactory.parallelwireless.net/pw-docker-images/base-docker-images/devops-docker-prod-centos-7.4.1708-base-v1:latest
 
 #RUN yum update 
 RUN yum install -y wget
@@ -8,9 +9,6 @@ RUN yum install -y rpm-build redhat-rpm-config
 #RUN yum group install -y "Development Tools"
 RUN yum install -y numactl-devel expat-devel
 RUN yum install -y gcc gcc-c++ make
-
-#RUN mkdir /work 
-##&& chmod 777 /work
 
 RUN cd /tmp && gdown https://drive.google.com/uc?id=1LtqOrPmxLV1KCNG5H5pU_zzqFPlK69W3
 RUN cd /tmp && gdown https://drive.google.com/uc?id=1LsHbeX0M4qLBXPqp9JTF6UwmqmBizJXW

@@ -18,7 +18,7 @@ node('docker_build'){
                    printPostContent: true,
                    regexpFilterExpression: '',
                    regexpFilterText: '',
-                   token: 'ciph_app'
+                   token: 'ciph-app'
                )
            ])
       ])
@@ -38,26 +38,10 @@ node('docker_build'){
             includeBuildNumberInKey: false,
             stashServerBaseUrl: 'https://git.parallelwireless.net')
 
-          stage('Node Setup'){
-                  currentBuild.description = "${BRANCH}"
-                  currentBuild.displayName = "${BRANCH}"
-                sh """
-                 
-                  cd ../../ciph_app
-                  echo "Creating working directory ${verCode}"
-                  mkdir -p ${verCode}
-                  cd ${verCode}
-                """
-            }//stage
-      }//dir vercode
-
-      dir("../../ciph_app/${verCode}/"){
-
           //find the commit hash
           env.GIT_COMMIT = "${push_changes_0_new_target_hash}"
           commitId = env.GIT_COMMIT
           env.BRANCH_NAME = "${push_changes_0_new_name}"
-          def BRANCH = env.BRANCH_NAME
 
           //try a build - test - publish pipeline
           try{
@@ -70,10 +54,10 @@ node('docker_build'){
                   { sleep 60 }
                   retryAttempt = retryAttempt + 1
                   sh """
-                  rm -rf ciph_app/
-                  echo "Cloning repository ciph_app branch name ${BRANCH}"
-                  git lfs clone ssh://git@git.parallelwireless.net:7999/cd/ciph_app -b ${BRANCH}
-                  cd ciph_app
+                  rm -rf ciph-app/
+                  echo "Cloning repository ciph-app branch name ${BRANCH}"
+                  git lfs clone ssh://git@git.parallelwireless.net:7999/cd/ciph-app -b ${BRANCH}
+                  cd ciph-app
                   echo "Checking out commit ${push_changes_0_new_target_hash}"
                   git checkout -f ${push_changes_0_new_target_hash}
                   """
@@ -81,18 +65,18 @@ node('docker_build'){
             }
             stage('Building'){
                 sh '''
-                  echo "Building: Current level folders"
+                  echo "Building: ciph-app"
                   ls
-                  cd ciph_app
+                  cd ciph-app
                   pwd
                   ./ci-build.sh
                 '''
             }
             stage('Publishing'){
                 sh """
-                echo "Publishing: Current level folders"
+                echo "Publishing: ciph-app"
                 ls
-                cd ciph_app
+                cd ciph-app
                 pwd
                 sh -xe ci-publish.sh
                 """
@@ -103,9 +87,6 @@ node('docker_build'){
               currentBuild.result = 'FAILURE'
           }
           finally {
-              sh '''
-                docker images purge
-              '''
               cleanWs()
               notifyBitbucket(
                   considerUnstableAsSuccess: true,
