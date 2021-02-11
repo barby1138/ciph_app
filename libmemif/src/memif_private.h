@@ -35,7 +35,7 @@
 _Static_assert (strlen (MEMIF_DEFAULT_APP_NAME) <= MEMIF_NAME_LEN,
 		"MEMIF_DEFAULT_APP_NAME max length is 32");
 
-#define MEMIF_DEFAULT_SOCKET_PATH "/tmp/ciph_app/memif.sock"
+#define MEMIF_DEFAULT_SOCKET_PATH "/run/ciph_app/memif.sock"
 #define MEMIF_DEFAULT_RING_SIZE 1024
 #define MEMIF_DEFAULT_LOG2_RING_SIZE 10
 #define MEMIF_DEFAULT_RX_QUEUES 1
