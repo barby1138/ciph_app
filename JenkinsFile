@@ -66,8 +66,9 @@ node('docker_build'){
             stage('Building'){
                 sh '''
                   echo "Building: ciph-app"
-                  ls
+                  ls -la
                   cd ciph-app
+                  ls -la
                   pwd
                   ./ci-build.sh
                 '''
@@ -75,8 +76,9 @@ node('docker_build'){
             stage('Publishing'){
                 sh """
                 echo "Publishing: ciph-app"
-                ls
+                ls -la
                 cd ciph-app
+                ls -la
                 pwd
                 sh -xe ci-publish.sh
                 """
