@@ -1453,6 +1453,8 @@ int Dpdk_cryptodev_client::alloc_common_memory(
 }
 
 ////////////////////////////////////////////
+// test
+
 double get_delta_usec(struct timespec start, struct timespec end)
 {
     uint64_t t1 = end.tv_sec - start.tv_sec;

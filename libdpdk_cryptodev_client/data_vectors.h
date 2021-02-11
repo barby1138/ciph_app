@@ -47,7 +47,7 @@ typedef struct Crypto_operation_context {
 	enum Crypto_operation_type op_type;
 	// [in] for CRYPTO_OP_TYPE_SESS_CIPHERING / CRYPTO_OP_TYPE_SESS_CLOSE [out] for CRYPTO_OP_TYPE_SESS_CREATE
 	uint32_t sess_id;
-		// used only for CRYPTO_OP_TYPE_SESS_CREATE
+	// used only for CRYPTO_OP_TYPE_SESS_CREATE
 	enum Crypto_cipher_algorithm cipher_algo;
 	enum Crypto_cipher_operation cipher_op;
 }Crypto_operation_context;

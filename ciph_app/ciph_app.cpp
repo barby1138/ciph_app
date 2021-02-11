@@ -74,6 +74,9 @@ void on_job_complete_cb (uint32_t cid, uint16_t qid, Crypto_operation* pjob, uin
 
 void on_job_complete_cb_test_1 (uint32_t cid, uint16_t qid, Crypto_operation* pjob, uint32_t size)
 {
+  if (0 == size)
+    return;
+
   static int cnt = 0;
   cnt++;
 
@@ -263,10 +266,15 @@ int main(int argc, char** argv)
       }
     }
 
-    // TODO
-    Ciph_agent_server_sngl::instance().conn_free(0);
-    Ciph_agent_server_sngl::instance().conn_free(1);
+    // following never ecec
 
+    for (uint32_t i : uint_memif_ids)
+    {
+      TRACE_INFO("conn_free id %d", i);
+
+      Ciph_agent_server_sngl::instance().conn_free(i);
+    }
+    
     Ciph_agent_server_sngl::instance().cleanup();
 
     Dpdk_cryptodev_client_sngl::instance().cleanup();

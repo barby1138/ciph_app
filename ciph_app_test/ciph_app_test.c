@@ -706,7 +706,7 @@ int32_t cipher(long cid, uint16_t qid, uint64_t seq, uint64_t sess_id, uint32_t 
 	op.op.op_ctx_ptr = dummy_ctx;
 
 #ifdef STACK_TEST
-	uint32_t BUFFER_TOTAL_LEN = 6;
+	uint32_t BUFFER_TOTAL_LEN = 1 + rand() % 5;
 #else
 	uint32_t BUFFER_TOTAL_LEN = 1 + rand() % 300  ; //1 + rand() % 264;
 #endif
@@ -1013,8 +1013,8 @@ int main(int argc, char* argv[])
     memset (&thread_data[cid_1].end, 0, sizeof (thread_data[cid_1].end));
 	thread_data[cid_1].total_size = 0;
 	thread_data[cid_1].cb = (TT_VERIFY == test_type) ? on_ops_complete_cb_0_v : on_ops_complete_cb_0;
-	thread_data[cid_1].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
-	//thread_data[cid_1].cipher_algo = CRYPTO_CIPHER_AES_CBC;
+	//thread_data[cid_1].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
+	thread_data[cid_1].cipher_algo = CRYPTO_CIPHER_AES_CBC;
     thread_data[cid_1].cipher_op = CRYPTO_CIPHER_OP_ENCRYPT;
 
 	//int s;
