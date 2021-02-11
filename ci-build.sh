@@ -30,7 +30,7 @@ echo "Docker image created"
 echo "===================="
 
 # RUN THE DOCKER #
-cont_id=$( docker run --rm -d -it --hostname ${dockerName} -e COMMIT_ID=$GIT_COMMIT_SHORT \
+cont_id=$( docker run --rm -d --hostname ${dockerName} -e COMMIT_ID=$GIT_COMMIT_SHORT \
             --mount type=bind,source="$(pwd)",target=/opt/ciph_app \
             --mount type=bind,source=$homedir,target=/home/$uname/ \
             ${dockerName} )
