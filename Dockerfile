@@ -4,7 +4,7 @@ FROM pwartifactory.parallelwireless.net/devops_dockerhub/base-docker-images/devo
 #RUN yum update
 RUN yum install -y wget
 RUN yum install -y git
-RUN yum install -y e python3 python3-pip
+RUN yum install -y python3 python3-pip
 RUN pip3 install gdown
 RUN yum install -y rpm-build redhat-rpm-config
 #RUN yum group install -y "Development Tools"
