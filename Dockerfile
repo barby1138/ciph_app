@@ -18,13 +18,19 @@ RUN cd /tmp && gdown https://drive.google.com/uc?id=1LtqOrPmxLV1KCNG5H5pU_zzqFPl
 RUN cd /tmp && gdown https://drive.google.com/uc?id=1LsHbeX0M4qLBXPqp9JTF6UwmqmBizJXW
 RUN cd /tmp && gdown https://drive.google.com/uc?id=1ZtRmUM9nZg594LIMMbUL9fFBCLj4OnmL
 
+RUN cd /tmp && \
+    tar zxf libIPSec_MB.0.54.0.tar.gz && \
+    ls && \
+    cp -f libIPSec_MB* /usr/lib
+
 #creating user
 ARG UNAME=parallel
 ARG UID=1000
 ARG GID=1000
-#RUN echo $UNAME $UID $GID
-#RUN groupadd -g $GID -o $UNAME
-#RUN useradd -m -u $UID -g $GID -o -s /bin/bash $UNAME
-#RUN usermod -aG root $UNAME
-#USER $UNAME
+RUN echo $UNAME $UID $GID
+RUN groupadd -g $GID -o $UNAME
+RUN useradd -m -u $UID -g $GID -o -s /bin/bash $UNAME
+RUN usermod -aG root $UNAME
+USER $UNAME
+
 

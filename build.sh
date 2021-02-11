@@ -11,11 +11,12 @@ cp /tmp/dpdk-20.05-x86_64-native-linuxapp-gcc.tar.gz 3rdparty_artifactory
 #cp /tmp/rootfs_centos-7-amd64.tar.gz 3rdparty_artifactory
 cp /tmp/libIPSec_MB.0.54.0.tar.gz 3rdparty_artifactory
 
-echo ============== PREP IPSec ========================
-cd $ROOT
-cd 3rdparty_artifactory
-tar zxf libIPSec_MB.0.54.0.tar.gz
-cp -f libIPSec_MB* /usr/lib
+# done in Dockerfile
+#echo ============== PREP IPSec ========================
+#cd $ROOT
+#cd 3rdparty_artifactory
+#tar zxf libIPSec_MB.0.54.0.tar.gz
+#cp -f libIPSec_MB* /usr/lib
 
 echo ============== PREP DPDK =========================
 cd $ROOT

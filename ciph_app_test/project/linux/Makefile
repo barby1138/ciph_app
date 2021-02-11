@@ -67,7 +67,6 @@ $(OBJS):
 
 $(TARGET): $(OBJS) $(DESTDIR) 
 	$(LD) $(LDFLAGS) -o $@ $(OBJS) $(SHAREDLIBS) $(COMMONLIBS)
-	cp $(TARGET) ../../../../bin
 
 .PHONY: clean
 clean:
