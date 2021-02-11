@@ -30,7 +30,7 @@ echo "Docker image created"
 echo "===================="
 
 # RUN THE DOCKER #
-cont_id=$( docker run --rm -d --hostname ${dockerName} -e COMMIT_ID=$GIT_COMMIT_SHORT \
+cont_id=$( docker run --rm -d -it --hostname ${dockerName} -e COMMIT_ID=$GIT_COMMIT_SHORT \
             --mount type=bind,source="$(pwd)",target=/opt/ciph_app \
             --mount type=bind,source=$homedir,target=/home/$uname/ \
             ${dockerName} )
@@ -45,7 +45,7 @@ echo "========================================"
 
 # BUILD THE NetCon ROOTFS - mapping local workspace to container #
 #docker exec -it ${cont_id} /bin/bash
-docker exec -it ${cont_id} /bin/bash -c 'cd /opt/ciph_app && ./build.sh'
+docker exec ${cont_id} /bin/bash -c 'cd /opt/ciph_app && chmod 777 build.sh && ./build.sh'
 
 #
 ##################### END OF DEVOPS CONTAINER INFORMTION
