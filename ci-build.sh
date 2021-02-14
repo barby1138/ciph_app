@@ -45,7 +45,7 @@ echo "========================================"
 
 # BUILD THE NetCon ROOTFS - mapping local workspace to container #
 #docker exec -it ${cont_id} /bin/bash
-docker exec ${cont_id} /bin/bash -c 'cd /opt/ciph_app && chmod 777 build.sh && ./build.sh'
+docker exec ${cont_id} /bin/bash -c 'cd /opt/ciph_app && chmod +x build.sh && ./build.sh'
 
 #
 ##################### END OF DEVOPS CONTAINER INFORMTION

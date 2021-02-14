@@ -90,4 +90,4 @@ rpmbuild -bb --define "_ver $VER" ciph_app.spec
 
 echo =========== PACK RPM =============================
 cd $ROOT/dist
-cp ~/rpmbuild/RPMS/x86_64/*.rpm .
+cp ~/rpmbuild/RPMS/x86_64/ciph_app-$VER-rel.x86_64.rpm .

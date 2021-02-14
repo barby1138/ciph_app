@@ -30,10 +30,10 @@ ls -la
 if [ -d dist ]; then
     cd dist
 
-    cont_image=$(ls -a |grep -ie ciph_app*.rpm)
+    cont_image=$(ls -a | grep -ie ciph_app*.rpm)
     upload_to_artifactory $cont_image
 
-    devel_image=$(ls -a |grep -ie ciph_app_devel*.tar.gz)
+    devel_image=$(ls -a | grep -ie ciph_app_devel*.tar.gz)
     upload_to_artifactory $devel_image
 fi
 
