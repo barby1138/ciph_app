@@ -8,9 +8,6 @@ echo ============== CLEANUP =====================
 lxc-stop -n ciph_app -k
 rm -rf $LXCPATH/ciph_app
 
-#echo ============== CREATE =====================
-#lxc-create -n ciph_app -t download -- -d centos -r 7 -a amd64 --keyserver hkp://p80.pool.sks-keyservers.net:80
-
 echo ============== UNTAR ROOTFS =====================
 cd $DEPLPATH/lxc
 mkdir $LXCPATH/ciph_app
@@ -22,7 +19,6 @@ cp -f config $LXCPATH/ciph_app
 cp VERSION $LXCPATH/ciph_app
 mkdir $LXCPATH/ciph_app/rootfs/home/ciph_app
 #mkdir $LXCPATH/ciph_app/rootfs/tmp/ciph_app
-mkdir $LXCPATH/ciph_app/rootfs/run/ciph_app
 # dpdk-crypto-app, ciph_app.xml
 cp bin/* $LXCPATH/ciph_app/rootfs/home/ciph_app
 chmod 0755 $LXCPATH/ciph_app/rootfs/home/ciph_app/dpdk-crypto-app
@@ -35,9 +31,8 @@ cp $DEPLPATH/svc/ciph_app.service etc/systemd/system
 cp $DEPLPATH/svc/ciph_app.sh home/ciph_app
 chmod 0755 home/ciph_app/ciph_app.sh
 # enable
-#if [ ! -L etc/systemd/system/multi-user.target.wants/ciph_app.service ]; then
+#if [ ! -L etc/systemd/system/ciph_app.service ]; then
 echo "create ciph_app.service link"
-#ln -s -r usr/lib/systemd/system/ciph_app.service etc/systemd/system/multi-user.target.wants/ciph_app.service
 ln -s -r etc/systemd/system/ciph_app.service etc/systemd/system/multi-user.target.wants/ciph_app.service
 #fi
 ls -lrt etc/systemd/system/multi-user.target.wants/ciph_app.service

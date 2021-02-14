@@ -18,8 +18,9 @@
 
 #include <unistd.h> //usleep
 
-//#include <thread>
 #include <mutex> 
+
+#include <sys/stat.h> // mkdir
 
 typedef tracer
 <
@@ -159,6 +160,16 @@ int main(int argc, char** argv)
 			usage();
 			return 1;
 		}
+
+    int mdret;
+    mode_t mode = 0755;
+
+    if ((mdret = mkdir("/run/ciph_app", mode)) && errno != EEXIST)
+    {
+      throw std::runtime_error(quark::strings::format("mkdir failed errno %d ret %d", errno, mdret).c_str());
+    }
+
+    TRACE_INFO ("init mkdir OK: errno %d ret %d", errno, mdret);
 
 		props::instance().load("ciph_app.xml");
 

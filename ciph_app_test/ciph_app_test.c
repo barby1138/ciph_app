@@ -408,7 +408,8 @@ void print_buff(uint8_t* data, uint32_t len)
 {
   	printf("test app length %d\n", len);
 	
-  	uint32_t c = 0, i;
+  	//uint32_t c = 0;
+	uint32_t i;
 
   	//printf("%03d ", c++);
 
@@ -595,7 +596,7 @@ void on_ops_complete_cb_0_v (uint32_t cid, uint16_t qid, Crypto_operation* vec, 
 			{
 				//print_buff(vec[j].op.outbuff_ptr, vec[j].op.outbuff_len);
 				if ( 0 == vec[j].op.seq % 1000000 )
-					printf("check %d %d\n", cid, vec[j].op.seq);
+					printf("check %d %" PRIu64 "\n", cid, vec[j].op.seq);
 
 				if ( 0 != memcmp(plaintext,
 						vec[j].cipher_buff_list.buffs[0].data,
