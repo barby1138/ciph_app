@@ -164,7 +164,7 @@ int main(int argc, char** argv)
     int mdret;
     mode_t mode = 0755;
 
-    if ((mdret = mkdir("/run/ciph_app", mode)) && errno != EEXIST)
+    if ((mdret = mkdir("/var/ciph_app", mode)) && errno != EEXIST)
     {
       throw std::runtime_error(quark::strings::format("mkdir failed errno %d ret %d", errno, mdret).c_str());
     }
