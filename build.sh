@@ -13,9 +13,9 @@ cp /tmp/libIPSec_MB.0.54.0.tar.gz 3rdparty_artifactory
 
 # done in Dockerfile
 #echo ============== PREP IPSec ========================
-#cd $ROOT
-#cd 3rdparty_artifactory
-#tar zxf libIPSec_MB.0.54.0.tar.gz
+cd $ROOT
+cd 3rdparty_artifactory
+tar zxf libIPSec_MB.0.54.0.tar.gz
 #cp -f libIPSec_MB* /usr/lib
 
 echo ============== PREP DPDK =========================
