@@ -923,6 +923,8 @@ int Memif_client::poll_event (int timeout)
             events |= MEMIF_FD_EVENT_WRITE;
           if (evt.events & EPOLLERR)
             events |= MEMIF_FD_EVENT_ERROR;
+          if (evt.events & EPOLLHUP)
+            events |= MEMIF_FD_EVENT_ERROR;
           memif_err = memif_control_fd_handler (evt.data.fd, events);
           if (memif_err != MEMIF_ERR_SUCCESS)
             ERROR ("memif_control_fd_handler: %s", memif_strerror (memif_err));
