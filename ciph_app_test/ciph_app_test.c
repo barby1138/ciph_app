@@ -805,7 +805,16 @@ void* send_proc(void* data)
 	}
 	else
 	{
-		// create 3 sessions
+		// create 6 sessions
+		res = create_session(cid, QID_CTRL, thread_data[cid].seq, thread_data[cid].cipher_algo, thread_data[cid].cipher_op);
+		if (0 != res) printf ("create_session ERROR\n");
+
+		res = create_session(cid, QID_CTRL, thread_data[cid].seq, thread_data[cid].cipher_algo, thread_data[cid].cipher_op);
+		if (0 != res) printf ("create_session ERROR\n");
+
+		res = create_session(cid, QID_CTRL, thread_data[cid].seq, thread_data[cid].cipher_algo, thread_data[cid].cipher_op);
+		if (0 != res) printf ("create_session ERROR\n");
+
 		res = create_session(cid, QID_CTRL, thread_data[cid].seq, thread_data[cid].cipher_algo, thread_data[cid].cipher_op);
 		if (0 != res) printf ("create_session ERROR\n");
 
@@ -978,15 +987,34 @@ void* send_proc(void* data)
 	pthread_exit (NULL);
 }
 
+#include<signal.h>
+#include<unistd.h>
+
+void signal_handler(int signo)
+{
+  printf("\nALL Error handler\n");
+
+  if (signo == SIGSEGV) {
+    printf("\nError handler\n");
+  }        
+
+  exit(0);
+}
+
 int main(int argc, char* argv[])
 {
+	if (signal(SIGSEGV, signal_handler) == SIG_ERR) 
+	{
+    	printf("\nError installing handler\n");
+  	}
+  
     long cid_0 = 0;
     long cid_1 = 1;
 
 	time_t t;
 	srand((unsigned) time(&t));
 
-    ciph_agent_init(0);
+    ciph_agent_init(3);
 
 	memset(thread_data, 0, THR_CNT * sizeof(thread_data_t));
 

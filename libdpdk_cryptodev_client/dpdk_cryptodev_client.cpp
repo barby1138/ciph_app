@@ -1174,6 +1174,8 @@ int Dpdk_cryptodev_client::remove_session(int ch_id, const Crypto_operation& vec
 	if (0 != rte_cryptodev_sym_session_free(s))
 		RTE_LOG(ERR, USER1, "remove_session rte_cryptodev_sym_session_free failed");
 		
+	RTE_LOG(INFO, USER1, "remove_session SUCC ch %d, id %d", ch_id, vec.op.sess_id);
+
 	_active_sessions_registry[ch_id][cdev_id][i] = NULL;
 	
 	return 0;

@@ -1689,7 +1689,7 @@ memif_disconnect_internal (memif_connection_t * c)
   if (e != NULL)
     {
       if (c->args.is_master)
-	free_list_elt (lm->control_list, lm->control_list_len, c->fd);
+	      free_list_elt (lm->control_list, lm->control_list_len, c->fd);
       e->key = c->fd = -1;
     }
 
