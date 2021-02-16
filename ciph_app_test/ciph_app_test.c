@@ -18,7 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define STACK_TEST
+//#define STACK_TEST
 
 #ifdef STACK_TEST
 /*
@@ -400,7 +400,7 @@ const uint16_t SLEEP_TO_FACTOR = 1;
 
 const uint32_t MAX_CONN_CLIENT_BURST = 64;
 
-const uint32_t PCK_NUM = 10000000; //10000000;
+const uint32_t PCK_NUM = 1000000; //10000000;
 
 const uint32_t MAX_POLL_RETRIES = 1000000;
 
@@ -712,7 +712,7 @@ int32_t cipher(long cid, uint16_t qid, uint64_t seq, uint64_t sess_id, uint32_t 
 	uint32_t BUFFER_TOTAL_LEN = 1 + rand() % 300  ; //1 + rand() % 264;
 #endif
 
-	uint32_t BUFFER_SEGMENT_NUM = 1; //1 + rand() % 15;
+	uint32_t BUFFER_SEGMENT_NUM = 1 + rand() % 15;
 	BUFFER_SEGMENT_NUM = (BUFFER_SEGMENT_NUM > BUFFER_TOTAL_LEN) ? 
 												BUFFER_TOTAL_LEN : 
 												BUFFER_SEGMENT_NUM;

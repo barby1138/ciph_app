@@ -1911,7 +1911,7 @@ memif_connect1 (memif_connection_t * c)
 
 		  if ((mr->addr =
 		       mmap (NULL, mr->region_size, PROT_READ | PROT_WRITE,
-			     MAP_SHARED, mr->fd, 0)) == MAP_FAILED)
+			      MAP_SHARED, mr->fd, 0)) == MAP_FAILED)
 		    {
 		      return memif_syscall_error_handler (errno);
 		    }

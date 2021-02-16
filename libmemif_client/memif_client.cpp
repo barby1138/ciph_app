@@ -78,12 +78,14 @@ enum { MAX_Q_SIZE = 2 };
 typedef struct
 {
   /* tx buffers */
-  memif_buffer_t *tx_bufs;
+  //memif_buffer_t* tx_bufs;
+  memif_buffer_t tx_bufs[MAX_MEMIF_BUFS];
   /* allocated tx buffers counter */
   /* number of tx buffers pointing to shared memory */
   uint16_t tx_buf_num;
   /* rx buffers */
-  memif_buffer_t *rx_bufs;
+  //memif_buffer_t* rx_bufs;
+  memif_buffer_t rx_bufs[MAX_MEMIF_BUFS];
   /* allcoated rx buffers counter */
   /* number of rx buffers pointing to shared memory */
   uint16_t rx_buf_num;
@@ -527,9 +529,9 @@ int Memif_client::conn_alloc (long index, const Memif_client::Conn_config_t& con
     for (uint32_t qid = 0; qid < MAX_Q_SIZE; ++qid)
     {
       c->buffs[qid].rx_buf_num = 0;
-      c->buffs[qid].rx_bufs = (memif_buffer_t *)malloc (sizeof (memif_buffer_t) * MAX_MEMIF_BUFS);
+      //c->buffs[qid].rx_bufs = (memif_buffer_t *)malloc (sizeof (memif_buffer_t) * MAX_MEMIF_BUFS);
       c->buffs[qid].tx_buf_num = 0;
-      c->buffs[qid].tx_bufs = (memif_buffer_t *)malloc (sizeof (memif_buffer_t) * MAX_MEMIF_BUFS);
+      //c->buffs[qid].tx_bufs = (memif_buffer_t *)malloc (sizeof (memif_buffer_t) * MAX_MEMIF_BUFS);
     }
 
     c->ip_addr[0] = 192;
@@ -586,7 +588,7 @@ int Memif_client::conn_free (long index)
     ERROR ("memif_delete: %s", memif_strerror (err));
   if (c->conn != NULL)
     ERROR ("memif delete fail");
-
+/*
   for (uint32_t qid = 0; qid < MAX_Q_SIZE; ++qid)
   {
     if (c->buffs[qid].rx_bufs)
@@ -598,7 +600,7 @@ int Memif_client::conn_free (long index)
     c->buffs[qid].tx_bufs = NULL;
     c->buffs[qid].tx_buf_num = 0;
   }
-
+*/
   return 0;
 }
 
@@ -923,8 +925,8 @@ int Memif_client::poll_event (int timeout)
             events |= MEMIF_FD_EVENT_WRITE;
           if (evt.events & EPOLLERR)
             events |= MEMIF_FD_EVENT_ERROR;
-          if (evt.events & EPOLLHUP)
-            events |= MEMIF_FD_EVENT_ERROR;
+          //EPOLLHUP
+
           memif_err = memif_control_fd_handler (evt.data.fd, events);
           if (memif_err != MEMIF_ERR_SUCCESS)
             ERROR ("memif_control_fd_handler: %s", memif_strerror (memif_err));
