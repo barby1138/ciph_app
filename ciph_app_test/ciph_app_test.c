@@ -926,7 +926,11 @@ void* send_proc(void* data)
 		}
     	//printf ("num %ld %ld ...\n", cid, send_to_usec);
     }
-
+/*
+// SIGV
+int *a;
+*a = 0;
+*/
 	printf ("done send\n");
 
     timespec_get (&thread_data[cid].end, TIME_UTC);
@@ -940,12 +944,10 @@ void* send_proc(void* data)
 
 	uint32_t all_pck_count = thread_data[cid].seq + 1;  // num_pck + num_pck_per_batch + sess cr
 
-/*
 	// NOTE. for test - close session before flush
 	// in verify test we rollback packets in poll - so last packets (batch) will be skipped at server (NO SESSION)
 	res = close_session(cid, QID_USER, ++thread_data[cid].seq, thread_data[cid].setup_sess_ctx.setup_sess_id);
 	if (0 != res) printf ("close_session ERROR\n");
-*/
 
 	// disconnect while send (client crash simulation)
     //while (thread_data[cid].total_size < all_pck_count / 2)
@@ -961,6 +963,7 @@ void* send_proc(void* data)
 		}
 	}
 
+	// NOTE. for test - close session twice
 	res = close_session(cid, QID_USER, ++thread_data[cid].seq, thread_data[cid].setup_sess_ctx.setup_sess_id);
 	if (0 != res) printf ("close_session ERROR\n");
 
@@ -994,11 +997,11 @@ void signal_handler(int signo)
 {
   printf("\nALL Error handler\n");
 
-  if (signo == SIGSEGV) {
+  if (signo == SIGSEGV) 
+  {
     printf("\nError handler\n");
   }        
 
-  exit(0);
 }
 
 int main(int argc, char* argv[])
@@ -1007,7 +1010,7 @@ int main(int argc, char* argv[])
 	{
     	printf("\nError installing handler\n");
   	}
-  
+
     long cid_0 = 0;
     long cid_1 = 1;
 
