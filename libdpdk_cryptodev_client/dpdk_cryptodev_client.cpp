@@ -422,6 +422,8 @@ int Dpdk_cryptodev_client::init_inner()
 			_opts.tailroom_sz = cdev_info.min_mbuf_tailroom_req;
 		}
 
+		printf("dev: %d head %d tail %d\n", cdev_id, cdev_info.min_mbuf_headroom_req, cdev_info.min_mbuf_tailroom_req);
+
 		// Update segment size to include headroom & tailroom
 		_opts.segment_sz += (_opts.headroom_sz + _opts.tailroom_sz);
 
@@ -820,7 +822,7 @@ int Dpdk_cryptodev_client::set_ops_cipher(	rte_crypto_op **ops,
 		// start of buffer is after mbuf structure and priv data 
 		m->priv_size = 0;
 		m->buf_addr = vecs[j].cipher_buff_list.buffs[0].data;
-		m->buf_iova = rte_mempool_virt2iova(vecs[j].cipher_buff_list.buffs[0].data);
+		m->buf_iova = RTE_BAD_IOVA; //rte_mempool_virt2iova(vecs[j].cipher_buff_list.buffs[0].data);
 
 		m->buf_len = vecs[j].cipher_buff_list.buffs[0].length;
 		m->data_len = vecs[j].cipher_buff_list.buffs[0].length;
@@ -828,7 +830,6 @@ int Dpdk_cryptodev_client::set_ops_cipher(	rte_crypto_op **ops,
 
 		//printf("fill_single_seg_mbuf %d, %d\n", m, m->data_len);
 
-		// Use headroom specified for the buffer 
 		m->data_off = _opts.headroom_sz;
 
 		// init some constant fields 
@@ -837,6 +838,7 @@ int Dpdk_cryptodev_client::set_ops_cipher(	rte_crypto_op **ops,
 		m->port = 0xff;
 		rte_mbuf_refcnt_set(m, 1);
 		m->next = NULL;
+
 		/*
 		do {
 			// start of buffer is after mbuf structure and priv data 
@@ -863,7 +865,7 @@ int Dpdk_cryptodev_client::set_ops_cipher(	rte_crypto_op **ops,
 		} while (remaining_segments > 0);
 		*/
 		//////////////////////////////////////
-//#define DO_BLOCK_PAD
+#define DO_BLOCK_PAD
 #ifdef DO_BLOCK_PAD
 		sym_op->cipher.data.length = (vecs[j].cipher_buff_list.buffs[0].length < BLOCK_LENGTH) ? 
 													BLOCK_LENGTH + vecs[j].cipher_buff_list.buffs[0].length: 

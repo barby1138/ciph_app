@@ -22,6 +22,15 @@
 
 #include <sys/stat.h> // mkdir
 
+// sig
+#include<signal.h>
+#include<unistd.h>
+
+// date time
+#include <ctime>
+#include <iostream>
+#include <locale>
+
 typedef tracer
 <
 thread_formatter<>,
@@ -44,6 +53,23 @@ void usage()
 {
   TRACE_INFO("usage: archiver config.xml");
 }
+
+//////////////////////////////////////////////
+#include <stdio.h>
+#include <execinfo.h>
+void stack_trace(void) {
+    char **strings;
+    size_t i, size;
+    enum Constexpr { MAX_SIZE = 1024 };
+    void *array[MAX_SIZE];
+    size = backtrace(array, MAX_SIZE);
+    strings = backtrace_symbols(array, size);
+    for (i = 0; i < size; i++)
+        TRACE_ERROR("%s", strings[i]);
+    puts("");
+    free(strings);
+}
+//////////////////////////////////////////////
 
 void print_buff(uint8_t* data, int len)
 {
@@ -151,8 +177,36 @@ void on_disconnect_cb (uint32_t cid, uint16_t qid, Crypto_operation* pjob, uint3
   Dpdk_cryptodev_client_sngl::instance().cleanup_conn(cid);
 }
 
+void signal_handler(int signo)
+{
+  stack_trace();
+
+  exit(0);
+}
+
+std::string date_time_str()
+{
+    //std::locale::global(std::locale("ja_JP.utf8"));
+    std::time_t t = std::time(nullptr);
+    char mbstr[100];
+    if (std::strftime(mbstr, sizeof(mbstr), "%F_%R", std::localtime(&t))) 
+    {
+      return mbstr;
+    }
+    else
+    {
+      return "nodate";
+    }
+}
+
 int main(int argc, char** argv)
 {
+
+	if (signal(SIGSEGV, signal_handler) == SIG_ERR) 
+	{
+    TRACE_WARNING("Error installing handler");
+  }
+
 	try
 	{
 		if (argc < 2)
@@ -215,7 +269,7 @@ int main(int argc, char** argv)
       }
     }
 
-		custom_tracer::instance().setFile("ciph_app.log");
+		custom_tracer::instance().setFile(quark::strings::format("ciph_app_%s.log", date_time_str().c_str()).c_str() );
 
     uint32_t tl = tlWarning;
     if (level.compare("info") == 0)
@@ -296,6 +350,5 @@ int main(int argc, char** argv)
 	{
 		TRACE_ERROR("Exception: %s", e.what());
 	}
-
 }
 

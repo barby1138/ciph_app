@@ -406,6 +406,8 @@ cperf_options_default(struct Dpdk_cryptodev_options *opts)
 	//opts->test = CPERF_TEST_TYPE_VERIFY;
 
 	opts->pool_sz = 8192;
+	opts->headroom_sz = 0;
+	opts->tailroom_sz = 0;
 	opts->nb_descriptors = 2048;
 
 	opts->buffer_size_list[0] = 64;

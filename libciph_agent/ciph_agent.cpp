@@ -5,7 +5,7 @@ enum { CA_MODE_SLAVE = 0, CA_MODE_MASTER = 1 };
 const uint32_t CIFER_IV_LENGTH = 16;
 
 // is it needed for SNOW?
-//#define DO_BLOCK_PAD
+#define DO_BLOCK_PAD
 #ifdef DO_BLOCK_PAD
 const uint32_t BLOCK_LENGTH = 16;
 #endif
@@ -176,6 +176,7 @@ void crypto_job_from_buffer(uint8_t* buffer, uint32_t len, Crypto_operation* vec
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
     buffer += pData_len->ciphertext_length;
+
     vec->cipher_key.data = buffer;
     vec->cipher_key.length = pData_len->cipher_key_length;
 
@@ -212,10 +213,10 @@ template<int _MAX_CONN>  Crypto_operation Ciph_comm_agent_base<_MAX_CONN>::_pool
 
 //////////////////////////////////
 // Ciph_comm_agent_client
-typedef std::lock_guard<std::mutex> LOCK_GUARD;
+typedef std::lock_guard<std::recursive_mutex> LOCK_GUARD;
 
 int32_t Ciph_comm_agent_client::_client_id = -1;
-std::mutex Ciph_comm_agent_client::_conn_m[MAX_CONNECTIONS];
+std::recursive_mutex Ciph_comm_agent_client::_conn_m[MAX_CONNECTIONS];
 uint32_t Ciph_comm_agent_client::_is_conn_active[MAX_CONNECTIONS] = { 0 };
 
 static void Ciph_comm_agent_client::on_recv_cb (uint32_t memif_conn_id, uint16_t qid, const typename Memif_client::Conn_buffer_t* rx_bufs, uint32_t len)

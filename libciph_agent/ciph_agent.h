@@ -74,7 +74,7 @@ private:
     static int32_t _client_id;
 
 private:
-    static std::mutex _conn_m[MAX_CONNECTIONS];
+    static std::recursive_mutex _conn_m[MAX_CONNECTIONS];
     static uint32_t _is_conn_active[MAX_CONNECTIONS];
 };
 
