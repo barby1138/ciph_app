@@ -577,7 +577,7 @@ void on_ops_complete_cb_0_v (uint32_t cid, uint16_t qid, Crypto_operation* vec, 
     			op.op.sess_id = thread_data[cid].setup_sess_id_dec;
     			op.op.op_type = CRYPTO_OP_TYPE_SESS_CIPHERING;
 				op.op.cipher_op = CRYPTO_CIPHER_OP_DECRYPT;
-				op.op.pad_len = vec[j].op.pad_len;
+				op.op.reserved_1 = vec[j].op.reserved_1;
 
 				op.op.op_ctx_ptr = NULL;
 
@@ -603,7 +603,7 @@ void on_ops_complete_cb_0_v (uint32_t cid, uint16_t qid, Crypto_operation* vec, 
 
 				if ( 0 != memcmp(plaintext,
 						vec[j].cipher_buff_list.buffs[0].data,
-						vec[j].cipher_buff_list.buffs[0].length - vec[j].op.pad_len))
+						vec[j].cipher_buff_list.buffs[0].length - vec[j].op.reserved_1))
 				{
         			thread_data[cid].data_failed++;
 					print_buff(vec[j].cipher_buff_list.buffs[0].data, vec[j].cipher_buff_list.buffs[0].length);
@@ -738,8 +738,8 @@ int32_t cipher(long cid, uint16_t qid, uint64_t seq, uint64_t sess_id, uint32_t 
 	if (cnt % 100 == 0) 
 		BUFFER_TOTAL_LEN = 300 + rand() % 1200;
 	// TODO kills server
-//	if (cnt % 10000 == 0) 
-//		BUFFER_TOTAL_LEN = 1800; // to large
+	if (cnt % 1000000 == 0) 
+		BUFFER_TOTAL_LEN = 1550; // too large
 
 	//uint32_t BUFFER_TOTAL_LEN = 1 + rand() % 15;
 #endif
@@ -754,6 +754,9 @@ int32_t cipher(long cid, uint16_t qid, uint64_t seq, uint64_t sess_id, uint32_t 
 	uint32_t step = BUFFER_TOTAL_LEN / BUFFER_SEGMENT_NUM;
 	for (uint32_t i = 0; i < op.cipher_buff_list.buff_list_length; ++i)
 	{
+		if (i*step > 1586)
+			break;
+		
     	op.cipher_buff_list.buffs[i].data = ((cipher_op == CRYPTO_CIPHER_OP_ENCRYPT) ? plaintext : ciphertext) + i*step;
 		op.cipher_buff_list.buffs[i].length = step;
 
@@ -985,9 +988,10 @@ int *a;
 
 	// NOTE. for test - close session before flush
 	// in verify test we rollback packets in poll - so last packets (batch) will be skipped at server (NO SESSION)
+	/*
 	res = close_session(cid, QID_USER, ++thread_data[cid].seq, thread_data[cid].setup_sess_ctx.setup_sess_id);
 	if (0 != res) printf ("close_session ERROR\n");
-
+*/
 	// disconnect while send (client crash simulation)
     //while (thread_data[cid].total_size < all_pck_count / 2)
     while (thread_data[cid].total_size < all_pck_count)
@@ -1088,7 +1092,6 @@ int main(int argc, char* argv[])
 	thread_data[cid_1].cipher_algo = CRYPTO_CIPHER_AES_CBC;
 	if (TT_VERIFY == test_type)
 	{
-		thread_data[cid_0].cipher_algo = ( (rand() % 2) == 0 ) ? CRYPTO_CIPHER_AES_CBC : CRYPTO_CIPHER_SNOW3G_UEA2;
 		thread_data[cid_1].cipher_algo = ( (rand() % 2) == 0 ) ? CRYPTO_CIPHER_AES_CBC : CRYPTO_CIPHER_SNOW3G_UEA2;
 	}
 

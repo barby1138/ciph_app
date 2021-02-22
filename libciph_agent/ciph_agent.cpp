@@ -31,7 +31,7 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len,  Crypto_operation* vec
 	buffer_op->sess_id = vec->op.sess_id;
 	buffer_op->cipher_algo = vec->op.cipher_algo;
 	buffer_op->cipher_op = vec->op.cipher_op;
-	buffer_op->pad_len = vec->op.pad_len;
+	buffer_op->reserved_1 = vec->op.reserved_1;
 
     buffer += sizeof(Crypto_operation_context);
     *len += sizeof(Crypto_operation_context);
@@ -56,6 +56,14 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len,  Crypto_operation* vec
         printf("WARNING!!! data_len.ciphertext_length > MAX_PCK_LEN %d\n", data_len.ciphertext_length);
 
         buffer_op->op_status = CRYPTO_OP_STATUS_FAILED;
+
+        Data_lengths* buffer_data_len = (Data_lengths* ) buffer;
+        buffer_data_len->ciphertext_length = 0;
+        buffer_data_len->cipher_key_length = 0;
+        buffer_data_len->cipher_iv_length = 0;
+
+        buffer += sizeof(Data_lengths);
+        *len += sizeof(Data_lengths);
 
         return;
     }
@@ -152,7 +160,7 @@ void crypto_job_from_buffer(uint8_t* buffer, uint32_t len, Crypto_operation* vec
 	vec->op.sess_id = buffer_op->sess_id;
 	vec->op.cipher_algo = buffer_op->cipher_algo;
 	vec->op.cipher_op = buffer_op->cipher_op;
-	vec->op.pad_len = buffer_op->pad_len;
+	vec->op.reserved_1 = buffer_op->reserved_1;
 
     buffer += sizeof(Crypto_operation_context);
 

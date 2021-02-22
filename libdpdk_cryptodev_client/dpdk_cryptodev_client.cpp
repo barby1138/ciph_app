@@ -626,7 +626,8 @@ int Dpdk_cryptodev_client::preprocess_jobs(int ch_id,
 		if (jobs[i].op.op_status == CRYPTO_OP_STATUS_FAILED)
 		{
 			RTE_LOG(ERR, USER1, "job %d op_type %d was set FAILED inside the agent", i, jobs[i].op.op_type);
-			
+			jobs[i].cipher_buff_list.buff_list_length = 0;
+
 			continue;
 		}
 
@@ -654,6 +655,7 @@ int Dpdk_cryptodev_client::preprocess_jobs(int ch_id,
 		{
 			if (NULL == get_session(ch_id, jobs[i]))
 			{
+				// TODO set failed op
 				jobs[i].op.op_status = CRYPTO_OP_STATUS_FAILED;
 				jobs[i].cipher_buff_list.buff_list_length = 0;
 
@@ -723,7 +725,8 @@ int Dpdk_cryptodev_client::postprocess_jobs(int ch_id, Crypto_operation* jobs, u
 			else
 				jobs[i].op.op_status = CRYPTO_OP_STATUS_FAILED;
 		}
-		else if (jobs[i].op.op_type == CRYPTO_OP_TYPE_SESS_CIPHERING)
+		else if (jobs[i].op.op_type == CRYPTO_OP_TYPE_SESS_CIPHERING && 
+				jobs[i].op.op_status == CRYPTO_OP_STATUS_SUCC)
 		{
 			if (_print_dbg)
 			{
@@ -733,6 +736,12 @@ int Dpdk_cryptodev_client::postprocess_jobs(int ch_id, Crypto_operation* jobs, u
 				RTE_LOG(DEBUG, USER1, "IV len %d", jobs[i].cipher_iv.length);
 				print_buff_dbg(jobs[i].cipher_iv.data, jobs[i].cipher_iv.length);
 			}
+			;
+		}
+		else if (jobs[i].op.op_type == CRYPTO_OP_TYPE_SESS_CIPHERING && 
+				jobs[i].op.op_status == CRYPTO_OP_STATUS_FAILED)
+		{
+			//RTE_LOG(WARNING, USER1, "postprocess_jobs WARN!!! FAILED job op_type %d i %d", jobs[i].op.op_type, i);
 			;
 		}
 		else
@@ -820,12 +829,17 @@ int Dpdk_cryptodev_client::set_ops_cipher(	rte_crypto_op **ops,
 
 		rte_cryptodev_sym_session* sess = get_session(ch_id, vecs[j]);
 		// [OT] No need handle not found sess == NULL - checked at input
+		if(sess == NULL)
+		{
+			// TODO this should never happen but need to simulate
+			RTE_LOG(ERROR, USER1, "set_ops_cipher sess == NULL");
+			return -1;
+		}
+
 		rte_crypto_op_attach_sym_session(ops[i], sess);
 
 		sym_op->m_src = (rte_mbuf *)((uint8_t *)ops[i] + _src_buf_offset);
 
-		// TODO review
-		/////////////////////////////////////
 		rte_mbuf *m = sym_op->m_src;
 
 		rte_pktmbuf_attach_extbuf(m,
@@ -850,84 +864,21 @@ int Dpdk_cryptodev_client::set_ops_cipher(	rte_crypto_op **ops,
         	if (pad_len) 
 			{
             	padding = (uint8_t*) rte_pktmbuf_append(m, pad_len);
-            	if (unlikely(!padding))
+            	if (NULL == padding)
 				{
+					// TODO this should never happen but need to simulate
 					RTE_LOG(ERROR, USER1, "not enought place for pad");
                 	return -1;
 				}
 
-				vecs[j].op.pad_len = pad_len;
+				vecs[j].op.reserved_1 = pad_len;
 				vecs[j].cipher_buff_list.buffs[0].length += pad_len;
             	memset(padding, 0, pad_len);
         	}
 		}
-		
-/*
-		uint32_t mbuf_hdr_size = sizeof(rte_mbuf);
 
-		// start of buffer is after mbuf structure and priv data 
-		m->priv_size = 0;
-		m->buf_addr = vecs[j].cipher_buff_list.buffs[0].data;
-		m->buf_iova = RTE_BAD_IOVA; //rte_mempool_virt2iova(vecs[j].cipher_buff_list.buffs[0].data);
-
-		m->buf_len = vecs[j].cipher_buff_list.buffs[0].length;
-		m->data_len = vecs[j].cipher_buff_list.buffs[0].length;
-		m->pkt_len = vecs[j].cipher_buff_list.buffs[0].length;
-
-		//printf("fill_single_seg_mbuf %d, %d\n", m, m->data_len);
-
-		m->data_off = _opts.headroom_sz;
-
-		// init some constant fields 
-		m->pool = _ops_mp;
-		m->nb_segs = 1;
-		m->port = 0xff;
-		rte_mbuf_refcnt_set(m, 1);
-		m->next = NULL;
-*/
-		/*
-		do {
-			// start of buffer is after mbuf structure and priv data 
-			m->priv_size = 0;
-			m->buf_addr = (char *)m + mbuf_hdr_size;
-			m->buf_iova = next_seg_phys_addr;
-			next_seg_phys_addr += mbuf_hdr_size + segment_sz;
-			m->buf_len = segment_sz;
-			m->data_len = data_len;
-			printf("fill_multi_seg_mbuf %d, %d\n", m, m->data_len);
-
-			// Use headroom specified for the buffer 
-			m->data_off = headroom;
-
-			// init some constant fields 
-			m->pool = mp;
-			m->nb_segs = segments_nb;
-			m->port = 0xff;
-			rte_mbuf_refcnt_set(m, 1);
-			next_mbuf = (struct rte_mbuf *) ((uint8_t *) m + mbuf_hdr_size + segment_sz);
-			m->next = next_mbuf;
-			m = next_mbuf;
-			remaining_segments--;
-		} while (remaining_segments > 0);
-		*/
-		//////////////////////////////////////
-//#define DO_BLOCK_PAD
-#ifdef DO_BLOCK_PAD
-
-		sym_op->cipher.data.length = (vecs[j].cipher_buff_list.buffs[0].length < BLOCK_LENGTH) ? 
-													BLOCK_LENGTH + vecs[j].cipher_buff_list.buffs[0].length: 
-													vecs[j].cipher_buff_list.buffs[0].length;
-
-		sym_op->cipher.data.offset = (vecs[j].cipher_buff_list.buffs[0].length < BLOCK_LENGTH) ? 
-													BLOCK_LENGTH :
-													0;
-#else
 		sym_op->cipher.data.length = vecs[j].cipher_buff_list.buffs[0].length;
 		sym_op->cipher.data.offset = 0;
-#endif
-
-		//sym_op->cipher.data.length = vecs[j].cipher_buff_list.buffs[0].length;
-		//sym_op->cipher.data.offset = 0;	
 
 		if (_enabled_cdevs[dev_id].algo == RTE_CRYPTO_CIPHER_SNOW3G_UEA2 ||
 				_enabled_cdevs[dev_id].algo == RTE_CRYPTO_CIPHER_KASUMI_F8 ||
@@ -940,9 +891,10 @@ int Dpdk_cryptodev_client::set_ops_cipher(	rte_crypto_op **ops,
 
 		if (vecs[j].cipher_iv.length)
 		{
-			uint8_t *iv_ptr = rte_crypto_op_ctod_offset(ops[j], uint8_t *, iv_offset);
+			uint8_t *iv_ptr = rte_crypto_op_ctod_offset(ops[i], uint8_t *, iv_offset);
 			clib_memcpy_fast(iv_ptr, vecs[j].cipher_iv.data, vecs[j].cipher_iv.length);
 		}
+		
 	}
 
 	return 0;
@@ -1022,6 +974,9 @@ int Dpdk_cryptodev_client::run_jobs_inner(
 						_opts.max_burst_size :
 						dev_vecs_size - ops_enqd_total;
 	
+		if (0 != ops_enqd_total)
+			RTE_LOG(INFO, USER1, "0 != ops_enqd_total %" PRIu64 "", ops_enqd_total);
+
 		uint16_t ops_needed = burst_size - ops_unused;
 	
 		if (rte_mempool_get_bulk(_ops_mp, (void **)ops, ops_needed) != 0) 
@@ -1581,6 +1536,7 @@ int32_t Dpdk_cryptodev_client::test_cipher(long cid, uint64_t seq, uint64_t sess
 
 	uint32_t total_len = 0;
 	uint32_t step = BUFFER_TOTAL_LEN / BUFFER_SEGMENT_NUM;
+
 	/*
 	for (uint32_t i = 0; i < op.cipher_buff_list.buff_list_length; ++i)
 	{
@@ -1757,3 +1713,54 @@ int Dpdk_cryptodev_client::run_jobs_test(int ch_id, Crypto_operation* jobs, uint
 
 	return 0;
 }
+
+// to remove
+/*
+		uint32_t mbuf_hdr_size = sizeof(rte_mbuf);
+
+		// start of buffer is after mbuf structure and priv data 
+		m->priv_size = 0;
+		m->buf_addr = vecs[j].cipher_buff_list.buffs[0].data;
+		m->buf_iova = RTE_BAD_IOVA; //rte_mempool_virt2iova(vecs[j].cipher_buff_list.buffs[0].data);
+
+		m->buf_len = vecs[j].cipher_buff_list.buffs[0].length;
+		m->data_len = vecs[j].cipher_buff_list.buffs[0].length;
+		m->pkt_len = vecs[j].cipher_buff_list.buffs[0].length;
+
+		//printf("fill_single_seg_mbuf %d, %d\n", m, m->data_len);
+
+		m->data_off = _opts.headroom_sz;
+
+		// init some constant fields 
+		m->pool = _ops_mp;
+		m->nb_segs = 1;
+		m->port = 0xff;
+		rte_mbuf_refcnt_set(m, 1);
+		m->next = NULL;
+*/
+		/*
+		do {
+			// start of buffer is after mbuf structure and priv data 
+			m->priv_size = 0;
+			m->buf_addr = (char *)m + mbuf_hdr_size;
+			m->buf_iova = next_seg_phys_addr;
+			next_seg_phys_addr += mbuf_hdr_size + segment_sz;
+			m->buf_len = segment_sz;
+			m->data_len = data_len;
+			printf("fill_multi_seg_mbuf %d, %d\n", m, m->data_len);
+
+			// Use headroom specified for the buffer 
+			m->data_off = headroom;
+
+			// init some constant fields 
+			m->pool = mp;
+			m->nb_segs = segments_nb;
+			m->port = 0xff;
+			rte_mbuf_refcnt_set(m, 1);
+			next_mbuf = (struct rte_mbuf *) ((uint8_t *) m + mbuf_hdr_size + segment_sz);
+			m->next = next_mbuf;
+			m = next_mbuf;
+			remaining_segments--;
+		} while (remaining_segments > 0);
+		*/
+		//////////////////////////////////////
