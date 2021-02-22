@@ -201,12 +201,12 @@ std::string date_time_str()
 
 int main(int argc, char** argv)
 {
-
+/*
 	if (signal(SIGSEGV, signal_handler) == SIG_ERR) 
 	{
     TRACE_WARNING("Error installing handler");
   }
-
+*/
 	try
 	{
 		if (argc < 2)
@@ -293,7 +293,7 @@ int main(int argc, char** argv)
     Dpdk_cryptodev_client_sngl::instance().test(CRYPTO_CIPHER_SNOW3G_UEA2, CRYPTO_CIPHER_OP_DECRYPT);
 
     Dpdk_cryptodev_client_sngl::instance().test(CRYPTO_CIPHER_AES_CBC, CRYPTO_CIPHER_OP_DECRYPT);
-    */
+*/    
     Ciph_agent_server_sngl::instance().init(-1);
 
     for (uint32_t i : uint_client_ids)

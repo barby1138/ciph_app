@@ -2,14 +2,12 @@
 
 enum { CA_MODE_SLAVE = 0, CA_MODE_MASTER = 1 };
 
+const uint32_t BLOCK_LENGTH = 16;
 const uint32_t CIFER_IV_LENGTH = 16;
+const uint32_t MAX_PCK_LEN = 1504; // 1500 aligned to BLOCK_LENGTH
 
 // is it needed for SNOW?
-#define DO_BLOCK_PAD
-#ifdef DO_BLOCK_PAD
-const uint32_t BLOCK_LENGTH = 16;
-#endif
-
+//#define DO_BLOCK_PAD
 typedef struct Data_lengths {
     uint32_t ciphertext_length;
     uint32_t cipher_key_length;
@@ -33,7 +31,8 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len,  Crypto_operation* vec
 	buffer_op->sess_id = vec->op.sess_id;
 	buffer_op->cipher_algo = vec->op.cipher_algo;
 	buffer_op->cipher_op = vec->op.cipher_op;
-    
+	buffer_op->pad_len = vec->op.pad_len;
+
     buffer += sizeof(Crypto_operation_context);
     *len += sizeof(Crypto_operation_context);
 
@@ -52,6 +51,15 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len,  Crypto_operation* vec
     }
 #endif
 
+    if (data_len.ciphertext_length > MAX_PCK_LEN)
+    {
+        printf("WARNING!!! data_len.ciphertext_length > MAX_PCK_LEN %d\n", data_len.ciphertext_length);
+
+        buffer_op->op_status = CRYPTO_OP_STATUS_FAILED;
+
+        return;
+    }
+
     data_len.cipher_key_length = vec->cipher_key.length;
     data_len.cipher_iv_length = vec->cipher_iv.length;
 
@@ -64,6 +72,12 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len,  Crypto_operation* vec
 #endif
     buffer += sizeof(Data_lengths);
     *len += sizeof(Data_lengths);
+
+    buffer += 32;
+    *len += 32;
+
+    uint8_t* buffer_next = buffer + 1600; // 96 * 16
+    uint32_t len_next = *len + 1600;
 
 #ifdef DO_BLOCK_PAD
     if (data_offset)
@@ -91,6 +105,9 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len,  Crypto_operation* vec
             *len += vec->cipher_buff_list.buffs[i].length;
         }
     }
+
+    buffer = buffer_next;
+    *len = len_next;
 
     if (vec->cipher_key.length)
     {
@@ -135,11 +152,14 @@ void crypto_job_from_buffer(uint8_t* buffer, uint32_t len, Crypto_operation* vec
 	vec->op.sess_id = buffer_op->sess_id;
 	vec->op.cipher_algo = buffer_op->cipher_algo;
 	vec->op.cipher_op = buffer_op->cipher_op;
+	vec->op.pad_len = buffer_op->pad_len;
 
     buffer += sizeof(Crypto_operation_context);
 
     Data_lengths* pData_len = (Data_lengths*)buffer;
     buffer += sizeof(Data_lengths);
+
+    buffer += 32;
 
     // [OT] this is temp patch will be done automatically inside server in REL2 (with dpdk shared mem)
 #ifdef DO_BLOCK_PAD
@@ -167,6 +187,7 @@ void crypto_job_from_buffer(uint8_t* buffer, uint32_t len, Crypto_operation* vec
             else
             {
                 vec->op.op_status == CRYPTO_OP_STATUS_FAILED;
+
                 printf("ERROR!!! BAD buff or len ptr %x, %d <= %d\n", vec->op.outbuff_ptr, 
                                     vec->cipher_buff_list.buffs[0].length,
                                     vec->op.outbuff_len);
@@ -175,7 +196,8 @@ void crypto_job_from_buffer(uint8_t* buffer, uint32_t len, Crypto_operation* vec
     }
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    buffer += pData_len->ciphertext_length;
+    //buffer += pData_len->ciphertext_length;
+    buffer += 1600;
 
     vec->cipher_key.data = buffer;
     vec->cipher_key.length = pData_len->cipher_key_length;
@@ -191,13 +213,20 @@ public:
     Ciph_vec_burst_serializer(const Crypto_operation* vecs, uint32_t size)
         :   _vecs(vecs), 
             _size(size)
-    {}
+    {
+        // printf("Ciph_vec_burst_serializer vec %X size %d\n", &_vecs[0], _size);
+    }
 
     inline virtual void serialize(uint8_t* buff, uint32_t* len, uint32_t ind)
     {
-        assert(ind < _size);
-
-        crypto_job_to_buffer((uint8_t*) buff, len, &_vecs[ind]);
+        if (ind < _size)
+        {
+            crypto_job_to_buffer((uint8_t*) buff, len, &_vecs[ind]);
+        }
+        else
+        {
+            printf("WARNING!!! invalid (ind < size) ind %d size %d\n", ind, _size);
+        }
     }
 
 private:

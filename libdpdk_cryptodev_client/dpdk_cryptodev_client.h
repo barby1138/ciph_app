@@ -69,7 +69,7 @@ private:
     int set_ops_cipher(rte_crypto_op **ops, 
                         int ch_id, 
                         uint8_t dev_id, 
-                        const Crypto_operation* vecs, 
+                        Crypto_operation* vecs, 
                         uint32_t ops_nb, 
                         uint32_t* dev_vecs_idxs);
 

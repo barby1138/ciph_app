@@ -213,6 +213,8 @@ uint8_t cipher_key[] = {
 	0xE4, 0x23, 0x33, 0x8A, 0x35, 0x64, 0x61, 0xE2, 0x49, 0x03, 0xDD, 0xC6, 0xB8, 0xCA, 0x55, 0x7A
 };
 
+uint8_t test_buff[1024];
+
 void print_buff1(uint8_t* data, int len)
 {
 	enum { BUFF_STR_MAX_LEN = 16 * 3 };
@@ -621,6 +623,13 @@ int Dpdk_cryptodev_client::preprocess_jobs(int ch_id,
 
 	for (uint32_t i = 0; i < size; ++i)
 	{
+		if (jobs[i].op.op_status == CRYPTO_OP_STATUS_FAILED)
+		{
+			RTE_LOG(ERR, USER1, "job %d op_type %d was set FAILED inside the agent", i, jobs[i].op.op_type);
+			
+			continue;
+		}
+
 		if (jobs[i].op.op_type == CRYPTO_OP_TYPE_SESS_CREATE)
 		{
 			uint32_t sess_id = -1;
@@ -785,11 +794,13 @@ int Dpdk_cryptodev_client::run_jobs(int ch_id, Crypto_operation* jobs, uint32_t 
 	return 0;
 }
 
+static struct rte_mbuf_ext_shared_info g_shinfo = {};
+
 // ops
 int Dpdk_cryptodev_client::set_ops_cipher(	rte_crypto_op **ops, 
 											int ch_id, 
 											uint8_t dev_id, 
-											const Crypto_operation* vecs, 
+											Crypto_operation* vecs, 
 											uint32_t ops_nb, 
 											uint32_t* dev_vecs_idxs)
 {
@@ -817,6 +828,41 @@ int Dpdk_cryptodev_client::set_ops_cipher(	rte_crypto_op **ops,
 		/////////////////////////////////////
 		rte_mbuf *m = sym_op->m_src;
 
+		rte_pktmbuf_attach_extbuf(m,
+					  vecs[j].cipher_buff_list.buffs[0].data,
+					  rte_mempool_virt2iova(vecs[j].cipher_buff_list.buffs[0].data),
+					  1600,
+					  //vecs[j].cipher_buff_list.buffs[0].length,
+					  &g_shinfo);
+	
+		rte_pktmbuf_append(m, vecs[j].cipher_buff_list.buffs[0].length);
+
+		uint32_t data_len = vecs[j].cipher_buff_list.buffs[0].length;
+		uint32_t pad_len = 0;
+		uint8_t* padding;
+
+        // Following algorithms are block cipher algorithms, and might need padding
+		if (_enabled_cdevs[dev_id].algo == RTE_CRYPTO_CIPHER_AES_CBC)
+		{
+			if (data_len % BLOCK_LENGTH)
+                pad_len = BLOCK_LENGTH - (data_len % BLOCK_LENGTH);
+
+        	if (pad_len) 
+			{
+            	padding = (uint8_t*) rte_pktmbuf_append(m, pad_len);
+            	if (unlikely(!padding))
+				{
+					RTE_LOG(ERROR, USER1, "not enought place for pad");
+                	return -1;
+				}
+
+				vecs[j].op.pad_len = pad_len;
+				vecs[j].cipher_buff_list.buffs[0].length += pad_len;
+            	memset(padding, 0, pad_len);
+        	}
+		}
+		
+/*
 		uint32_t mbuf_hdr_size = sizeof(rte_mbuf);
 
 		// start of buffer is after mbuf structure and priv data 
@@ -838,7 +884,7 @@ int Dpdk_cryptodev_client::set_ops_cipher(	rte_crypto_op **ops,
 		m->port = 0xff;
 		rte_mbuf_refcnt_set(m, 1);
 		m->next = NULL;
-
+*/
 		/*
 		do {
 			// start of buffer is after mbuf structure and priv data 
@@ -865,8 +911,9 @@ int Dpdk_cryptodev_client::set_ops_cipher(	rte_crypto_op **ops,
 		} while (remaining_segments > 0);
 		*/
 		//////////////////////////////////////
-#define DO_BLOCK_PAD
+//#define DO_BLOCK_PAD
 #ifdef DO_BLOCK_PAD
+
 		sym_op->cipher.data.length = (vecs[j].cipher_buff_list.buffs[0].length < BLOCK_LENGTH) ? 
 													BLOCK_LENGTH + vecs[j].cipher_buff_list.buffs[0].length: 
 													vecs[j].cipher_buff_list.buffs[0].length;
@@ -875,7 +922,6 @@ int Dpdk_cryptodev_client::set_ops_cipher(	rte_crypto_op **ops,
 													BLOCK_LENGTH :
 													0;
 #else
-
 		sym_op->cipher.data.length = vecs[j].cipher_buff_list.buffs[0].length;
 		sym_op->cipher.data.offset = 0;
 #endif
@@ -1526,7 +1572,7 @@ int32_t Dpdk_cryptodev_client::test_cipher(long cid, uint64_t seq, uint64_t sess
 	
 	op.op.op_ctx_ptr = NULL;
 
-	uint32_t BUFFER_TOTAL_LEN = 1 + rand() % 300  ; //1 + rand() % 264;
+	uint32_t BUFFER_TOTAL_LEN = 1 + rand() % 300 ; //1 + rand() % 264;
 	uint32_t BUFFER_SEGMENT_NUM = 1 ;//1 + rand() % 15;
 	BUFFER_SEGMENT_NUM = (BUFFER_SEGMENT_NUM > BUFFER_TOTAL_LEN) ? 
 												BUFFER_TOTAL_LEN : 
@@ -1542,7 +1588,6 @@ int32_t Dpdk_cryptodev_client::test_cipher(long cid, uint64_t seq, uint64_t sess
 
 		op.cipher_buff_list.buffs[i].data = ((op_type == CRYPTO_CIPHER_OP_ENCRYPT) ? plaintext : ciphertext) + i*step;
 
-		
 		op.cipher_buff_list.buffs[i].length = step;
 		total_len += step;
 		// last segment
@@ -1552,12 +1597,10 @@ int32_t Dpdk_cryptodev_client::test_cipher(long cid, uint64_t seq, uint64_t sess
 	*/
 
 	void * pt = (op_type == CRYPTO_CIPHER_OP_ENCRYPT) ? plaintext : ciphertext;
-  	std::size_t space = sizeof(plaintext)-1;
 
-	//op.cipher_buff_list.buffs[0].data = (uint8_t*) std::align(16, 64, pt, space);
-	op.cipher_buff_list.buffs[0].data = (uint8_t*) pt;
-
-	op.cipher_buff_list.buffs[0].length = 1;//step;
+	memcpy(test_buff, pt, BUFFER_TOTAL_LEN);
+	op.cipher_buff_list.buffs[0].data = test_buff;
+	op.cipher_buff_list.buffs[0].length = BUFFER_TOTAL_LEN;
 
 	//printf ("BUFFER_TOTAL_LEN %d BUFFER_SEGMENT_NUM %d\n", BUFFER_TOTAL_LEN, BUFFER_SEGMENT_NUM);
 
@@ -1590,7 +1633,7 @@ int Dpdk_cryptodev_client::test(Crypto_cipher_algorithm a, Crypto_cipher_operati
 
 	uint32_t retries;
 
-  	uint32_t num_pck = 1000000;
+  	uint32_t num_pck = 10000000;
   	uint32_t num_pck_per_batch = 32;
   	uint32_t pck_size = 200;
 

@@ -346,7 +346,7 @@ const uint16_t QID_USER = 0, QID_CTRL = 1;
 
 enum { THR_CNT = 6 };
 enum { MAX_ACTIVE_SESS_NUM = 300 };
-enum { MAX_OUTBUFF_LEN = 1500 };
+enum { MAX_OUTBUFF_LEN = 1504 }; // 1500 aligned for 16
 
 uint16_t USE_RND = 0;
 
@@ -577,12 +577,13 @@ void on_ops_complete_cb_0_v (uint32_t cid, uint16_t qid, Crypto_operation* vec, 
     			op.op.sess_id = thread_data[cid].setup_sess_id_dec;
     			op.op.op_type = CRYPTO_OP_TYPE_SESS_CIPHERING;
 				op.op.cipher_op = CRYPTO_CIPHER_OP_DECRYPT;
+				op.op.pad_len = vec[j].op.pad_len;
 
 				op.op.op_ctx_ptr = NULL;
 
 				op.cipher_buff_list.buff_list_length = 1;
-				op.cipher_buff_list.buffs[0].length = vec[j].cipher_buff_list.buffs[0].length;
 				op.cipher_buff_list.buffs[0].data = vec[j].cipher_buff_list.buffs[0].data;
+				op.cipher_buff_list.buffs[0].length = vec[j].cipher_buff_list.buffs[0].length;
 
     			op.cipher_iv.data = iv;
     			op.cipher_iv.length = 16;
@@ -602,7 +603,7 @@ void on_ops_complete_cb_0_v (uint32_t cid, uint16_t qid, Crypto_operation* vec, 
 
 				if ( 0 != memcmp(plaintext,
 						vec[j].cipher_buff_list.buffs[0].data,
-						vec[j].cipher_buff_list.buffs[0].length))
+						vec[j].cipher_buff_list.buffs[0].length - vec[j].op.pad_len))
 				{
         			thread_data[cid].data_failed++;
 					print_buff(vec[j].cipher_buff_list.buffs[0].data, vec[j].cipher_buff_list.buffs[0].length);
@@ -731,7 +732,14 @@ int32_t cipher(long cid, uint16_t qid, uint64_t seq, uint64_t sess_id, uint32_t 
 #else
 	static int cnt = 0;
 	// 1% 300 - 1500 bytes
-	uint32_t BUFFER_TOTAL_LEN = (++cnt % 100 == 0) ? 300 + rand() % 1200 : 1 + rand() % 300;
+	++cnt;
+
+	uint32_t BUFFER_TOTAL_LEN = 1 + rand() % 300;
+	if (cnt % 100 == 0) 
+		BUFFER_TOTAL_LEN = 300 + rand() % 1200;
+	// TODO kills server
+//	if (cnt % 10000 == 0) 
+//		BUFFER_TOTAL_LEN = 1800; // to large
 
 	//uint32_t BUFFER_TOTAL_LEN = 1 + rand() % 15;
 #endif
@@ -749,12 +757,12 @@ int32_t cipher(long cid, uint16_t qid, uint64_t seq, uint64_t sess_id, uint32_t 
     	op.cipher_buff_list.buffs[i].data = ((cipher_op == CRYPTO_CIPHER_OP_ENCRYPT) ? plaintext : ciphertext) + i*step;
 		op.cipher_buff_list.buffs[i].length = step;
 
-	if (USE_RND)
-	{
-		// fill with random data
-		for(size_t i = 0; i < op.cipher_buff_list.buffs[i].length; i++)
-    		op.cipher_buff_list.buffs[i].data[i] = rand() % 256;
-	}
+		if (USE_RND)
+		{
+			// fill with random data
+			for(size_t i = 0; i < op.cipher_buff_list.buffs[i].length; i++)
+    			op.cipher_buff_list.buffs[i].data[i] = rand() % 256;
+		}
 
 		total_len += step;
 		// last segment
@@ -1036,11 +1044,12 @@ void signal_handler(int signo)
 
 int main(int argc, char* argv[])
 {
+/*
 	if (signal(SIGSEGV, signal_handler) == SIG_ERR) 
 	{
     	printf("\nError installing handler\n");
   	}
-
+*/
     long cid_0 = 0;
     long cid_1 = 1;
 
@@ -1077,6 +1086,12 @@ int main(int argc, char* argv[])
 	thread_data[cid_1].cb = (TT_VERIFY == test_type) ? on_ops_complete_cb_0_v : on_ops_complete_cb_0;
 	//thread_data[cid_1].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
 	thread_data[cid_1].cipher_algo = CRYPTO_CIPHER_AES_CBC;
+	if (TT_VERIFY == test_type)
+	{
+		thread_data[cid_0].cipher_algo = ( (rand() % 2) == 0 ) ? CRYPTO_CIPHER_AES_CBC : CRYPTO_CIPHER_SNOW3G_UEA2;
+		thread_data[cid_1].cipher_algo = ( (rand() % 2) == 0 ) ? CRYPTO_CIPHER_AES_CBC : CRYPTO_CIPHER_SNOW3G_UEA2;
+	}
+
     thread_data[cid_1].cipher_op = CRYPTO_CIPHER_OP_DECRYPT;
 
 	//int s;

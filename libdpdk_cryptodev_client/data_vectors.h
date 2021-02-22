@@ -50,6 +50,8 @@ typedef struct Crypto_operation_context {
 	// used only for CRYPTO_OP_TYPE_SESS_CREATE
 	enum Crypto_cipher_algorithm cipher_algo;
 	enum Crypto_cipher_operation cipher_op;
+
+	uint32_t pad_len;
 }Crypto_operation_context;
 
 typedef struct Crypto_buff {
