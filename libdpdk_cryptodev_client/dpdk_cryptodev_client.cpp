@@ -766,13 +766,11 @@ int Dpdk_cryptodev_client::run_jobs(int ch_id, Crypto_operation* jobs, uint32_t 
 	uint32_t dev_ops_size_arr[RTE_CRYPTO_MAX_DEVS] = { 0 };
 	Dev_vecs_idxs_t dev_vecs_idxs_arr[RTE_CRYPTO_MAX_DEVS] = { 0 };
 
-//printf("1\n");
 	{
   	meson::bench_scope_low scope("preprocess_jobs");
 
 	preprocess_jobs(ch_id, jobs, size, dev_ops_size_arr, dev_vecs_idxs_arr);
 	}
-//printf("2\n");
 
 	{
   	meson::bench_scope_low scope("run_jobs_inner");
@@ -790,15 +788,12 @@ int Dpdk_cryptodev_client::run_jobs(int ch_id, Crypto_operation* jobs, uint32_t 
 							dev_vecs_idxs_arr[cdev_index].dev_vecs_idxs);
 	}
 	}
-//printf("3\n");
-
 
 	{
   	meson::bench_scope_low scope("postprocess_jobs");
 
 	postprocess_jobs(ch_id, jobs, size);
 	}
-//printf("4\n");
 
 	return 0;
 }
