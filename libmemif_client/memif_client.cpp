@@ -428,8 +428,16 @@ error:
   return -1;
 }
 
+#include <sys/prctl.h>
+void set_thread_bame( const char* name)
+{
+  prctl(PR_SET_NAME, name, 0, 0, 0);
+}
+
 void Memif_client::run()
 {
+  set_thread_bame("Memif_client_epoll_thr");
+  
   while (_op_state == RUNNING)
   {
     if (poll_event (/*-1*/ 1000) < 0)
@@ -438,6 +446,14 @@ void Memif_client::run()
     }
   }
 }
+
+/*
+void set_thread_bame(std::thread* thread, const char* name)
+{
+   auto handle = thread->native_handle();
+   pthread_setname_np(handle, name);
+}
+*/
 
 int Memif_client::init()
 {
