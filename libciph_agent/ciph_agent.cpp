@@ -2,19 +2,17 @@
 
 enum { CA_MODE_SLAVE = 0, CA_MODE_MASTER = 1 };
 
-const uint32_t BLOCK_LENGTH = 16;
+//const uint32_t BLOCK_LENGTH = 16;
+const uint32_t BUFF_HEADROOM = 32;
+const uint32_t BUFF_SIZE = 1600; // aligned to BLOCK_LENGTH
+
 const uint32_t CIFER_IV_LENGTH = 16;
 const uint32_t MAX_PCK_LEN = 1504; // 1500 aligned to BLOCK_LENGTH
 
-// is it needed for SNOW?
-//#define DO_BLOCK_PAD
 typedef struct Data_lengths {
     uint32_t ciphertext_length;
     uint32_t cipher_key_length;
     uint32_t cipher_iv_length;
-#ifdef DO_BLOCK_PAD
-    uint32_t data_offset;
-#endif
 }Data_lengths;
 
 void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len,  Crypto_operation* vec)
@@ -41,16 +39,6 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len,  Crypto_operation* vec
     for (int i = 0; i < vec->cipher_buff_list.buff_list_length; i++)
         data_len.ciphertext_length += vec->cipher_buff_list.buffs[i].length;
 
-#ifdef DO_BLOCK_PAD
-    int data_offset = 0;
-    if (data_len.ciphertext_length < BLOCK_LENGTH)
-    {
-        data_offset = BLOCK_LENGTH;
-        // for AESNI decoder
-        data_len.ciphertext_length += BLOCK_LENGTH;
-    }
-#endif
-
     if (data_len.ciphertext_length > MAX_PCK_LEN)
     {
         printf("WARNING!!! data_len.ciphertext_length > MAX_PCK_LEN %d\n", data_len.ciphertext_length);
@@ -75,26 +63,15 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len,  Crypto_operation* vec
     buffer_data_len->ciphertext_length = data_len.ciphertext_length;
     buffer_data_len->cipher_key_length = data_len.cipher_key_length;
     buffer_data_len->cipher_iv_length = data_len.cipher_iv_length;
-#ifdef DO_BLOCK_PAD
-    buffer_data_len->data_offset = data_offset;
-#endif
+
     buffer += sizeof(Data_lengths);
     *len += sizeof(Data_lengths);
 
-    buffer += 32;
-    *len += 32;
+    buffer += BUFF_HEADROOM;
+    *len += BUFF_HEADROOM;
 
-    uint8_t* buffer_next = buffer + 1600; // 96 * 16
-    uint32_t len_next = *len + 1600;
-
-#ifdef DO_BLOCK_PAD
-    if (data_offset)
-    {
-        memset(buffer, 0, data_offset);
-        buffer += data_offset;
-        *len += data_offset;
-    }
-#endif
+    uint8_t* buffer_next = buffer + BUFF_SIZE; // n * 16
+    uint32_t len_next = *len + BUFF_SIZE;
 
     for (int i = 0; i < vec->cipher_buff_list.buff_list_length; i++)
     {
@@ -167,16 +144,10 @@ void crypto_job_from_buffer(uint8_t* buffer, uint32_t len, Crypto_operation* vec
     Data_lengths* pData_len = (Data_lengths*)buffer;
     buffer += sizeof(Data_lengths);
 
-    buffer += 32;
+    buffer += BUFF_HEADROOM;
 
-    // [OT] this is temp patch will be done automatically inside server in REL2 (with dpdk shared mem)
-#ifdef DO_BLOCK_PAD
-    vec->cipher_buff_list.buffs[0].data = buffer + pData_len->data_offset;
-    vec->cipher_buff_list.buffs[0].length = pData_len->ciphertext_length - pData_len->data_offset;
-#else
     vec->cipher_buff_list.buffs[0].data = buffer;
     vec->cipher_buff_list.buffs[0].length = pData_len->ciphertext_length;
-#endif
 
     vec->cipher_buff_list.buff_list_length = 1;
 
@@ -205,7 +176,7 @@ void crypto_job_from_buffer(uint8_t* buffer, uint32_t len, Crypto_operation* vec
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
     //buffer += pData_len->ciphertext_length;
-    buffer += 1600;
+    buffer += BUFF_SIZE;
 
     vec->cipher_key.data = buffer;
     vec->cipher_key.length = pData_len->cipher_key_length;

@@ -808,6 +808,9 @@ int Dpdk_cryptodev_client::set_ops_cipher(	rte_crypto_op **ops,
 											uint32_t ops_nb, 
 											uint32_t* dev_vecs_idxs)
 {
+	// same as in memif agent
+	const uint32_t BUFF_SIZE = 1600; // aligned to BLOCK_LENGTH
+
 	uint8_t cdev_id = 0;
 	uint16_t iv_offset = sizeof(rte_crypto_op) + sizeof(rte_crypto_sym_op);
 
@@ -840,7 +843,7 @@ int Dpdk_cryptodev_client::set_ops_cipher(	rte_crypto_op **ops,
 		rte_pktmbuf_attach_extbuf(m,
 					  vecs[j].cipher_buff_list.buffs[0].data,
 					  rte_mempool_virt2iova(vecs[j].cipher_buff_list.buffs[0].data),
-					  1600,
+					  BUFF_SIZE,
 					  //vecs[j].cipher_buff_list.buffs[0].length,
 					  &g_shinfo);
 	
