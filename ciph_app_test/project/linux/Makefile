@@ -1,9 +1,9 @@
 # Makefile
 
 CC=gcc
-CFLAGS=-MD
+CFLAGS=-MD 
 CXX=gcc
-CXXFLAGS=$(CFLAGS) -Wall -fexceptions -Wattributes -mavx2 -std=c11
+CXXFLAGS=$(CFLAGS) -Wall -fexceptions -Wattributes -mavx2 -std=gnu11
 LD=$(CXX) $(CXXFLAGS)
 LDFLAGS=
 

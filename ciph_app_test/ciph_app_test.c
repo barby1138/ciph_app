@@ -1046,8 +1046,41 @@ void signal_handler(int signo)
   }        
 }
 
+void del_sigs()
+{
+   struct sigaction sa;
+
+   memset(&sa, 0, sizeof(struct sigaction));
+   sigemptyset(&sa.sa_mask);
+   sa.sa_handler = SIG_DFL;
+
+   sigaction(SIGILL, &sa, NULL);
+   sigaction(SIGSEGV, &sa, NULL);
+   sigaction(SIGABRT, &sa, NULL);
+   sigaction(SIGTERM, &sa, NULL);
+   sigaction(SIGHUP, &sa, NULL);
+}
+
+static void signal_segv(int signum, struct siginfo_t * info, void *ptr)
+{
+	printf("\nALL Error handler\n");
+
+	del_sigs();
+	raise(signum);
+}
+
 int main(int argc, char* argv[])
 {
+	struct sigaction act;
+   	sigset_t set;
+   	struct sigaction sa;
+
+	memset(&sa, 0, sizeof(struct sigaction));
+    sigemptyset(&sa.sa_mask);
+    sa.sa_sigaction = signal_segv;
+    sa.sa_flags = SA_SIGINFO;
+
+    sigaction(SIGSEGV, &sa, NULL);
 /*
 	if (signal(SIGSEGV, signal_handler) == SIG_ERR) 
 	{
