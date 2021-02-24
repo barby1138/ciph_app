@@ -43,8 +43,9 @@ protected:
 
 class Ciph_comm_agent_client : public Ciph_comm_agent_base<2>
 {
+
 private:
-    enum { MAX_CONN_PER_CLIENT = 2 };
+    enum { MAX_CONN_PER_CLIENT = MAX_CONNECTIONS };
 
 public:
     virtual int init(int32_t client_id);
@@ -81,7 +82,9 @@ private:
 class Ciph_comm_agent_server : public Ciph_comm_agent_base<20>
 {
 public:
- public:
+    enum { MAX_CONN = MAX_CONNECTIONS };
+
+public:
     virtual int init(int32_t client_id);
     
     virtual int cleanup();

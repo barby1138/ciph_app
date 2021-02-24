@@ -1129,21 +1129,26 @@ int Dpdk_cryptodev_client::create_session(int ch_id, const Crypto_operation& vec
 		cipher_xform.cipher.iv.length = 0;
 	}
 
-    rte_cryptodev_sym_session_init(cdev_id, s, &cipher_xform, _priv_mp);
-
-	for (uint16_t i = 0; i < MAX_SESS_NUM; i++)
+    if (0 == rte_cryptodev_sym_session_init(cdev_id, s, &cipher_xform, _priv_mp))
 	{
-		if (_active_sessions_registry[ch_id][cdev_id][i] == NULL)
+		for (uint16_t i = 0; i < MAX_SESS_NUM; i++)
 		{
-			// find empty slot / assign id
-			_active_sessions_registry[ch_id][cdev_id][i] = s;
+			if (_active_sessions_registry[ch_id][cdev_id][i] == NULL)
+			{
+				// find empty slot / assign id
+				_active_sessions_registry[ch_id][cdev_id][i] = s;
 
-			*sess_id = ( 0xFFFF0000 & ( (uint16_t) cdev_id << 16 ) ) | i;
+				*sess_id = ( 0xFFFF0000 & ( (uint16_t) cdev_id << 16 ) ) | i;
 
-			RTE_LOG(INFO, USER1, "create_session SUCC id %d", *sess_id);
+				RTE_LOG(INFO, USER1, "create_session SUCC id %d", *sess_id);
 
-			return 0;
+				return 0;
+			}
 		}
+	}
+	else
+	{
+		RTE_LOG(ERR, USER1, "rte_cryptodev_sym_session_init FAILED");
 	}
 
 	RTE_LOG(ERR, USER1, "create_session NO FREE sessions");

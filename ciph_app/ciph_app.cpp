@@ -153,13 +153,14 @@ void on_job_complete_cb_test_2 (uint32_t cid, uint16_t qid, Crypto_operation* pj
   
 }
 
+// TODO check conn_id
 std::set<uint32_t> _active_connections;
-std::mutex m;
+std::mutex m[20]; //MAX_CONN_ID
 typedef std::lock_guard<std::mutex> LOCK_GUARD;
 
 void on_connect_cb (uint32_t cid)
 {
-  LOCK_GUARD lock (m);
+  LOCK_GUARD lock (m[cid]);
 
   TRACE_INFO("on_connect_cb %d", cid);
 
@@ -168,7 +169,7 @@ void on_connect_cb (uint32_t cid)
 
 void on_disconnect_cb (uint32_t cid, uint16_t qid, Crypto_operation* pjob, uint32_t size)
 {
-  LOCK_GUARD lock (m);
+  LOCK_GUARD lock (m[cid]);
 
   TRACE_INFO("on_disconnect_cb %d", cid);
 
@@ -318,17 +319,18 @@ int main(int argc, char** argv)
     {
       usleep(100);
 
+
+      //meson::bench_scope_low scope("poll");
+
+      for (uint32_t i : _active_connections)
       {
-          LOCK_GUARD lock (m);
+        {
+          LOCK_GUARD lock (m[i]);
 
-          //meson::bench_scope_low scope("poll");
-
-          for (uint32_t i : _active_connections)
-          {
-            res = Ciph_agent_server_sngl::instance().poll(i, 0, 64);     
-            res = Ciph_agent_server_sngl::instance().poll(i, 1, 64);  
-          }   
-      }
+          res = Ciph_agent_server_sngl::instance().poll(i, 0, 64);     
+          res = Ciph_agent_server_sngl::instance().poll(i, 1, 64);  
+        }
+      }   
     }
 
     // following never ecec

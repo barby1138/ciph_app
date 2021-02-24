@@ -805,7 +805,7 @@ int Memif_client::send(long index, uint16_t qid, uint64_t size, IMsg_burst_seria
 
       if (retries > MAX_SEND_RETRIES)
       {
-        //INFO ("send retries > MAX_SEND_RETRIES");
+        INFO ("send retries > MAX_SEND_RETRIES %d %d", index, c->connected);
         retries = 0;
 
         usleep(10 * 1000);

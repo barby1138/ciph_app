@@ -847,7 +847,6 @@ memif_conn_fd_write_ready (memif_connection_t * c)
   libmemif_main_t *lm = get_libmemif_main (c->args.socket);
   int err = MEMIF_ERR_SUCCESS;	/* 0 */
 
-
   if ((c->flags & MEMIF_CONNECTION_FLAG_WRITE) == 0)
     goto done;
 
