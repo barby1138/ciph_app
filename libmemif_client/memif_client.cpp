@@ -796,7 +796,7 @@ int Memif_client::send(long index, uint16_t qid, uint64_t size, IMsg_burst_seria
   int err = MEMIF_ERR_SUCCESS;
   uint32_t seq = 0;
 
-  int retries_cyc = 0;
+  //int retries_cyc = 0;
   int retries = 0;
   int log = 0;
   while (count)
@@ -805,9 +805,6 @@ int Memif_client::send(long index, uint16_t qid, uint64_t size, IMsg_burst_seria
 
       if (retries > MAX_SEND_RETRIES)
       {
-        if(++retries_cyc % 100)
-          INFO ("send retries > MAX_SEND_RETRIES %d %d", index, c->connected);
-
         retries = 0;
         
         usleep(10 * 1000);
@@ -1014,13 +1011,13 @@ int Memif_client::poll_event_1 (int timeout)
       }
       else if (evt.data.fd == 0)
       {
-          INFO ("input handler");
-
-          app_err = user_input_handler ();
+        INFO ("input handler");
+        
+        app_err = user_input_handler ();
       }
       else
       {
-          ERROR ("unexpected event at memif_epfd. fd %d", evt.data.fd);
+        ERROR ("unexpected event at memif_epfd. fd %d", evt.data.fd);
       }
   }
 
@@ -1029,11 +1026,11 @@ int Memif_client::poll_event_1 (int timeout)
 
   if ((app_err < 0) || (memif_err < 0))
   {
-      if (app_err < 0)
-        ERROR ("user input handler error");
-      if (memif_err < 0)
-        ERROR ("memif control fd handler error");
-      return -1;
+    if (app_err < 0)
+      ERROR ("user input handler error");
+    if (memif_err < 0)
+      ERROR ("memif control fd handler error");
+    return -1;
   }
 
   return 0;
