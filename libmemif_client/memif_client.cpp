@@ -440,7 +440,7 @@ void Memif_client::run()
 
   while (_op_state == RUNNING)
   {
-    if (poll_event_1 (/*-1*/ 1000) < 0)
+    if (poll_event (/*-1*/ 1000) < 0)
     {
       ERROR ("poll_event error!");
     }
@@ -910,11 +910,6 @@ done:
 
 int Memif_client::poll_event (int timeout)
 {
-  return 0;
-}
-
-int Memif_client::poll_event_1 (int timeout)
-{
   struct epoll_event evt;
   int app_err = 0, memif_err = 0, en = 0;
   uint32_t events = 0;
@@ -937,27 +932,27 @@ int Memif_client::poll_event_1 (int timeout)
        * control fds */
       if (evt.data.fd > 2)
       {
-          INFO ("poll_event events: 0x%X, %d", evt.events, evt.data.fd);
+          //INFO ("poll_event events: 0x%X, %d", evt.events, evt.data.fd);
 
           /* event of memif control fd */
           /* convert epolle events to memif events */
           if (evt.events & EPOLLIN)
           {
-            INFO ("read %d", evt.data.fd);
+            //INFO ("read %d", evt.data.fd);
             events |= MEMIF_FD_EVENT_READ;
           }
           if (evt.events & EPOLLOUT)
           {
-            INFO ("write %d", evt.data.fd);
+            //INFO ("write %d", evt.data.fd);
             events |= MEMIF_FD_EVENT_WRITE;
           }
           if (evt.events & EPOLLERR)
           {
-            INFO ("error %d", evt.data.fd);
+            //INFO ("error %d", evt.data.fd);
             events |= MEMIF_FD_EVENT_ERROR;
           }
           //EPOLLHUP
-
+/*
           if (evt.events & EPOLLPRI)
           {
             INFO ("EPOLLPRI %d", evt.data.fd);
@@ -1004,7 +999,7 @@ int Memif_client::poll_event_1 (int timeout)
           {
             INFO ("EPOLLET %d", evt.data.fd);
           }
-
+*/
           memif_err = memif_control_fd_handler (evt.data.fd, events);
           if (memif_err != MEMIF_ERR_SUCCESS)
             ERROR ("memif_control_fd_handler FAILED: %s", memif_strerror (memif_err));
@@ -1012,7 +1007,7 @@ int Memif_client::poll_event_1 (int timeout)
       else if (evt.data.fd == 0)
       {
         INFO ("input handler");
-        
+
         app_err = user_input_handler ();
       }
       else

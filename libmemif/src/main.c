@@ -1317,9 +1317,6 @@ int memif_control_fd_handler(int fd, uint8_t events)
   }
   else
   {
-
-    printf("1\n");
-
     get_list_elt(&e, lm->interrupt_list, lm->interrupt_list_len, fd);
     if (e != NULL)
     {
@@ -1347,8 +1344,6 @@ int memif_control_fd_handler(int fd, uint8_t events)
       return err;
     }
 
-    printf("2\n");
-
     get_list_elt(&e, lm->pending_list, lm->pending_list_len, fd);
     if (e != NULL)
     {
@@ -1356,37 +1351,29 @@ int memif_control_fd_handler(int fd, uint8_t events)
       return err;
     }
 
-    printf("3\n");
-
     get_list_elt(&e, lm->control_list, lm->control_list_len, fd);
     if (e != NULL)
     {
-      printf("ev %d\n", events);
+      if (events & MEMIF_FD_EVENT_READ)
+      {
+        err =
+            ((memif_connection_t *)e->data_struct)->read_fn(e->data_struct);
+        if (err != MEMIF_ERR_SUCCESS)
+          return err;
+      }
+      if (events & MEMIF_FD_EVENT_WRITE)
+      {
+        err =
+            ((memif_connection_t *)e->data_struct)->write_fn(e->data_struct);
+        if (err != MEMIF_ERR_SUCCESS)
+          return err;
+      }
       if (events & MEMIF_FD_EVENT_ERROR)
       {
-        printf("5 err\n");
         err =
             ((memif_connection_t *)e->data_struct)->error_fn(e->data_struct);
         if (err != MEMIF_ERR_SUCCESS)
           return err;
-      }
-      else
-      {
-        if (events & MEMIF_FD_EVENT_READ)
-        {
-          printf("4 read\n");
-          err =
-              ((memif_connection_t *)e->data_struct)->read_fn(e->data_struct);
-          if (err != MEMIF_ERR_SUCCESS)
-            return err;
-        }
-        if (events & MEMIF_FD_EVENT_WRITE)
-        {
-          err =
-              ((memif_connection_t *)e->data_struct)->write_fn(e->data_struct);
-          if (err != MEMIF_ERR_SUCCESS)
-            return err;
-        }
       }
     }
   }
