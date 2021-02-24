@@ -21,6 +21,46 @@ struct Dev_vecs_idxs_t
 	uint32_t dev_vecs_idxs[MAX_JOBS_BURST_SIZE];
 };
 
+/*
+struct Conn_stats
+{
+    uint32_t conn_id;
+    uint32_t sess_count;
+};
+
+struct Dpdk_cryptodev_client_stats
+{
+    // crypto stats
+    uint64_t op_processed;
+    uint64_t op_failed_total;
+    uint64_t op_failed_create_sess;
+
+    // SAME?
+    uint64_t op_failed_get_sess;
+    uint64_t op_failed_invalid_cdev;
+
+    uint64_t op_failed_remove_session;
+
+    uint64_t op_failed_in_agent;
+
+    uint64_t op_failed_op_type_unk;
+
+    uint64_t op_failed_to_cipher;
+
+    uint32_t burst_avg_size;
+    uint32_t pck_avg_size;
+    uint32_t avg_pps;
+
+    // general stats
+    std::string time_up;
+
+    // memif stats?
+    Conn_stats conn_stats[MAX_CONN_NUM];
+    uint32_t active_conn_count;
+
+};
+*/
+
 class Dpdk_cryptodev_client
 {
 private:

@@ -44,6 +44,7 @@ public:
 private:
     void run();
     int poll_event(int timeout);
+    int poll_event_1(int timeout);
 
     int user_input_handler();
     

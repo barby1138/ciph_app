@@ -831,7 +831,9 @@ int Dpdk_cryptodev_client::set_ops_cipher(	rte_crypto_op **ops,
 		{
 			// TODO this should never happen but need to simulate
 			RTE_LOG(ERROR, USER1, "set_ops_cipher sess == NULL");
-			return -1;
+
+			// set RTE_CRYPTO_OP_STATUS_ERROR ?
+			continue;
 		}
 
 		rte_crypto_op_attach_sym_session(ops[i], sess);
@@ -866,7 +868,9 @@ int Dpdk_cryptodev_client::set_ops_cipher(	rte_crypto_op **ops,
 				{
 					// TODO this should never happen but need to simulate
 					RTE_LOG(ERROR, USER1, "not enought place for pad");
-                	return -1;
+					
+					// set RTE_CRYPTO_OP_STATUS_ERROR ?
+					continue;
 				}
 
 				vecs[j].op.reserved_1 = pad_len;

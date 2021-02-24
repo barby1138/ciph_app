@@ -437,10 +437,10 @@ void set_thread_bame( const char* name)
 void Memif_client::run()
 {
   set_thread_bame("Memif_client_epoll_thr");
-  
+
   while (_op_state == RUNNING)
   {
-    if (poll_event (/*-1*/ 1000) < 0)
+    if (poll_event_1 (/*-1*/ 1000) < 0)
     {
       ERROR ("poll_event error!");
     }
@@ -911,6 +911,11 @@ done:
 
 int Memif_client::poll_event (int timeout)
 {
+  return 0;
+}
+
+int Memif_client::poll_event_1 (int timeout)
+{
   struct epoll_event evt;
   int app_err = 0, memif_err = 0, en = 0;
   uint32_t events = 0;
@@ -933,22 +938,82 @@ int Memif_client::poll_event (int timeout)
        * control fds */
       if (evt.data.fd > 2)
       {
+          INFO ("poll_event events: 0x%X, %d", evt.events, evt.data.fd);
+
           /* event of memif control fd */
           /* convert epolle events to memif events */
           if (evt.events & EPOLLIN)
+          {
+            INFO ("read %d", evt.data.fd);
             events |= MEMIF_FD_EVENT_READ;
+          }
           if (evt.events & EPOLLOUT)
+          {
+            INFO ("write %d", evt.data.fd);
             events |= MEMIF_FD_EVENT_WRITE;
+          }
           if (evt.events & EPOLLERR)
+          {
+            INFO ("error %d", evt.data.fd);
             events |= MEMIF_FD_EVENT_ERROR;
+          }
           //EPOLLHUP
+
+          if (evt.events & EPOLLPRI)
+          {
+            INFO ("EPOLLPRI %d", evt.data.fd);
+          }
+          if (evt.events & EPOLLRDNORM)
+          {
+            INFO ("EPOLLRDNORM %d", evt.data.fd);
+          }
+          if (evt.events & EPOLLRDBAND)
+          {
+            INFO ("EPOLLRDBAND %d", evt.data.fd);
+          }
+          if (evt.events & EPOLLWRNORM)
+          {
+            INFO ("EPOLLWRNORM %d", evt.data.fd);
+          }
+          if (evt.events & EPOLLWRBAND)
+          {
+            INFO ("EPOLLWRBAND %d", evt.data.fd);
+          }
+          if (evt.events & EPOLLMSG)
+          {
+            INFO ("EPOLLMSG %d", evt.data.fd);
+          }
+          if (evt.events & EPOLLHUP)
+          {
+            INFO ("EPOLLHUP %d", evt.data.fd);
+            events |= MEMIF_FD_EVENT_ERROR;
+            printf("ev %d\n", events);
+          }
+          if (evt.events & EPOLLRDHUP)
+          {
+            INFO ("EPOLLRDHUP bububu %d", evt.data.fd);
+          }
+          if (evt.events & EPOLLWAKEUP)
+          {
+            INFO ("EPOLLWAKEUP %d", evt.data.fd);
+          }
+          if (evt.events & EPOLLONESHOT)
+          {
+            INFO ("EPOLLONESHOT %d", evt.data.fd);
+          }
+          if (evt.events & EPOLLET)
+          {
+            INFO ("EPOLLET %d", evt.data.fd);
+          }
 
           memif_err = memif_control_fd_handler (evt.data.fd, events);
           if (memif_err != MEMIF_ERR_SUCCESS)
-            ERROR ("memif_control_fd_handler: %s", memif_strerror (memif_err));
+            ERROR ("memif_control_fd_handler FAILED: %s", memif_strerror (memif_err));
       }
       else if (evt.data.fd == 0)
       {
+          INFO ("input handler");
+
           app_err = user_input_handler ();
       }
       else
