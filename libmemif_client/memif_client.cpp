@@ -796,7 +796,7 @@ int Memif_client::send(long index, uint16_t qid, uint64_t size, IMsg_burst_seria
   int err = MEMIF_ERR_SUCCESS;
   uint32_t seq = 0;
 
-  //int retries_cyc = 0;
+  int retries_cyc = 0;
   int retries = 0;
   int log = 0;
   while (count)
@@ -805,9 +805,11 @@ int Memif_client::send(long index, uint16_t qid, uint64_t size, IMsg_burst_seria
 
       if (retries > MAX_SEND_RETRIES)
       {
-        INFO ("send retries > MAX_SEND_RETRIES %d %d", index, c->connected);
-        retries = 0;
+        if(++retries_cyc % 100)
+          INFO ("send retries > MAX_SEND_RETRIES %d %d", index, c->connected);
 
+        retries = 0;
+        
         usleep(10 * 1000);
 
         if (c->connected == 0)
