@@ -402,9 +402,9 @@ const uint16_t SLEEP_TO_FACTOR = 1;
 
 const uint32_t MAX_CONN_CLIENT_BURST = 64;
 
-const uint32_t PCK_NUM = 10000000 * 100; //10000000;
+const uint32_t PCK_NUM = 10000000; //10000000;
 
-const uint32_t PCK_PER_BATCH_NUM = 32; //10000000;
+const uint32_t PCK_PER_BATCH_NUM = 16; //10000000;
 
 const uint32_t MAX_POLL_RETRIES = 1000000;
 
@@ -880,8 +880,8 @@ void* send_proc(void* data)
 		cipher(cid, QID_USER, ++thread_data[cid].seq, setup_sess_id, cipher_op);
     }
     
-//	res = ciph_agent_poll(cid, QID_USER, MAX_CONN_CLIENT_BURST);
-//	if (res == -2) printf ("ciph_agent_poll ERROR\n");
+	res = ciph_agent_poll(cid, QID_USER, MAX_CONN_CLIENT_BURST);
+	if (res == -2) printf ("ciph_agent_poll ERROR\n");
 	
     timespec_get (&thread_data[cid].start, TIME_UTC);
 
@@ -1038,16 +1038,6 @@ int *a;
 #include<signal.h>
 #include<unistd.h>
 
-void signal_handler(int signo)
-{
-  printf("\nALL Error handler\n");
-
-  if (signo == SIGSEGV) 
-  {
-    printf("\nError handler\n");
-  }        
-}
-
 void del_sigs()
 {
    struct sigaction sa;
@@ -1083,12 +1073,7 @@ int main(int argc, char* argv[])
     sa.sa_flags = SA_SIGINFO;
 
     sigaction(SIGSEGV, &sa, NULL);
-/*
-	if (signal(SIGSEGV, signal_handler) == SIG_ERR) 
-	{
-    	printf("\nError installing handler\n");
-  	}
-*/
+
     long cid_0 = 0;
     long cid_1 = 1;
 

@@ -33,9 +33,10 @@ public:
     int conn_alloc(long index, const Memif_client::Conn_config_t& conn_config);
     int conn_free(long index);
 
-    int poll(long index, uint16_t qid, uint32_t size);
+    // MAX pck count polled == MAX burst size == 64
+    int poll(long index, uint16_t qid);
     // rollback
-    int poll_00(long index, uint16_t qid, uint32_t size);
+    int poll_00(long index, uint16_t qid);
 
     int send(long index, uint16_t qid, uint64_t size, IMsg_burst_serializer& ser);
 

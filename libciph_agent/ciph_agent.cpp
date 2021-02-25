@@ -342,7 +342,14 @@ int Ciph_comm_agent_client::poll(uint32_t conn_id, uint16_t qid, uint32_t size)
         return -2;
     }
 
-    return _client.poll(get_memif_conn_id(conn_id), qid, size);
+    uint32_t poll_count = (size % 64) ? (size / 64) + 1 : size / 64;
+    do
+    {
+        _client.poll(get_memif_conn_id(conn_id), qid);
+    } 
+    while(--poll_count);
+
+    return 0;
 }
 
 static inline uint32_t Ciph_comm_agent_client::get_memif_conn_id(uint32_t conn_id) 
@@ -432,5 +439,13 @@ int Ciph_comm_agent_server::send(uint32_t conn_id, uint16_t qid, const Crypto_op
 
 int Ciph_comm_agent_server::poll(uint32_t conn_id, uint16_t qid, uint32_t size)
 {
-    return _client.poll_00(conn_id, qid, size);
+
+    uint32_t poll_count = (size % 64) ? (size / 64) + 1 : size / 64;
+    do
+    {
+        _client.poll_00(conn_id, qid);
+    } 
+    while(--poll_count);
+
+    return 0;
 }

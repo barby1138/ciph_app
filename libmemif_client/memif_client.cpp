@@ -279,7 +279,7 @@ int control_fd_update (int fd, uint8_t events, void *ctx)
 }
 
 // rollback
-int on_interrupt00_poll (long index, uint16_t qid, uint32_t count)
+int on_interrupt00_poll (long index, uint16_t qid)
 {
   if (index >= MAX_CONNS)
   {
@@ -306,9 +306,6 @@ int on_interrupt00_poll (long index, uint16_t qid, uint32_t count)
   int err = MEMIF_ERR_SUCCESS, ret_val;
   int i;
   uint16_t rx, tx;
-
-  if (0 == count)
-    INFO ("WARN!!! on_interrupt02_poll 0 == count use default");
 
   do
   {
@@ -335,13 +332,8 @@ int on_interrupt00_poll (long index, uint16_t qid, uint32_t count)
     if (err != MEMIF_ERR_SUCCESS)
       ERROR ("memif_buffer_free: %s", memif_strerror (err));
     c->buffs[qid].rx_buf_num -= rx;
-
-    //count -= rx;
   }
-  while (ret_val == MEMIF_ERR_NOBUF /*&& count*/);
-
-  //printf ("recv ret_val %d\n", ret_val);
-  //printf ("recv rx %d\n", rx);
+  while (ret_val == MEMIF_ERR_NOBUF);
 
   return 0;
 
@@ -355,7 +347,7 @@ error:
   return -1;
 }
 
-int on_interrupt02_poll (long index, uint16_t qid, uint32_t count)
+int on_interrupt02_poll (long index, uint16_t qid)
 {
   if (index >= MAX_CONNS)
   {
@@ -383,9 +375,6 @@ int on_interrupt02_poll (long index, uint16_t qid, uint32_t count)
   int i;
   uint16_t rx, tx;
 
-  if (0 == count)
-    INFO ("WARN!!! on_interrupt02_poll 0 == count use default");
-
   do
   {
     // receive data from shared memory buffers 
@@ -411,10 +400,7 @@ int on_interrupt02_poll (long index, uint16_t qid, uint32_t count)
       ERROR ("memif_buffer_free: %s\n", memif_strerror (err));
     c->buffs[qid].rx_buf_num -= rx;
   }
-  while (ret_val == MEMIF_ERR_NOBUF /*&& count*/);
-
-  //printf ("recv ret_val %d\n", ret_val);
-  //printf ("recv rx %d\n", rx);
+  while (ret_val == MEMIF_ERR_NOBUF);
 
   return 0;
 
@@ -657,16 +643,16 @@ int Memif_client::set_rx_mode (long index, long qid, char *mode)
   return 0;
 }
 
-int Memif_client::poll_00 (long index, uint16_t qid, uint32_t size)
+int Memif_client::poll_00 (long index, uint16_t qid)
 {
-  int res = on_interrupt00_poll (index, qid, size);
+  int res = on_interrupt00_poll (index, qid);
 
   return res;
 }
 
-int Memif_client::poll (long index, uint16_t qid, uint32_t size)
+int Memif_client::poll (long index, uint16_t qid)
 {
-  int res = on_interrupt02_poll (index, qid, size);
+  int res = on_interrupt02_poll (index, qid);
 
   return res;
 }
@@ -817,7 +803,7 @@ int Memif_client::send(long index, uint16_t qid, uint64_t size, IMsg_burst_seria
         if(retries_cyc % MAX_SEND_RETRY_CYCLES == 0)
         {
           INFO ("send FAILED - too many retries - skip pck - need to poll");
-          return -3;
+          // return -3;
         }
 
         usleep(10 * 1000);
