@@ -109,13 +109,13 @@ typedef struct
   on_connect_fn_t on_connect_fn;
   on_disconnect_fn_t on_disconnect_fn;
 
-  int connected;
-
+  uint8_t connected;
+  uint8_t is_master;
 } memif_connection_t;
 
 int epfd;
 memif_connection_t memif_connection[MAX_CONNS];
-//static uint8_t enable_log;    
+
 long ctx[MAX_CONNS];
 
 int add_epoll_fd (int fd, uint32_t events)
@@ -538,6 +538,7 @@ int Memif_client::conn_alloc (long index, const Memif_client::Conn_config_t& con
     int err;
 
     c->connected = 0;
+    c->is_master = args.is_master;
 
     c->index = index;      
 
@@ -731,22 +732,28 @@ void Memif_client::print_info ()
       {
           printf ("\t\tqueue id: %u\n", md.rx_queues[e].qid);
           printf ("\t\tring size: %u\n", md.rx_queues[e].ring_size);
-          printf ("\t\tring rx mode: %s\n",
-                  md.rx_queues[e].flags ? "polling" : "interrupt");
+          printf ("\t\tring rx mode: %s\n", md.rx_queues[e].flags ? "polling" : "interrupt");
           printf ("\t\tring head: %u\n", md.rx_queues[e].head);
           printf ("\t\tring tail: %u\n", md.rx_queues[e].tail);
           printf ("\t\tbuffer size: %u\n", md.rx_queues[e].buffer_size);
+          if (c->is_master)
+            printf ("\t\tbuffers allocated: %d\n", md.rx_queues[e].head - md.rx_queues[e].tail);
+          else
+            printf ("\t\tbuffers allocated: %d\n", md.rx_queues[e].ring_size - (md.rx_queues[e].head - md.rx_queues[e].tail));
       }
       printf ("\ttx queues:\n");
       for (e = 0; e < md.tx_queues_num; e++)
       {
           printf ("\t\tqueue id: %u\n", md.tx_queues[e].qid);
           printf ("\t\tring size: %u\n", md.tx_queues[e].ring_size);
-          printf ("\t\tring rx mode: %s\n",
-                  md.tx_queues[e].flags ? "polling" : "interrupt");
+          printf ("\t\tring rx mode: %s\n", md.tx_queues[e].flags ? "polling" : "interrupt");
           printf ("\t\tring head: %u\n", md.tx_queues[e].head);
           printf ("\t\tring tail: %u\n", md.tx_queues[e].tail);
           printf ("\t\tbuffer size: %u\n", md.tx_queues[e].buffer_size);
+          if (c->is_master)
+            printf ("\t\tbuffers allocated: %d\n", md.tx_queues[e].ring_size - (md.tx_queues[e].head - md.tx_queues[e].tail));
+          else
+            printf ("\t\tbuffers allocated: %d\n", md.tx_queues[e].head - md.tx_queues[e].tail);
       }
       printf ("\tlink: ");
       if (md.link_up_down)
@@ -762,7 +769,7 @@ void Memif_client::print_info ()
   free (buf);
 }
 
-enum { MAX_SEND_RETRIES = 1000000 };
+enum { MAX_SEND_RETRIES = 1000000, MAX_SEND_RETRY_CYCLES = 100 };
 //enum { RETRY_WAIT_FACTOR = 2 };
 
 int Memif_client::send(long index, uint16_t qid, uint64_t size, IMsg_burst_serializer& ser)
@@ -796,17 +803,23 @@ int Memif_client::send(long index, uint16_t qid, uint64_t size, IMsg_burst_seria
   int err = MEMIF_ERR_SUCCESS;
   uint32_t seq = 0;
 
-  //int retries_cyc = 0;
+  int retries_cyc = 0;
   int retries = 0;
   int log = 0;
   while (count)
   {
-      retries++;
+      ++retries;
 
       if (retries > MAX_SEND_RETRIES)
       {
         retries = 0;
-        
+          
+        if(retries_cyc % MAX_SEND_RETRY_CYCLES == 0)
+        {
+          INFO ("send FAILED - too many retries - skip pck - need to poll");
+          return -3;
+        }
+
         usleep(10 * 1000);
 
         if (c->connected == 0)

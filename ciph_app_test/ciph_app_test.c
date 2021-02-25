@@ -402,7 +402,9 @@ const uint16_t SLEEP_TO_FACTOR = 1;
 
 const uint32_t MAX_CONN_CLIENT_BURST = 64;
 
-const uint32_t PCK_NUM = 10000000; //10000000;
+const uint32_t PCK_NUM = 10000000 * 100; //10000000;
+
+const uint32_t PCK_PER_BATCH_NUM = 32; //10000000;
 
 const uint32_t MAX_POLL_RETRIES = 1000000;
 
@@ -878,8 +880,8 @@ void* send_proc(void* data)
 		cipher(cid, QID_USER, ++thread_data[cid].seq, setup_sess_id, cipher_op);
     }
     
-	res = ciph_agent_poll(cid, QID_USER, MAX_CONN_CLIENT_BURST);
-	if (res == -2) printf ("ciph_agent_poll ERROR\n");
+//	res = ciph_agent_poll(cid, QID_USER, MAX_CONN_CLIENT_BURST);
+//	if (res == -2) printf ("ciph_agent_poll ERROR\n");
 	
     timespec_get (&thread_data[cid].start, TIME_UTC);
 
@@ -1103,7 +1105,7 @@ int main(int argc, char* argv[])
 	thread_data[cid_0].packet_size = 200;
   	thread_data[cid_0].num_pck = PCK_NUM;
 	thread_data[cid_0].target_pps = 160000;
-  	thread_data[cid_0].num_pck_per_batch = 32;
+  	thread_data[cid_0].num_pck_per_batch = PCK_PER_BATCH_NUM;
     memset (&thread_data[cid_0].start, 0, sizeof (thread_data[cid_0].start));
     memset (&thread_data[cid_0].end, 0, sizeof (thread_data[cid_0].end));
 	thread_data[cid_0].total_size = 0;
@@ -1116,7 +1118,7 @@ int main(int argc, char* argv[])
 	thread_data[cid_1].packet_size = 200;
   	thread_data[cid_1].num_pck = PCK_NUM / 2;
 	thread_data[cid_1].target_pps = 160000 / 2;
-  	thread_data[cid_1].num_pck_per_batch = 32;
+  	thread_data[cid_1].num_pck_per_batch = PCK_PER_BATCH_NUM;
     memset (&thread_data[cid_1].start, 0, sizeof (thread_data[cid_1].start));
     memset (&thread_data[cid_1].end, 0, sizeof (thread_data[cid_1].end));
 	thread_data[cid_1].total_size = 0;
