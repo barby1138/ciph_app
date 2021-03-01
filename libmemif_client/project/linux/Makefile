@@ -19,7 +19,7 @@ TARGET=$(DESTDIR)/$(LIBNAME).a
 
 DEFINE=-D_LINUX
 
-INCLUDE=-I$(ROOTDIR) -I$(ROOTDIR)/libmemif/src
+INCLUDE=-I$(ROOTDIR) -I$(ROOTDIR)/libmemif/src -I$(ROOTDIR)/libmemcpy
 
 ifndef CFG
 CFG=debug

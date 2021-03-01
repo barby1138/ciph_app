@@ -337,8 +337,10 @@ int Dpdk_cryptodev_client::init_inner()
 	enabled_cdev_count += 1;
 	printf("enabled_cdev id: %d\n", enabled_cdevs_id[enabled_cdev_count - 1]);
 	_enabled_cdevs[enabled_cdev_count - 1].cdev_id = enabled_cdevs_id[enabled_cdev_count - 1];
-	_enabled_cdevs[enabled_cdev_count - 1].algo = crypto2rte_cipher_algo_map[CRYPTO_CIPHER_AES_CBC];
-	algo2cdev_id_map[CRYPTO_CIPHER_AES_CBC] = enabled_cdevs_id[enabled_cdev_count - 1];
+	//_enabled_cdevs[enabled_cdev_count - 1].algo = crypto2rte_cipher_algo_map[CRYPTO_CIPHER_AES_CBC];
+	//algo2cdev_id_map[CRYPTO_CIPHER_AES_CBC] = enabled_cdevs_id[enabled_cdev_count - 1];
+	_enabled_cdevs[enabled_cdev_count - 1].algo = crypto2rte_cipher_algo_map[CRYPTO_CIPHER_AES_CTR];
+	algo2cdev_id_map[CRYPTO_CIPHER_AES_CTR] = enabled_cdevs_id[enabled_cdev_count - 1];
 
 	cdev_nb = rte_cryptodev_devices_get("crypto_snow3g", 
 													enabled_cdevs_id + enabled_cdev_count, 
@@ -518,7 +520,8 @@ int Dpdk_cryptodev_client::init(int argc, char **argv)
 	int ret;
 	uint32_t lcore_id;
 
-	crypto2rte_cipher_algo_map[CRYPTO_CIPHER_AES_CBC] = RTE_CRYPTO_CIPHER_AES_CBC;
+	//crypto2rte_cipher_algo_map[CRYPTO_CIPHER_AES_CBC] = RTE_CRYPTO_CIPHER_AES_CBC;
+	crypto2rte_cipher_algo_map[CRYPTO_CIPHER_AES_CTR] = RTE_CRYPTO_CIPHER_AES_CTR;
 	crypto2rte_cipher_algo_map[CRYPTO_CIPHER_SNOW3G_UEA2] = RTE_CRYPTO_CIPHER_SNOW3G_UEA2;
 
 	crypto2rte_cipher_op_map[CRYPTO_CIPHER_OP_ENCRYPT] = RTE_CRYPTO_CIPHER_OP_ENCRYPT;
@@ -655,7 +658,6 @@ int Dpdk_cryptodev_client::preprocess_jobs(int ch_id,
 		{
 			if (NULL == get_session(ch_id, jobs[i]))
 			{
-				// TODO set failed op
 				jobs[i].op.op_status = CRYPTO_OP_STATUS_FAILED;
 				jobs[i].cipher_buff_list.buff_list_length = 0;
 
@@ -851,6 +853,7 @@ int Dpdk_cryptodev_client::set_ops_cipher(	rte_crypto_op **ops,
 	
 		rte_pktmbuf_append(m, vecs[j].cipher_buff_list.buffs[0].length);
 
+		/*
 		uint32_t data_len = vecs[j].cipher_buff_list.buffs[0].length;
 		uint32_t pad_len = 0;
 		uint8_t* padding;
@@ -878,6 +881,7 @@ int Dpdk_cryptodev_client::set_ops_cipher(	rte_crypto_op **ops,
             	memset(padding, 0, pad_len);
         	}
 		}
+		*/
 
 		sym_op->cipher.data.length = vecs[j].cipher_buff_list.buffs[0].length;
 		sym_op->cipher.data.offset = 0;
@@ -888,7 +892,6 @@ int Dpdk_cryptodev_client::set_ops_cipher(	rte_crypto_op **ops,
 		{
 			// in bits
 			sym_op->cipher.data.length <<= 3;
-			sym_op->cipher.data.offset <<= 3;
 		}
 
 		if (vecs[j].cipher_iv.length)
@@ -1148,7 +1151,7 @@ int Dpdk_cryptodev_client::create_session(int ch_id, const Crypto_operation& vec
 	}
 	else
 	{
-		RTE_LOG(ERR, USER1, "rte_cryptodev_sym_session_init FAILED");
+		RTE_LOG(ERR, USER1, "rte_cryptodev_sym_session_init NO FREE sessions");
 	}
 
 	RTE_LOG(ERR, USER1, "create_session NO FREE sessions");

@@ -404,7 +404,7 @@ const uint32_t MAX_CONN_CLIENT_BURST = 64;
 
 const uint32_t PCK_NUM = 10000000; //10000000;
 
-const uint32_t PCK_PER_BATCH_NUM = 16; //10000000;
+const uint32_t PCK_PER_BATCH_NUM = 32; //10000000;
 
 const uint32_t MAX_POLL_RETRIES = 1000000;
 
@@ -494,7 +494,7 @@ void on_ops_complete_cb_0 (uint32_t cid, uint16_t qid, Crypto_operation* vec, ui
 	  	{
 			//print_buff(vec[j].cipher_buff_list.buffs[0].data, vec[j].cipher_buff_list.buffs[0].length);
 
-			if (thread_data[cid].cipher_algo == CRYPTO_CIPHER_AES_CBC && vec[j].op.outbuff_len == 0)
+			if (thread_data[cid].cipher_algo == CRYPTO_CIPHER_AES_CTR && vec[j].op.outbuff_len == 0)
 			{
 				if (thread_data[cid].cipher_op == CRYPTO_CIPHER_OP_DECRYPT)
 				{
@@ -599,7 +599,7 @@ void on_ops_complete_cb_0_v (uint32_t cid, uint16_t qid, Crypto_operation* vec, 
 			}
 			else
 			{
-				//print_buff(vec[j].op.outbuff_ptr, vec[j].op.outbuff_len);
+				//print_buff(vec[j].cipher_buff_list.buffs[0].data, vec[j].cipher_buff_list.buffs[0].length);
 				if ( 0 == vec[j].op.seq % 1000000 )
 					printf("check %d %" PRIu64 "\n", cid, vec[j].op.seq);
 
@@ -685,7 +685,10 @@ int32_t create_session(long cid, uint16_t qid, uint64_t seq, uint32_t algo, uint
 
 #ifndef STACK_TEST
 	if (thread_data[cid].setup_sess_ctx.resp_status != CRYPTO_OP_STATUS_SUCC)
+	{
+		printf ("FAILED resp status %d\n",  thread_data[cid].setup_sess_ctx.resp_status);
 		return -1;
+	}
 #endif
 
 #ifdef STACK_TEST
@@ -1035,6 +1038,7 @@ int *a;
 	pthread_exit (NULL);
 }
 
+/*
 #include<signal.h>
 #include<unistd.h>
 
@@ -1060,9 +1064,11 @@ static void signal_segv(int signum, struct siginfo_t * info, void *ptr)
 	del_sigs();
 	raise(signum);
 }
+*/
 
 int main(int argc, char* argv[])
 {
+/*
 	struct sigaction act;
    	sigset_t set;
    	struct sigaction sa;
@@ -1073,7 +1079,7 @@ int main(int argc, char* argv[])
     sa.sa_flags = SA_SIGINFO;
 
     sigaction(SIGSEGV, &sa, NULL);
-
+*/
     long cid_0 = 0;
     long cid_1 = 1;
 
@@ -1096,7 +1102,7 @@ int main(int argc, char* argv[])
 	thread_data[cid_0].total_size = 0;
 	thread_data[cid_0].cb = (TT_VERIFY == test_type) ? on_ops_complete_cb_0_v : on_ops_complete_cb_0;
 	thread_data[cid_0].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
-	//thread_data[cid_0].cipher_algo = CRYPTO_CIPHER_AES_CBC;
+	//thread_data[cid_0].cipher_algo = CRYPTO_CIPHER_AES_CTR;
     thread_data[cid_0].cipher_op = CRYPTO_CIPHER_OP_DECRYPT;
 	
 	thread_data[cid_1].index = cid_1;
@@ -1109,10 +1115,10 @@ int main(int argc, char* argv[])
 	thread_data[cid_1].total_size = 0;
 	thread_data[cid_1].cb = (TT_VERIFY == test_type) ? on_ops_complete_cb_0_v : on_ops_complete_cb_0;
 	//thread_data[cid_1].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
-	thread_data[cid_1].cipher_algo = CRYPTO_CIPHER_AES_CBC;
+	thread_data[cid_1].cipher_algo = CRYPTO_CIPHER_AES_CTR;
 	if (TT_VERIFY == test_type)
 	{
-		thread_data[cid_1].cipher_algo = ( (rand() % 2) == 0 ) ? CRYPTO_CIPHER_AES_CBC : CRYPTO_CIPHER_SNOW3G_UEA2;
+		thread_data[cid_1].cipher_algo = ( (rand() % 2) == 0 ) ? CRYPTO_CIPHER_AES_CTR : CRYPTO_CIPHER_SNOW3G_UEA2;
 	}
 
     thread_data[cid_1].cipher_op = CRYPTO_CIPHER_OP_DECRYPT;

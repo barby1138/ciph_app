@@ -110,21 +110,10 @@ void on_job_complete_cb_test_1 (uint32_t cid, uint16_t qid, Crypto_operation* pj
   {
   meson::bench_scope_low scope("on_job_complete_cb");
 
-  {
-  meson::bench_scope_low scope("run_jobs");
-
   Dpdk_cryptodev_client_sngl::instance().run_jobs(cid, pjob, size);
-  }
 
   //printf ("APP cid %d qid %d %d\n", cid, qid, size);
   //usleep(500);
-
-  {
-  meson::bench_scope_low scope("send");
-
-  Ciph_agent_server_sngl::instance().send(cid, qid, pjob, size);
-  }
-
   }
 
   if (cnt % 10000 == 0)
@@ -133,25 +122,6 @@ void on_job_complete_cb_test_1 (uint32_t cid, uint16_t qid, Crypto_operation* pj
   }
 }
 
-void on_job_complete_cb_test_2 (uint32_t cid, uint16_t qid, Crypto_operation* pjob, uint32_t size)
-{
-  if (0 == size)
-    return;
-
-  if (qid == 0)
-  {
-    Dpdk_cryptodev_client_sngl::instance().run_jobs_test(cid, pjob, size);
-    //Dpdk_cryptodev_client_sngl::instance().run_jobs(cid, pjob, size);
-    Ciph_agent_server_sngl::instance().send(cid, qid, pjob, size);
-  }
-
-  if (qid == 1)
-  {
-    Dpdk_cryptodev_client_sngl::instance().run_jobs(cid, pjob, size);
-    Ciph_agent_server_sngl::instance().send(cid, qid, pjob, size);
-  }
-  
-}
 
 // TODO check conn_id
 std::set<uint32_t> _active_connections;
@@ -318,7 +288,6 @@ int main(int argc, char** argv)
     while(1)
     {
       usleep(100);
-
 
       //meson::bench_scope_low scope("poll");
 

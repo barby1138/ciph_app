@@ -20,6 +20,8 @@ public:
     virtual void serialize(uint8_t* buff, uint32_t* len, uint32_t ind) = 0;
 };
 
+typedef void (*cpoy_buffer_to_buffer_fn_t) (uint8_t* in_buff, uint32_t in_len, uint8_t* out_buff, uint32_t* out_len);
+
 class Memif_client
 {
 public:
@@ -36,7 +38,7 @@ public:
     // MAX pck count polled == MAX burst size == 64
     int poll(long index, uint16_t qid);
     // rollback
-    int poll_00(long index, uint16_t qid);
+    int poll_00(long index, uint16_t qid, cpoy_buffer_to_buffer_fn_t cpy_fn);
 
     int send(long index, uint16_t qid, uint64_t size, IMsg_burst_serializer& ser);
 

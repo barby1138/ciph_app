@@ -37,6 +37,7 @@ public:
 protected:
     static on_ops_complete_CallBk_t _cb[_MAX_CONN];
     static Crypto_operation _pool_vecs[_MAX_CONN][OPS_POOL_PER_CONN_SIZE];
+    //static Crypto_operation* _ppool_vecs[_MAX_CONN][OPS_POOL_PER_CONN_SIZE];
 
     Memif_client _client;
 };

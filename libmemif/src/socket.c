@@ -834,7 +834,7 @@ memif_conn_fd_read_ready (memif_connection_t * c)
   err = memif_msg_receive (lm, c->fd);
   if (err != 0)
     {
-      printf ("connection fd error 1\n");
+      printf ("memif_conn_fd_read_ready failed - disconnect\n");
       err = memif_disconnect_internal (c);
     }
   return err;

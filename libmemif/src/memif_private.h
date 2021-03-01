@@ -56,6 +56,7 @@ _Static_assert (strlen (MEMIF_DEFAULT_APP_NAME) <= MEMIF_NAME_LEN,
 #define EXPECT_TRUE(x) __builtin_expect((x),1)
 #define EXPECT_FALSE(x) __builtin_expect((x),0)
 
+//#define MEMIF_DBG
 #ifdef MEMIF_DBG
 #define DBG(...) do {                                                             \
                         printf("MEMIF_DEBUG:%s:%s:%d: ", __FILE__, __func__, __LINE__);  \
