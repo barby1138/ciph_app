@@ -194,11 +194,12 @@ int main(int argc, char** argv)
       throw std::runtime_error(quark::strings::format("mkdir failed errno %d ret %d", errno, mdret).c_str());
     }
 
-    TRACE_INFO ("init mkdir OK: errno %d ret %d", errno, mdret);
+    //TRACE_INFO ("init mkdir OK: errno %d ret %d", errno, mdret);
 
 		props::instance().load("ciph_app.xml");
 
     quark::pstring level = getProperty<quark::pstring>(props::instance(), "properties.logger", "level");
+    quark::pstring path = getProperty<quark::pstring>(props::instance(), "properties.logger", "path");
     quark::pstring dpdk_init_str = getProperty<quark::pstring>(props::instance(), "properties.dpdk", "init_str");
     quark::pstring memif_conn_ids = getProperty<quark::pstring>(props::instance(), "properties.memif", "conn_ids");
 
@@ -240,7 +241,12 @@ int main(int argc, char** argv)
       }
     }
 
-		custom_tracer::instance().setFile(quark::strings::format("ciph_app_%s.log", date_time_str().c_str()).c_str() );
+    std::string log_file_name(quark::strings::format("ciph_app_%s.log", date_time_str().c_str()).c_str());
+    std::string log_file_full_name(quark::strings::format("%s/%s", path.c_str(), log_file_name.c_str()).c_str());
+
+    TRACE_INFO ("Log %s", log_file_full_name.c_str());
+
+		custom_tracer::instance().setFile(log_file_full_name.c_str());
 
     uint32_t tl = tlWarning;
     if (level.compare("info") == 0)

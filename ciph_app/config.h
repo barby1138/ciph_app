@@ -21,7 +21,7 @@ namespace
 	protected:
 		BEGIN_ATTRIBUTE_MAP()
 			MANDATORY_ATTRIBUTE_ENTRY(str_attribute, "level")
-			//MANDATORY_ATTRIBUTE_ENTRY(str_attribute, "path")
+			MANDATORY_ATTRIBUTE_ENTRY(str_attribute, "path")
 		END_ATTRIBUTE_MAP()
 	};
 
