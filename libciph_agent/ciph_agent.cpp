@@ -21,7 +21,7 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len,  Crypto_operation* vec
 
     if (NULL == vec)
     {
-        printf("WARNING!!! NULL == vac\n");
+        printf("WARNING!!! crypto_job_to_buffer NULL == vac\n");
 
         return;
     }
@@ -70,6 +70,8 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len,  Crypto_operation* vec
     buffer_data_len->ciphertext_length = data_len.ciphertext_length;
     buffer_data_len->cipher_key_length = data_len.cipher_key_length;
     buffer_data_len->cipher_iv_length = data_len.cipher_iv_length;
+
+    //printf("crypto_job_to_buffer %d\n", data_len.cipher_key_length);
 
     buffer += sizeof(Data_lengths);
     *len += sizeof(Data_lengths);
@@ -134,6 +136,13 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len,  Crypto_operation* vec
 
 void crypto_job_from_buffer(uint8_t* buffer, uint32_t len, Crypto_operation* vec)
 {
+    if (NULL == vec)
+    {
+        printf("WARNING!!! crypto_job_from_buffer NULL == vac\n");
+
+        return;
+    }
+
     Crypto_operation_context* buffer_op = (Crypto_operation_context*) buffer;
 	vec->op.op_status = buffer_op->op_status;
 	vec->op.op_ctx_ptr = buffer_op->op_ctx_ptr;
@@ -182,11 +191,12 @@ void crypto_job_from_buffer(uint8_t* buffer, uint32_t len, Crypto_operation* vec
     }
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    //buffer += pData_len->ciphertext_length;
     buffer += BUFF_SIZE;
 
     vec->cipher_key.data = buffer;
     vec->cipher_key.length = pData_len->cipher_key_length;
+
+    //printf("crypto_job_from_buffer %d\n", vec->cipher_key.length);
 
     buffer += vec->cipher_key.length;
     vec->cipher_iv.data = buffer;
@@ -365,54 +375,85 @@ private:
     uint32_t _size;
 };
 
+void ctx_to_buffer(uint8_t* buffer, uint32_t* len,  Crypto_operation* vec)
+{
+    *len = 0;
+
+    if (NULL == vec)
+    {
+        printf("WARNING!!! crypto_job_to_buffer NULL == vac\n");
+
+        return;
+    }
+    
+    Crypto_operation_context* buffer_op = (Crypto_operation_context*) buffer;
+	buffer_op->op_status = vec->op.op_status;
+	buffer_op->op_ctx_ptr = vec->op.op_ctx_ptr;
+    buffer_op->outbuff_ptr = vec->op.outbuff_ptr;
+	buffer_op->outbuff_len = vec->op.outbuff_len;
+	buffer_op->seq = vec->op.seq;
+	buffer_op->op_type = vec->op.op_type;
+	buffer_op->sess_id = vec->op.sess_id;
+	buffer_op->cipher_algo = vec->op.cipher_algo;
+	buffer_op->cipher_op = vec->op.cipher_op;
+	buffer_op->reserved_1 = vec->op.reserved_1;
+
+    buffer += sizeof(Crypto_operation_context);
+    *len += sizeof(Crypto_operation_context);
+}
+
 void copy_buffer_to_buffer(uint8_t* in_buffer, uint32_t in_len, uint8_t* out_buffer, uint32_t* out_len)
 {
-    Crypto_operation* out_buffer_op = (Crypto_operation*) out_buffer;
-    Crypto_operation* in_buffer_op = (Crypto_operation*) in_buffer;
-	out_buffer_op->op.op_status = in_buffer_op->op.op_status;
-	out_buffer_op->op.op_ctx_ptr = in_buffer_op->op.op_ctx_ptr;
-    out_buffer_op->op.outbuff_ptr = in_buffer_op->op.outbuff_ptr;
-	out_buffer_op->op.outbuff_len = in_buffer_op->op.outbuff_len;
-	out_buffer_op->op.seq = in_buffer_op->op.seq;
-	out_buffer_op->op.op_type = in_buffer_op->op.op_type;
-	out_buffer_op->op.sess_id = in_buffer_op->op.sess_id;
-	out_buffer_op->op.cipher_algo = in_buffer_op->op.cipher_algo;
-	out_buffer_op->op.cipher_op = in_buffer_op->op.cipher_op;
-	out_buffer_op->op.reserved_1 = in_buffer_op->op.reserved_1;
+    Crypto_operation_context* out_buffer_op = (Crypto_operation_context*) out_buffer;
+    Crypto_operation_context* in_buffer_op = (Crypto_operation_context*) in_buffer;
+	out_buffer_op->op_status = in_buffer_op->op_status;
+	out_buffer_op->op_ctx_ptr = in_buffer_op->op_ctx_ptr;
+    out_buffer_op->outbuff_ptr = in_buffer_op->outbuff_ptr;
+	out_buffer_op->outbuff_len = in_buffer_op->outbuff_len;
+	out_buffer_op->seq = in_buffer_op->seq;
+	out_buffer_op->op_type = in_buffer_op->op_type;
+	out_buffer_op->sess_id = in_buffer_op->sess_id;
+	out_buffer_op->cipher_algo = in_buffer_op->cipher_algo;
+	out_buffer_op->cipher_op = in_buffer_op->cipher_op;
+	out_buffer_op->reserved_1 = in_buffer_op->reserved_1;
 
-    out_buffer_op->cipher_key.length = in_buffer_op->cipher_key.length;
-	out_buffer_op->cipher_iv.length = in_buffer_op->cipher_iv.length;
-    // check that always 1
-    out_buffer_op->cipher_buff_list.buff_list_length = in_buffer_op->cipher_buff_list.buff_list_length;
-    out_buffer_op->cipher_buff_list.buffs[0].length = in_buffer_op->cipher_buff_list.buffs[0].length;
+    in_buffer += sizeof(Crypto_operation_context);
+    out_buffer += sizeof(Crypto_operation_context);
 
-    out_buffer += sizeof(Crypto_operation);
-    in_buffer += sizeof(Crypto_operation);
+    Data_lengths* in_pData_len = (Data_lengths*)in_buffer;
+    Data_lengths* out_pData_len = (Data_lengths*)out_buffer;
+    out_pData_len->ciphertext_length = in_pData_len->ciphertext_length;
+    out_pData_len->cipher_key_length = in_pData_len->cipher_key_length;
+    out_pData_len->cipher_iv_length = in_pData_len->cipher_iv_length;
+
+    //printf("copy_buffer_to_buffer %d %d\n", in_pData_len->cipher_key_length, out_pData_len->cipher_key_length);
+
+    in_buffer += sizeof(Data_lengths);
+    out_buffer += sizeof(Data_lengths);
 
     in_buffer += BUFF_HEADROOM;
     out_buffer += BUFF_HEADROOM;
 
-    if (in_buffer_op->cipher_buff_list.buffs[0].length)
+    if (in_pData_len->ciphertext_length)
         clib_memcpy_fast(out_buffer, 
 					in_buffer, 
-					in_buffer_op->cipher_buff_list.buffs[0].length);
+					in_pData_len->ciphertext_length);
 
-    //buffer += pData_len->ciphertext_length;
     in_buffer += BUFF_SIZE;
     out_buffer += BUFF_SIZE;
 
-    if (in_buffer_op->cipher_key.length)
+    if (in_pData_len->cipher_key_length)
         clib_memcpy_fast(out_buffer, 
 					in_buffer, 
-					in_buffer_op->cipher_key.length);
+					in_pData_len->cipher_key_length);
 
-    in_buffer += in_buffer_op->cipher_key.length;
-    out_buffer += in_buffer_op->cipher_key.length;
+    in_buffer += in_pData_len->cipher_key_length;
+    out_buffer += in_pData_len->cipher_key_length;
 
-    if (in_buffer_op->cipher_iv.length)
+    if (in_pData_len->cipher_iv_length)
         clib_memcpy_fast(out_buffer, 
 					in_buffer, 
-					in_buffer_op->cipher_iv.length);
+					in_pData_len->cipher_iv_length);
 }
 
 //////////////////////////////////
@@ -594,6 +635,11 @@ static void Ciph_comm_agent_server::on_recv_cb (uint32_t conn_id, uint16_t qid, 
 
     if (NULL != _cb[conn_id])
         _cb[conn_id](conn_id, qid, _pool_vecs[conn_id], len);
+
+    //[OT] patch serialize ctx back to buff
+    uint32_t out_len;
+    for(int i = 0; i < len; ++i)
+        ctx_to_buffer((uint8_t*) rx_bufs[i].data, &out_len, &_pool_vecs[conn_id][i]);
 }
 
 int Ciph_comm_agent_server::init(int32_t client_id)

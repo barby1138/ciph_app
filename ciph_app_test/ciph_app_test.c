@@ -808,9 +808,9 @@ enum TEST_TYPE
 	TT_VERIFY
 };
 
-enum TEST_TYPE test_type = TT_VERIFY;
+//enum TEST_TYPE test_type = TT_VERIFY;
 //enum TEST_TYPE test_type = TT_MAX_TP;
-//enum TEST_TYPE test_type = TT_TARGET_TP;
+enum TEST_TYPE test_type = TT_TARGET_TP;
 
 // TODO negative cases
 // bad sessid, too big buffer
@@ -1130,7 +1130,7 @@ int main(int argc, char* argv[])
 
 	if (TT_TARGET_TP == test_type)
 	{
-  		pthread_create (&thread[cid_0], NULL, send_proc, (void *)&cid_0);
+//  		pthread_create (&thread[cid_0], NULL, send_proc, (void *)&cid_0);
 		printf("cr 0\n");
 	}
 
@@ -1139,7 +1139,7 @@ int main(int argc, char* argv[])
 
 	if (TT_TARGET_TP == test_type)
 	{
-		pthread_join(thread[cid_0], &res);
+//		pthread_join(thread[cid_0], &res);
 		printf("Joined with thread %ld; returned value was %s\n", cid_0, (char *) res);
 	}
 

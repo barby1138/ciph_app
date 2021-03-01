@@ -687,7 +687,7 @@ int Memif_client::set_rx_mode(long index, long qid, char *mode)
 
 int Memif_client::poll_00(long index, uint16_t qid, cpoy_buffer_to_buffer_fn_t cpy_fn)
 {
-  int res = on_interrupt02_poll(index, qid);
+  int res = on_interrupt00_poll(index, qid, cpy_fn);
 
   return res;
 }

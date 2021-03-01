@@ -661,7 +661,7 @@ int Dpdk_cryptodev_client::preprocess_jobs(int ch_id,
 				jobs[i].op.op_status = CRYPTO_OP_STATUS_FAILED;
 				jobs[i].cipher_buff_list.buff_list_length = 0;
 
-				RTE_LOG(ERR, USER1, "preprocess_jobs WARN!!! Verify session == NULL - skip op");
+				//RTE_LOG(ERR, USER1, "preprocess_jobs WARN!!! Verify session == NULL - skip op");
 			}
 			else
 			{	
@@ -1200,7 +1200,7 @@ rte_cryptodev_sym_session* Dpdk_cryptodev_client::get_session(int ch_id, const C
 	uint16_t i = (uint16_t) (vec.op.sess_id & 0x0000FFFF);
 	if ( !(cdev_id < _nb_cryptodevs && i < MAX_SESS_NUM) )
 	{
-		RTE_LOG(ERR, USER1, "get_session ivalid dev or sess id ch_id %d, sess_id 0x%x (%d %d)", ch_id, vec.op.sess_id, cdev_id, i);
+		//RTE_LOG(ERR, USER1, "get_session ivalid dev or sess id ch_id %d, sess_id 0x%x (%d %d)", ch_id, vec.op.sess_id, cdev_id, i);
 		return NULL;
 	}
 	

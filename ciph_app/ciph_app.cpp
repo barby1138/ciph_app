@@ -96,7 +96,7 @@ void on_job_complete_cb (uint32_t cid, uint16_t qid, Crypto_operation* pjob, uin
 
   Dpdk_cryptodev_client_sngl::instance().run_jobs(cid, pjob, size);
 
-  Ciph_agent_server_sngl::instance().send(cid, qid, pjob, size);
+  //Ciph_agent_server_sngl::instance().send(cid, qid, pjob, size);
 }
 
 void on_job_complete_cb_test_1 (uint32_t cid, uint16_t qid, Crypto_operation* pjob, uint32_t size)
