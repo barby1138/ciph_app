@@ -3,33 +3,21 @@
 
 #include "stdafx.h"
 
-#include "config.h"
-
 #include <ctime>
 #include <thread>
 #include <chrono>
 #include <iostream>
-
-#include "memif_client.h"
-
-#include "ciph_agent.h"
-
-#include "dpdk_cryptodev_client.h"
-
 #include <unistd.h> //usleep
-
-#include <mutex> 
-
-#include <sys/stat.h> // mkdir
-
-// sig
-#include<signal.h>
-#include<unistd.h>
-
+#include <sys/stat.h> //mkdir
 // date time
 #include <ctime>
 #include <iostream>
 #include <locale>
+
+#include "config.h"
+#include "memif_client.h"
+#include "ciph_agent.h"
+#include "dpdk_cryptodev_client.h"
 
 typedef tracer
 <
@@ -53,23 +41,6 @@ void usage()
 {
   TRACE_INFO("usage: archiver config.xml");
 }
-
-//////////////////////////////////////////////
-#include <stdio.h>
-#include <execinfo.h>
-void stack_trace(void) {
-    char **strings;
-    size_t i, size;
-    enum Constexpr { MAX_SIZE = 1024 };
-    void *array[MAX_SIZE];
-    size = backtrace(array, MAX_SIZE);
-    strings = backtrace_symbols(array, size);
-    for (i = 0; i < size; i++)
-        TRACE_ERROR("%s", strings[i]);
-    puts("");
-    free(strings);
-}
-//////////////////////////////////////////////
 
 void print_buff(uint8_t* data, int len)
 {
@@ -122,37 +93,16 @@ void on_job_complete_cb_test_1 (uint32_t cid, uint16_t qid, Crypto_operation* pj
   }
 }
 
-
-// TODO check conn_id
-std::set<uint32_t> _active_connections;
-std::mutex m[20]; //MAX_CONN_ID
-typedef std::lock_guard<std::mutex> LOCK_GUARD;
-
 void on_connect_cb (uint32_t cid)
 {
-  LOCK_GUARD lock (m[cid]);
-
   TRACE_INFO("on_connect_cb %d", cid);
-
-  _active_connections.insert(cid);
 }
 
 void on_disconnect_cb (uint32_t cid, uint16_t qid, Crypto_operation* pjob, uint32_t size)
 {
-  LOCK_GUARD lock (m[cid]);
-
   TRACE_INFO("on_disconnect_cb %d", cid);
 
-  _active_connections.erase(cid);
-
   Dpdk_cryptodev_client_sngl::instance().cleanup_conn(cid);
-}
-
-void signal_handler(int signo)
-{
-  stack_trace();
-
-  exit(0);
 }
 
 std::string date_time_str()
@@ -172,12 +122,6 @@ std::string date_time_str()
 
 int main(int argc, char** argv)
 {
-/*
-	if (signal(SIGSEGV, signal_handler) == SIG_ERR) 
-	{
-    TRACE_WARNING("Error installing handler");
-  }
-*/
 	try
 	{
 		if (argc < 2)
@@ -203,6 +147,8 @@ int main(int argc, char** argv)
     quark::pstring dpdk_init_str = getProperty<quark::pstring>(props::instance(), "properties.dpdk", "init_str");
     quark::pstring memif_conn_ids = getProperty<quark::pstring>(props::instance(), "properties.memif", "conn_ids");
 
+    uint64_t i = 0;
+    uint32_t stats_to_sec = 10;
     //printf("%s\n", level.c_str());
     //printf("%s\n", dpdk_init_str.c_str());
     //printf("%s\n", memif_conn_ids.c_str());
@@ -295,17 +241,10 @@ int main(int argc, char** argv)
     {
       usleep(100);
 
-      //meson::bench_scope_low scope("poll");
+      Ciph_agent_server_sngl::instance().poll_all(64);
 
-      for (uint32_t i : _active_connections)
-      {
-        {
-          LOCK_GUARD lock (m[i]);
-
-          res = Ciph_agent_server_sngl::instance().poll(i, 0, 64);     
-          res = Ciph_agent_server_sngl::instance().poll(i, 1, 64);  
-        }
-      }   
+      if (++i % ( 10000 * stats_to_sec ) == 0)
+        Dpdk_cryptodev_client_sngl::instance().print_stats();
     }
 
     // following never ecec

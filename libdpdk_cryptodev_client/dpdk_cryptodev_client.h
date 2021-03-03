@@ -21,7 +21,7 @@ struct Dev_vecs_idxs_t
 	uint32_t dev_vecs_idxs[MAX_JOBS_BURST_SIZE];
 };
 
-/*
+
 struct Conn_stats
 {
     uint32_t conn_id;
@@ -30,9 +30,13 @@ struct Conn_stats
 
 struct Dpdk_cryptodev_client_stats
 {
+    uint64_t run_jobs_cnt;
+
     // crypto stats
     uint64_t op_processed;
+
     uint64_t op_failed_total;
+
     uint64_t op_failed_create_sess;
 
     // SAME?
@@ -47,19 +51,21 @@ struct Dpdk_cryptodev_client_stats
 
     uint64_t op_failed_to_cipher;
 
+    uint64_t op_failed_after_cipher_not_proc;
+
     uint32_t burst_avg_size;
     uint32_t pck_avg_size;
     uint32_t avg_pps;
 
     // general stats
-    std::string time_up;
+    //std::string time_up;
 
     // memif stats?
-    Conn_stats conn_stats[MAX_CONN_NUM];
+    Conn_stats conn_stats[20];
     uint32_t active_conn_count;
 
 };
-*/
+
 
 class Dpdk_cryptodev_client
 {
@@ -79,6 +85,8 @@ public:
 
     int set_print_dbg(int do_enable)
     { _print_dbg = (do_enable == 0) ? 0 : 1 ; }
+
+    void print_stats();
 
 private:
     int init_inner();
@@ -156,6 +164,8 @@ private:
     rte_cryptodev_sym_session* _active_sessions_registry [MAX_CHANNEL_NUM][MAX_DEV_NUM][MAX_SESS_NUM];
     
     int _print_dbg;
+
+    Dpdk_cryptodev_client_stats _stats;
 };
 
 #endif // _DPDK_CRYPTODEV_CLIENT_H_

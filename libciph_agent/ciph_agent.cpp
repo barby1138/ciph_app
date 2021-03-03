@@ -203,151 +203,6 @@ void crypto_job_from_buffer(uint8_t* buffer, uint32_t len, Crypto_operation* vec
     vec->cipher_iv.length = pData_len->cipher_iv_length;
 }
 
-/*
-void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len,  Crypto_operation* vec)
-{
-    *len = 0;
-
-    if (NULL == vec)
-    {
-        printf("WARNING!!! NULL == vac\n");
-
-        return;
-    }
-    
-    Crypto_operation* buffer_op = (Crypto_operation*) buffer;
-	buffer_op->op.op_status = vec->op.op_status;
-	buffer_op->op.op_ctx_ptr = vec->op.op_ctx_ptr;
-    buffer_op->op.outbuff_ptr = vec->op.outbuff_ptr;
-	buffer_op->op.outbuff_len = vec->op.outbuff_len;
-	buffer_op->op.seq = vec->op.seq;
-	buffer_op->op.op_type = vec->op.op_type;
-	buffer_op->op.sess_id = vec->op.sess_id;
-	buffer_op->op.cipher_algo = vec->op.cipher_algo;
-	buffer_op->op.cipher_op = vec->op.cipher_op;
-	buffer_op->op.reserved_1 = vec->op.reserved_1;
-
-    uint32_t total_ciphertext_length = 0;
-    for (int i = 0; i < vec->cipher_buff_list.buff_list_length; i++)
-        total_ciphertext_length += vec->cipher_buff_list.buffs[i].length;
-
-    if (total_ciphertext_length > MAX_PCK_LEN)
-    {
-        printf("WARNING!!! total_ciphertext_length > MAX_PCK_LEN %d\n", total_ciphertext_length);
-
-        buffer_op->op.op_status = CRYPTO_OP_STATUS_FAILED;
-
-        buffer_op->cipher_key.length = 0;
-	    buffer_op->cipher_iv.length = 0;
-        buffer_op->cipher_buff_list.buff_list_length = 0;
-
-        return;
-    }
-
-    buffer_op->cipher_key.length = vec->cipher_key.length;
-	buffer_op->cipher_iv.length = vec->cipher_iv.length;
-    buffer_op->cipher_buff_list.buff_list_length = 1;
-    buffer_op->cipher_buff_list.buffs[0].length = total_ciphertext_length;
-
-    buffer += sizeof(Crypto_operation);
-    *len += sizeof(Crypto_operation);
-
-    buffer += BUFF_HEADROOM;
-    *len += BUFF_HEADROOM;
-
-    buffer_op->cipher_buff_list.buffs[0].data = buffer;
-
-    uint8_t* buffer_next = buffer + BUFF_SIZE; // n * 16
-    uint32_t len_next = *len + BUFF_SIZE;
-
-    for (int i = 0; i < vec->cipher_buff_list.buff_list_length; i++)
-    {
-        if (vec->cipher_buff_list.buffs[i].length)
-        {
-            if (NULL != vec->cipher_buff_list.buffs[i].data)
-            {
-                clib_memcpy_fast(buffer, vec->cipher_buff_list.buffs[i].data, vec->cipher_buff_list.buffs[i].length);
-            }
-            else
-            {
-                printf("WARN!!! BAD buff - cipher_buff_list.buffs[ %d ].data == NULL\n", i);
-            }
-            
-            buffer += vec->cipher_buff_list.buffs[i].length;
-            *len += vec->cipher_buff_list.buffs[i].length;
-        }
-    }
-
-    buffer = buffer_next;
-    *len = len_next;
-
-    buffer_op->cipher_key.data = buffer;
-
-    if (vec->cipher_key.length)
-    {
-        if (NULL != vec->cipher_key.data)
-        {
-            clib_memcpy_fast(buffer, vec->cipher_key.data, vec->cipher_key.length);
-        }
-        else
-        {
-            printf("WARN!!! BAD buff - cipher_key.data == NULL\n");
-        }
-
-        buffer += vec->cipher_key.length;
-        *len += vec->cipher_key.length;
-    }
-
-    buffer_op->cipher_iv.data = buffer;
-
-    if (vec->cipher_iv.length)
-    {
-        if (NULL != vec->cipher_iv.data)
-        {
-            clib_memcpy_fast(buffer, vec->cipher_iv.data, vec->cipher_iv.length);
-        }
-        else
-        {
-            printf("WARN!!! BAD buff - cipher_iv.data == NULL\n");
-        }
-
-        buffer += vec->cipher_iv.length;
-        *len += vec->cipher_iv.length;
-    }
-}
-
-void crypto_job_from_buffer(uint8_t* buffer, uint32_t len, Crypto_operation** vec)
-{
-    //Crypto_operation* buffer_op = (Crypto_operation*) buffer;
-	*vec = (Crypto_operation*) buffer;
-
-    //////////////////////////////////////////////////////////////////////////////////////////////////
-    if (vec->op.op_type == CRYPTO_OP_TYPE_SESS_CIPHERING)
-    {
-        if (vec->op.op_status == CRYPTO_OP_STATUS_SUCC)
-        {
-            if ( NULL != vec->op.outbuff_ptr && vec->cipher_buff_list.buffs[0].length <= vec->op.outbuff_len )
-            {
-                clib_memcpy_fast(vec->op.outbuff_ptr, 
-					vec->cipher_buff_list.buffs[0].data, 
-					vec->cipher_buff_list.buffs[0].length);
-
-		        vec->op.outbuff_len = vec->cipher_buff_list.buffs[0].length;
-            }
-            else
-            {
-                vec->op.op_status == CRYPTO_OP_STATUS_FAILED;
-
-                printf("ERROR!!! BAD buff or len ptr %x, %d <= %d\n", vec->op.outbuff_ptr, 
-                                    vec->cipher_buff_list.buffs[0].length,
-                                    vec->op.outbuff_len);
-            }
-        }
-    }
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
-}
-*/
-
 class Ciph_vec_burst_serializer : public IMsg_burst_serializer
 {
 public:
@@ -456,20 +311,24 @@ void copy_buffer_to_buffer(uint8_t* in_buffer, uint32_t in_len, uint8_t* out_buf
 					in_pData_len->cipher_iv_length);
 }
 
+typedef std::lock_guard<std::recursive_mutex> LOCK_GUARD;
+
 //////////////////////////////////
 // Ciph_comm_agent_base
 
-template<int _MAX_CONN>  on_ops_complete_CallBk_t Ciph_comm_agent_base<_MAX_CONN>::_cb[_MAX_CONN] = { 0 };
-template<int _MAX_CONN>  Crypto_operation Ciph_comm_agent_base<_MAX_CONN>::_pool_vecs[_MAX_CONN][OPS_POOL_PER_CONN_SIZE] = { 0 };
-//template<int _MAX_CONN>  Crypto_operation* Ciph_comm_agent_base<_MAX_CONN>::_ppool_vecs[_MAX_CONN][OPS_POOL_PER_CONN_SIZE] = { 0 };
+template<int _MAX_CONN> on_ops_complete_CallBk_t Ciph_comm_agent_base<_MAX_CONN>::_on_ops_complete_cb[_MAX_CONN] = { 0 };
+template<int _MAX_CONN> on_connect_CallBk_t Ciph_comm_agent_base<_MAX_CONN>::_on_connect_cb[_MAX_CONN] = { 0 };
+template<int _MAX_CONN> on_disconnect_CallBk_t Ciph_comm_agent_base<_MAX_CONN>::_on_disconnect_cb[_MAX_CONN] = { 0 };
+
+template<int _MAX_CONN> Crypto_operation Ciph_comm_agent_base<_MAX_CONN>::_pool_vecs[_MAX_CONN][OPS_POOL_PER_CONN_SIZE] = { 0 };
+
+template<int _MAX_CONN> std::recursive_mutex Ciph_comm_agent_base<_MAX_CONN>::_conn_m[_MAX_CONN];
+template<int _MAX_CONN> uint8_t Ciph_comm_agent_base<_MAX_CONN>::_is_conn_active[_MAX_CONN] = { 0 };
 
 //////////////////////////////////
 // Ciph_comm_agent_client
-typedef std::lock_guard<std::recursive_mutex> LOCK_GUARD;
 
 int32_t Ciph_comm_agent_client::_client_id = -1;
-std::recursive_mutex Ciph_comm_agent_client::_conn_m[MAX_CONNECTIONS];
-uint32_t Ciph_comm_agent_client::_is_conn_active[MAX_CONNECTIONS] = { 0 };
 
 static void Ciph_comm_agent_client::on_recv_cb (uint32_t memif_conn_id, uint16_t qid, const typename Memif_client::Conn_buffer_t* rx_bufs, uint32_t len)
 { 
@@ -481,8 +340,8 @@ static void Ciph_comm_agent_client::on_recv_cb (uint32_t memif_conn_id, uint16_t
     for(int i = 0; i < len; ++i)
         crypto_job_from_buffer((uint8_t*) rx_bufs[i].data, rx_bufs[i].len, &_pool_vecs[conn_id][i]);
 
-    if (NULL != _cb[conn_id])
-        _cb[conn_id](conn_id, qid, _pool_vecs[conn_id], len);
+    if (NULL != _on_ops_complete_cb[conn_id])
+        _on_ops_complete_cb[conn_id](conn_id, qid, _pool_vecs[conn_id], len);
 }
 
 static void Ciph_comm_agent_client::on_connected (uint32_t memif_conn_id) 
@@ -496,6 +355,10 @@ static void Ciph_comm_agent_client::on_connected (uint32_t memif_conn_id)
     printf("on_connected %d", conn_id);
 
     _is_conn_active[conn_id] = 1;
+
+    if (NULL != _on_connect_cb[conn_id])
+        _on_connect_cb[conn_id](conn_id);
+
 }
 
 static void Ciph_comm_agent_client::on_disconnected (uint32_t memif_conn_id) 
@@ -509,6 +372,9 @@ static void Ciph_comm_agent_client::on_disconnected (uint32_t memif_conn_id)
     printf("on_disconnected %d", conn_id);
 
     _is_conn_active[conn_id] = 0;
+
+    if (NULL != _on_disconnect_cb[conn_id])
+        _on_disconnect_cb[conn_id](conn_id);
 }
 
 int Ciph_comm_agent_client::init(int32_t client_id)
@@ -534,7 +400,9 @@ int Ciph_comm_agent_client::conn_alloc(uint32_t conn_id,
     if (0 != check_conn_id(conn_id))
         return -1;
 
-    _cb[conn_id] = on_ops_complete_CallBk;
+    _on_ops_complete_cb[conn_id] = on_ops_complete_CallBk;
+    _on_connect_cb[conn_id] = on_connect_CallBk;
+    _on_disconnect_cb[conn_id] = on_disconnect_CallBk;
 
     typename Memif_client::Conn_config_t conn_config;
     conn_config._on_recv_cb_fn = Ciph_comm_agent_client::on_recv_cb;
@@ -552,7 +420,9 @@ int Ciph_comm_agent_client::conn_free(uint32_t conn_id)
     if (0 != check_conn_id(conn_id))
         return -1;
 
-    _cb[conn_id] = NULL;
+    _on_ops_complete_cb[conn_id] = NULL;
+    _on_connect_cb[conn_id] = NULL;
+    _on_disconnect_cb[conn_id] = NULL;
 
     return _client.conn_free(get_memif_conn_id(conn_id));
 }
@@ -633,13 +503,37 @@ static void Ciph_comm_agent_server::on_recv_cb (uint32_t conn_id, uint16_t qid, 
     for(int i = 0; i < len; ++i)
         crypto_job_from_buffer((uint8_t*) rx_bufs[i].data, rx_bufs[i].len, &_pool_vecs[conn_id][i]);
 
-    if (NULL != _cb[conn_id])
-        _cb[conn_id](conn_id, qid, _pool_vecs[conn_id], len);
+    if (NULL != _on_ops_complete_cb[conn_id])
+        _on_ops_complete_cb[conn_id](conn_id, qid, _pool_vecs[conn_id], len);
 
     //[OT] patch serialize ctx back to buff
     uint32_t out_len;
     for(int i = 0; i < len; ++i)
         ctx_to_buffer((uint8_t*) rx_bufs[i].data, &out_len, &_pool_vecs[conn_id][i]);
+}
+
+static void Ciph_comm_agent_server::on_connected (uint32_t conn_id) 
+{
+    LOCK_GUARD lock (_conn_m[conn_id]);
+
+    printf("on_connected %d", conn_id);
+
+    _is_conn_active[conn_id] = 1;
+
+    if (NULL != _on_connect_cb[conn_id])
+        _on_connect_cb[conn_id](conn_id);
+}
+
+static void Ciph_comm_agent_server::on_disconnected (uint32_t conn_id) 
+{ 
+    LOCK_GUARD lock (_conn_m[conn_id]);
+
+    printf("on_disconnected %d", conn_id);
+
+    _is_conn_active[conn_id] = 0;
+
+    if (NULL != _on_disconnect_cb[conn_id])
+        _on_disconnect_cb[conn_id](conn_id);
 }
 
 int Ciph_comm_agent_server::init(int32_t client_id)
@@ -659,14 +553,19 @@ int Ciph_comm_agent_server::conn_alloc(uint32_t conn_id,
                                 on_connect_CallBk_t on_connect_CallBk,
                                 on_disconnect_CallBk_t on_disconnect_CallBk)
 {
-    _cb[conn_id] = on_ops_complete_CallBk;
+    _on_ops_complete_cb[conn_id] = on_ops_complete_CallBk;
+    _on_connect_cb[conn_id] = on_connect_CallBk;
+    _on_disconnect_cb[conn_id] = on_disconnect_CallBk;
 
     typename Memif_client::Conn_config_t conn_config;
     conn_config._on_recv_cb_fn = Ciph_comm_agent_server::on_recv_cb;
-    conn_config._on_connect_fn = on_connect_CallBk;
-    conn_config._on_disconnect_fn = on_disconnect_CallBk;
-    conn_config._mode = CA_MODE_MASTER; //
-
+    conn_config._on_connect_fn = Ciph_comm_agent_server::on_connected;
+    conn_config._on_disconnect_fn = Ciph_comm_agent_server::on_disconnected;
+    conn_config._mode = CA_MODE_MASTER;
+/*
+    _on_connect_CallBk = on_connect_CallBk;
+    _on_disconnect_CallBk = on_disconnect_CallBk;
+*/
     int res = _client.conn_alloc(conn_id, conn_config);
 
     return res;
@@ -674,21 +573,41 @@ int Ciph_comm_agent_server::conn_alloc(uint32_t conn_id,
 
 int Ciph_comm_agent_server::conn_free(uint32_t conn_id)
 {
-    _cb[conn_id] = NULL;
+    _on_ops_complete_cb[conn_id] = NULL;
+    _on_connect_cb[conn_id] = NULL;
+    _on_disconnect_cb[conn_id] = NULL;
 
     return _client.conn_free(conn_id);
 }
-
+/*
 int Ciph_comm_agent_server::send(uint32_t conn_id, uint16_t qid, const Crypto_operation* vecs, uint32_t size)
 {
     Ciph_vec_burst_serializer ser(vecs, size);
 
     return _client.send(conn_id, qid, size, ser);
 }
+*/
+
+int Ciph_comm_agent_server::poll_all(uint32_t size)
+{
+    for (uint32_t i = 0; i < MAX_CONNECTIONS; ++i)
+    {
+        {
+            LOCK_GUARD lock (_conn_m[i]);
+
+            if (_is_conn_active[i])
+            {
+                poll(i, 0, size);
+                poll(i, 1, size);
+            }
+        }
+    }
+
+    return 0;
+}
 
 int Ciph_comm_agent_server::poll(uint32_t conn_id, uint16_t qid, uint32_t size)
 {
-
     uint32_t poll_count = (size % 64) ? (size / 64) + 1 : size / 64;
     do
     {

@@ -213,6 +213,8 @@ uint8_t cipher_key[] = {
 	0xE4, 0x23, 0x33, 0x8A, 0x35, 0x64, 0x61, 0xE2, 0x49, 0x03, 0xDD, 0xC6, 0xB8, 0xCA, 0x55, 0x7A
 };
 
+#define STATS_OP_FAILED(type) ++_stats.op_failed_##type ; \
+								++_stats.op_failed_total ;
 uint8_t test_buff[1024];
 
 void print_buff1(uint8_t* data, int len)
@@ -527,6 +529,8 @@ int Dpdk_cryptodev_client::init(int argc, char **argv)
 	crypto2rte_cipher_op_map[CRYPTO_CIPHER_OP_ENCRYPT] = RTE_CRYPTO_CIPHER_OP_ENCRYPT;
 	crypto2rte_cipher_op_map[CRYPTO_CIPHER_OP_DECRYPT] = RTE_CRYPTO_CIPHER_OP_DECRYPT;
 
+	memset(&_stats, 0, sizeof(Dpdk_cryptodev_client_stats));
+
 	// Initialise DPDK EAL 
 	ret = rte_eal_init(argc, argv);
 	if (ret < 0)
@@ -631,6 +635,7 @@ int Dpdk_cryptodev_client::preprocess_jobs(int ch_id,
 			RTE_LOG(ERR, USER1, "job %d op_type %d was set FAILED inside the agent", i, jobs[i].op.op_type);
 			jobs[i].cipher_buff_list.buff_list_length = 0;
 
+			STATS_OP_FAILED(in_agent)
 			continue;
 		}
 
@@ -647,6 +652,8 @@ int Dpdk_cryptodev_client::preprocess_jobs(int ch_id,
 			{
 				jobs[i].op.op_status = CRYPTO_OP_STATUS_FAILED;
 				jobs[i].op.sess_id = -1;
+
+				STATS_OP_FAILED(create_sess)
 			}
 		}
 		else if (jobs[i].op.op_type == CRYPTO_OP_TYPE_SESS_CLOSE)
@@ -661,6 +668,7 @@ int Dpdk_cryptodev_client::preprocess_jobs(int ch_id,
 				jobs[i].op.op_status = CRYPTO_OP_STATUS_FAILED;
 				jobs[i].cipher_buff_list.buff_list_length = 0;
 
+				STATS_OP_FAILED(get_sess)
 				//RTE_LOG(ERR, USER1, "preprocess_jobs WARN!!! Verify session == NULL - skip op");
 			}
 			else
@@ -701,12 +709,18 @@ int Dpdk_cryptodev_client::preprocess_jobs(int ch_id,
 					jobs[i].op.op_status = CRYPTO_OP_STATUS_FAILED;
 					jobs[i].cipher_buff_list.buff_list_length = 0;
 
+					STATS_OP_FAILED(invalid_cdev)
 					RTE_LOG(ERR, USER1, "preprocess_jobs wrong cdev sess_id %d cdev_id %d", jobs[i].op.sess_id, cdev_id);
 				}		
 			}
 		}
 		else
 		{
+			jobs[i].op.op_status = CRYPTO_OP_STATUS_FAILED;
+			jobs[i].cipher_buff_list.buff_list_length = 0;
+
+			STATS_OP_FAILED(op_type_unk)
+
 			RTE_LOG(ERR, USER1, "preprocess_jobs WARN!!! unknown op_type %d i %d", jobs[i].op.op_type, i);
 		}
 	}
@@ -723,9 +737,15 @@ int Dpdk_cryptodev_client::postprocess_jobs(int ch_id, Crypto_operation* jobs, u
 		else if (jobs[i].op.op_type == CRYPTO_OP_TYPE_SESS_CLOSE)
 		{
 			if (0 == remove_session(ch_id, jobs[i]))
+			{
 				jobs[i].op.op_status = CRYPTO_OP_STATUS_SUCC;
+			}
 			else
+			{
 				jobs[i].op.op_status = CRYPTO_OP_STATUS_FAILED;
+
+				STATS_OP_FAILED(remove_session)
+			}
 		}
 		else if (jobs[i].op.op_type == CRYPTO_OP_TYPE_SESS_CIPHERING && 
 				jobs[i].op.op_status == CRYPTO_OP_STATUS_SUCC)
@@ -769,13 +789,13 @@ int Dpdk_cryptodev_client::run_jobs(int ch_id, Crypto_operation* jobs, uint32_t 
 	Dev_vecs_idxs_t dev_vecs_idxs_arr[RTE_CRYPTO_MAX_DEVS] = { 0 };
 
 	{
-  	meson::bench_scope_low scope("preprocess_jobs");
+//  	meson::bench_scope_low scope("preprocess_jobs");
 
 	preprocess_jobs(ch_id, jobs, size, dev_ops_size_arr, dev_vecs_idxs_arr);
 	}
 
 	{
-  	meson::bench_scope_low scope("run_jobs_inner");
+//  	meson::bench_scope_low scope("run_jobs_inner");
 
 	for (uint8_t cdev_index = 0; cdev_index < _nb_cryptodevs && cdev_index < RTE_CRYPTO_MAX_DEVS; cdev_index++) 
 	{
@@ -792,10 +812,14 @@ int Dpdk_cryptodev_client::run_jobs(int ch_id, Crypto_operation* jobs, uint32_t 
 	}
 
 	{
-  	meson::bench_scope_low scope("postprocess_jobs");
+//  	meson::bench_scope_low scope("postprocess_jobs");
 
 	postprocess_jobs(ch_id, jobs, size);
 	}
+
+	_stats.run_jobs_cnt++;
+	_stats.op_processed += size;
+	_stats.burst_avg_size = _stats.op_processed / _stats.run_jobs_cnt;
 
 	return 0;
 }
@@ -921,15 +945,25 @@ int Dpdk_cryptodev_client::set_ops_cipher_result(	rte_crypto_op **ops, // proces
 		if (ops[i]->status != RTE_CRYPTO_OP_STATUS_NOT_PROCESSED)
 		{
 			if (ops[i]->status != RTE_CRYPTO_OP_STATUS_SUCCESS)
+			{
 				vecs[j].op.op_status = CRYPTO_OP_STATUS_FAILED;
+
+				STATS_OP_FAILED(to_cipher)
+			}
 			else
+			{
 				vecs[j].op.op_status = CRYPTO_OP_STATUS_SUCC;
+			}
 		}
 		else
 		{
+			STATS_OP_FAILED(after_cipher_not_proc)
+
 			RTE_LOG(ERR, USER1, "set_ops_cipher_result some ops are still RTE_CRYPTO_OP_STATUS_NOT_PROCESSED");
 		}
 	}
+
+	return 0;
 }
 
 int Dpdk_cryptodev_client::run_jobs_inner(
@@ -1465,6 +1499,26 @@ int Dpdk_cryptodev_client::alloc_common_memory(
 	rte_mempool_obj_iter(_ops_mp, mempool_obj_init, (void *)&params);
 
 	return 0;
+}
+
+void Dpdk_cryptodev_client::print_stats()
+{
+    RTE_LOG(INFO, USER1,
+			"proc %" PRIu64 " fail %" PRIu64 " (crs %" PRIu64 " gets %" PRIu64 " rs %" PRIu64 " invd %" PRIu64 " inag %" PRIu64 " opun %" PRIu64 " cip %" PRIu64 " acnp %" PRIu64 ")", 
+			_stats.op_processed,
+			_stats.op_failed_total,
+			_stats.op_failed_create_sess,
+			_stats.op_failed_get_sess,
+			_stats.op_failed_invalid_cdev,
+			_stats.op_failed_remove_session,
+			_stats.op_failed_in_agent,
+			_stats.op_failed_op_type_unk,
+			_stats.op_failed_to_cipher,
+			_stats.op_failed_after_cipher_not_proc);
+
+
+    RTE_LOG(INFO, USER1, "avbu %" PRIu64 "",
+			_stats.burst_avg_size);
 }
 
 ////////////////////////////////////////////
