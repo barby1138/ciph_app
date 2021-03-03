@@ -19,8 +19,10 @@ upload_to_artifactory()
     local p_folder_to_upload="pw-products/ciph-app/${branch}/${commit_hash_date}/"
     echo "Upload ${p_image_name} to folder ${p_folder_to_upload} with the tag $shortHash"
     jfrog rt use pwartifactory
-    jfrog rt u --insecure-tls --props "commitID=$shortHash;build.number=$buildNumber" --include-dirs=true \
-          ${p_image_name} ${p_folder_to_upload}
+    jfrog rt u --insecure-tls \
+        --props "commitID=$shortHash;build.number=$buildNumber;branch=$branch" \
+        --include-dirs=true \
+        ${p_image_name} ${p_folder_to_upload}
 }
 
 echo "Checking current folder and content"

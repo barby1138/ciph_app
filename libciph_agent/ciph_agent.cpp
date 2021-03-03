@@ -230,7 +230,7 @@ private:
     uint32_t _size;
 };
 
-void ctx_to_buffer(uint8_t* buffer, uint32_t* len,  Crypto_operation* vec)
+void ctx_to_buffer(uint8_t* buffer, uint32_t* len,  const Crypto_operation* vec)
 {
     *len = 0;
 

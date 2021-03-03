@@ -54,7 +54,9 @@ struct Dpdk_cryptodev_client_stats
     uint64_t op_failed_after_cipher_not_proc;
 
     uint32_t burst_avg_size;
+
     uint32_t pck_avg_size;
+    
     uint32_t avg_pps;
 
     // general stats
@@ -64,6 +66,9 @@ struct Dpdk_cryptodev_client_stats
     Conn_stats conn_stats[20];
     uint32_t active_conn_count;
 
+// private
+    uint32_t burst_pck_total_size;
+    uint32_t burst_total_size;
 };
 
 

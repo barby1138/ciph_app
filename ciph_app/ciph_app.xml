@@ -1,5 +1,0 @@
-<properties>
-	<logger level="info" path="/var/ciph_app" />
-	<dpdk init_str="ciph_app -c 0x1 --vdev crypto_aesni_mb_pmd --vdev crypto_snow3g --" />
-	<memif conn_ids="0,1,2,3,4,5" />
-</properties>

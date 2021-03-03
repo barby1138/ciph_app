@@ -781,6 +781,9 @@ int Dpdk_cryptodev_client::run_jobs(int ch_id, Crypto_operation* jobs, uint32_t 
 		return 0;
 	}
 
+	_stats.burst_pck_total_size = 0;
+	_stats.burst_total_size = 0;
+
 	uint8_t cdev_id;
 	uint8_t buffer_size_idx = 0;
 	uint8_t qp_id = 0; 
@@ -818,8 +821,14 @@ int Dpdk_cryptodev_client::run_jobs(int ch_id, Crypto_operation* jobs, uint32_t 
 	}
 
 	_stats.run_jobs_cnt++;
-	_stats.op_processed += size;
+	_stats.op_processed += _stats.burst_total_size;
 	_stats.burst_avg_size = _stats.op_processed / _stats.run_jobs_cnt;
+
+	uint32_t pck_avg_size_burst = (_stats.burst_total_size) ? _stats.burst_pck_total_size / _stats.burst_total_size : 0;
+	_stats.pck_avg_size += pck_avg_size_burst;
+	_stats.pck_avg_size /= 2;
+
+	//printf("%d %d %d\n", _stats.pck_avg_size, _stats.pck_avg_size, pck_avg_size_burst);
 
 	return 0;
 }
@@ -906,6 +915,9 @@ int Dpdk_cryptodev_client::set_ops_cipher(	rte_crypto_op **ops,
         	}
 		}
 		*/
+
+		_stats.burst_pck_total_size += vecs[j].cipher_buff_list.buffs[0].length;
+		_stats.burst_total_size++;
 
 		sym_op->cipher.data.length = vecs[j].cipher_buff_list.buffs[0].length;
 		sym_op->cipher.data.offset = 0;
@@ -1517,8 +1529,9 @@ void Dpdk_cryptodev_client::print_stats()
 			_stats.op_failed_after_cipher_not_proc);
 
 
-    RTE_LOG(INFO, USER1, "avbu %" PRIu64 "",
-			_stats.burst_avg_size);
+    RTE_LOG(INFO, USER1, "avbu %" PRIu64 " avpk %u",
+			_stats.burst_avg_size,
+			_stats.pck_avg_size);
 }
 
 ////////////////////////////////////////////
