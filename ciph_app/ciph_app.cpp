@@ -130,6 +130,8 @@ int main(int argc, char** argv)
 			return 1;
 		}
 
+    enum { MAX_STATS_DUMP_TO_SEC = 6000, MIN_STATS_DUMP_TO_SEC = 10 };
+
     int mdret;
     mode_t mode = 0755;
 
@@ -146,9 +148,19 @@ int main(int argc, char** argv)
     quark::pstring path = getProperty<quark::pstring>(props::instance(), "properties.logger", "path");
     quark::pstring dpdk_init_str = getProperty<quark::pstring>(props::instance(), "properties.dpdk", "init_str");
     quark::pstring memif_conn_ids = getProperty<quark::pstring>(props::instance(), "properties.memif", "conn_ids");
+    quark::u32 stats_dump_to_sec = getProperty<quark::u32>(props::instance(), "properties.stats", "dump_to_sec");
+
+    if (stats_dump_to_sec < MIN_STATS_DUMP_TO_SEC || stats_dump_to_sec > MAX_STATS_DUMP_TO_SEC)
+    {
+      TRACE_WARNING ("stats_dump_to_sec out of range [%u,%u] %u - use default 60", 
+                MIN_STATS_DUMP_TO_SEC,
+                MAX_STATS_DUMP_TO_SEC,
+                stats_dump_to_sec);
+      stats_dump_to_sec = 60;
+    }
 
     uint64_t i = 0;
-    uint32_t stats_to_sec = 10;
+    //uint32_t stats_dump_to_sec = 10;
     //printf("%s\n", level.c_str());
     //printf("%s\n", dpdk_init_str.c_str());
     //printf("%s\n", memif_conn_ids.c_str());
@@ -243,7 +255,7 @@ int main(int argc, char** argv)
 
       Ciph_agent_server_sngl::instance().poll_all(64);
 
-      if (++i % ( 10000 * stats_to_sec ) == 0)
+      if (++i % ( 10000 * stats_dump_to_sec ) == 0)
         Dpdk_cryptodev_client_sngl::instance().print_stats();
     }
 

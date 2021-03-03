@@ -824,6 +824,7 @@ int Dpdk_cryptodev_client::run_jobs(int ch_id, Crypto_operation* jobs, uint32_t 
 	_stats.op_processed += _stats.burst_total_size;
 	_stats.burst_avg_size = _stats.op_processed / _stats.run_jobs_cnt;
 
+	// TODO review
 	uint32_t pck_avg_size_burst = (_stats.burst_total_size) ? _stats.burst_pck_total_size / _stats.burst_total_size : 0;
 	_stats.pck_avg_size += pck_avg_size_burst;
 	_stats.pck_avg_size /= 2;
