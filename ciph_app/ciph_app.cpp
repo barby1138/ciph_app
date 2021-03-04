@@ -248,12 +248,12 @@ int main(int argc, char** argv)
                           on_disconnect_cb);
     }
 
-    int res;
+    int active_conn_num = 0;
     while(1)
     {
-      usleep(100);
+      usleep((active_conn_num) ? 100 : 1000 * 100);
 
-      Ciph_agent_server_sngl::instance().poll_all(64);
+      active_conn_num = Ciph_agent_server_sngl::instance().poll_all(64);
 
       if (++i % ( 10000 * stats_dump_to_sec ) == 0)
         Dpdk_cryptodev_client_sngl::instance().print_stats();

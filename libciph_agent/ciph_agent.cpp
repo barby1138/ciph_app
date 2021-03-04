@@ -590,6 +590,8 @@ int Ciph_comm_agent_server::send(uint32_t conn_id, uint16_t qid, const Crypto_op
 
 int Ciph_comm_agent_server::poll_all(uint32_t size)
 {
+    int active_conn_num = 0;
+
     for (uint32_t i = 0; i < MAX_CONNECTIONS; ++i)
     {
         {
@@ -599,11 +601,13 @@ int Ciph_comm_agent_server::poll_all(uint32_t size)
             {
                 poll(i, 0, size);
                 poll(i, 1, size);
+
+                active_conn_num++;
             }
         }
     }
 
-    return 0;
+    return active_conn_num;
 }
 
 int Ciph_comm_agent_server::poll(uint32_t conn_id, uint16_t qid, uint32_t size)
