@@ -28,7 +28,6 @@ cp lib/* $LXCPATH/ciph_app/rootfs/usr/lib64
 echo =========== PREPARE SERVICE ==============
 cd $LXCPATH/ciph_app/rootfs
 cp $DEPLPATH/svc/ciph_app.service etc/systemd/system
-cp $DEPLPATH/svc/CPU_MASK home/ciph_app
 cp $DEPLPATH/svc/ciph_app.sh home/ciph_app
 chmod 0755 home/ciph_app/ciph_app.sh
 # enable

@@ -4,14 +4,21 @@
 
 echo "ciph_app.service: ## Starting ##" | systemd-cat -p info
 cd /home/ciph_app
-CPU_MASK=$(cat CPU_MASK)
-echo $CPU_MASK
-taskset $CPU_MASK ./dpdk-crypto-app cfg
+CPU_NUM=$(grep -c ^processor /proc/cpuinfo)
+echo $CPU_NUM
 
-#while :
-#do
-#TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
-#echo "ciph_app.service: timestamp ${TIMESTAMP}" | systemd-cat -p info
-#sleep 600
-#done
-
+if [[ $CPU_NUM -eq 48 ]]; then
+    # CPU23
+    taskset 0x800000 ./dpdk-crypto-app cfg
+elif [[ $CPU_NUM -eq 28 ]]; then
+    # CPU15
+    taskset 0x8000 ./dpdk-crypto-app cfg
+else
+    echo "Error: unknown arch - just wait"
+    while :
+    do
+    TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+    echo "ciph_app.service: timestamp ${TIMESTAMP}" | systemd-cat -p info
+    sleep 600
+    done
+fi
