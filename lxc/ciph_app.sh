@@ -11,8 +11,8 @@ if [[ $CPU_NUM -eq 48 ]]; then
     # CPU23
     taskset 0x800000 ./dpdk-crypto-app cfg
 elif [[ $CPU_NUM -eq 28 ]]; then
-    # CPU15
-    taskset 0x8000 ./dpdk-crypto-app cfg
+    # CPU1 & CPU15
+    taskset 0x8002 ./dpdk-crypto-app cfg
 else
     echo "Error: unknown arch - just wait"
     while :
