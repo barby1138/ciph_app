@@ -1241,20 +1241,6 @@ int Dpdk_cryptodev_client::remove_session(int ch_id, const Crypto_operation& vec
 	RTE_LOG(INFO, USER1, "remove_session SUCC ch %d, id %d", ch_id, vec.op.sess_id);
 
 	_active_sessions_registry[ch_id][cdev_id][i] = NULL;
-	
-	uint32_t active_sess_cnt = 0;
-	for (uint16_t cdev_id = 0; cdev_id < _nb_cryptodevs; cdev_id++)
-	{
-		for (uint16_t i = 0; i < MAX_SESS_NUM; i++)
-		{
-			rte_cryptodev_sym_session* s = _active_sessions_registry[ch_id][cdev_id][i];
-			if (NULL == s)
-				continue;
-
-			active_sess_cnt++;
-		}
-	}
-	RTE_LOG(INFO, USER1, "remove_session left active sess cnt %u", active_sess_cnt);
 
 	return 0;
 }
