@@ -534,7 +534,11 @@ int Dpdk_cryptodev_client::init(int argc, char **argv)
 	// Initialise DPDK EAL 
 	ret = rte_eal_init(argc, argv);
 	if (ret < 0)
-		rte_exit(EXIT_FAILURE, "Invalid EAL arguments!\n");
+	{
+		RTE_LOG(ERR, USER1, "Invalid EAL arguments!");
+
+		return EXIT_FAILURE;
+	}
 
 	argc -= ret;
 	argv += ret;
@@ -1238,6 +1242,20 @@ int Dpdk_cryptodev_client::remove_session(int ch_id, const Crypto_operation& vec
 
 	_active_sessions_registry[ch_id][cdev_id][i] = NULL;
 	
+	uint32_t active_sess_cnt = 0;
+	for (uint16_t cdev_id = 0; cdev_id < _nb_cryptodevs; cdev_id++)
+	{
+		for (uint16_t i = 0; i < MAX_SESS_NUM; i++)
+		{
+			rte_cryptodev_sym_session* s = _active_sessions_registry[ch_id][cdev_id][i];
+			if (NULL == s)
+				continue;
+
+			active_sess_cnt++;
+		}
+	}
+	RTE_LOG(INFO, USER1, "remove_session left active sess cnt %u", active_sess_cnt);
+
 	return 0;
 }
 
@@ -1791,54 +1809,3 @@ int Dpdk_cryptodev_client::run_jobs_test(int ch_id, Crypto_operation* jobs, uint
 
 	return 0;
 }
-
-// to remove
-/*
-		uint32_t mbuf_hdr_size = sizeof(rte_mbuf);
-
-		// start of buffer is after mbuf structure and priv data 
-		m->priv_size = 0;
-		m->buf_addr = vecs[j].cipher_buff_list.buffs[0].data;
-		m->buf_iova = RTE_BAD_IOVA; //rte_mempool_virt2iova(vecs[j].cipher_buff_list.buffs[0].data);
-
-		m->buf_len = vecs[j].cipher_buff_list.buffs[0].length;
-		m->data_len = vecs[j].cipher_buff_list.buffs[0].length;
-		m->pkt_len = vecs[j].cipher_buff_list.buffs[0].length;
-
-		//printf("fill_single_seg_mbuf %d, %d\n", m, m->data_len);
-
-		m->data_off = _opts.headroom_sz;
-
-		// init some constant fields 
-		m->pool = _ops_mp;
-		m->nb_segs = 1;
-		m->port = 0xff;
-		rte_mbuf_refcnt_set(m, 1);
-		m->next = NULL;
-*/
-		/*
-		do {
-			// start of buffer is after mbuf structure and priv data 
-			m->priv_size = 0;
-			m->buf_addr = (char *)m + mbuf_hdr_size;
-			m->buf_iova = next_seg_phys_addr;
-			next_seg_phys_addr += mbuf_hdr_size + segment_sz;
-			m->buf_len = segment_sz;
-			m->data_len = data_len;
-			printf("fill_multi_seg_mbuf %d, %d\n", m, m->data_len);
-
-			// Use headroom specified for the buffer 
-			m->data_off = headroom;
-
-			// init some constant fields 
-			m->pool = mp;
-			m->nb_segs = segments_nb;
-			m->port = 0xff;
-			rte_mbuf_refcnt_set(m, 1);
-			next_mbuf = (struct rte_mbuf *) ((uint8_t *) m + mbuf_hdr_size + segment_sz);
-			m->next = next_mbuf;
-			m = next_mbuf;
-			remaining_segments--;
-		} while (remaining_segments > 0);
-		*/
-		//////////////////////////////////////

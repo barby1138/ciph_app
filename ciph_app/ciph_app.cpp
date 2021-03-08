@@ -124,6 +124,8 @@ int main(int argc, char** argv)
 {
 	try
 	{
+    int res;
+
 		if (argc < 2)
 		{
 			usage();
@@ -216,7 +218,12 @@ int main(int argc, char** argv)
 
 		TRACE_INFO("Ver: %s", VERSION);
 
-		Dpdk_cryptodev_client_sngl::instance().init(pchar_dpdk_init_str.size(), &pchar_dpdk_init_str[0]);
+		res = Dpdk_cryptodev_client_sngl::instance().init(pchar_dpdk_init_str.size(), &pchar_dpdk_init_str[0]);
+    if (res)
+    {
+      throw std::runtime_error("Dpdk_cryptodev_client init FAILED");
+    }
+
     Dpdk_cryptodev_client_sngl::instance().set_print_dbg((tl == tlDebug) ? 1 : 0) ;
     
     // local test TP

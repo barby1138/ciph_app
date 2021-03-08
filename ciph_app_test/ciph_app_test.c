@@ -817,6 +817,7 @@ enum TEST_TYPE test_type = TT_TARGET_TP;
 void* send_proc(void* data)
 {
 	uint32_t cc = 0;
+	uint32_t cc_1 = 0;
 	uint8_t res;
 	uint32_t i;
 
@@ -906,15 +907,19 @@ void* send_proc(void* data)
       	for (i = 0; i < num_pck_per_batch; ++i)
       	{
 
-			/*
 			// create session onece per 10 pck
 			// and close any of active sessions if > threshold
-			if (i % 10 == 0)
+			++cc_1;
+			if (cc_1 > 1000000)
 			{
-				res = create_session(conn_id, ++seq);
+				cc_1 = 0;
+
+				res = close_session(cid, QID_USER, ++thread_data[cid].seq, thread_data[cid].setup_sess_ctx.setup_sess_id);
+				if (0 != res) printf ("close_session ERROR\n");
+
+				res = create_session(cid, QID_CTRL, ++thread_data[cid].seq, thread_data[cid].cipher_algo, thread_data[cid].cipher_op);
 				if (0 != res) printf ("create_session ERROR\n");
 			}
-			*/
 	
 			cipher(cid, QID_USER, ++thread_data[cid].seq, setup_sess_id, cipher_op);
       	}

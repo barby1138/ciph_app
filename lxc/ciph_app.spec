@@ -31,6 +31,7 @@ install -v -m 0644 lxc/rootfs_centos-7-amd64.tar.gz -D %{buildroot}/tmp/ciph_app
 
 install -v -m 0644 svc/ciph_app.service -D %{buildroot}/tmp/ciph_app/%{version}/svc/ciph_app.service
 install -v -m 0644 svc/ciph_app.sh -D %{buildroot}/tmp/ciph_app/%{version}/svc/ciph_app.sh
+install -v -m 0644 svc/CPU_MASK -D %{buildroot}/tmp/ciph_app/%{version}/svc/CPU_MASK
 
 %files
 /tmp/ciph_app/%{version}/

@@ -76,6 +76,7 @@ cp lxc/config $RPMBUILD/ciph_app
 cp lxc/build_lxc.sh $RPMBUILD/ciph_app
 cp lxc/ciph_app.service $RPMBUILD/ciph_app/svc
 cp lxc/ciph_app.sh $RPMBUILD/ciph_app/svc
+cp lxc/CPU_MASK $RPMBUILD/ciph_app/svc
 cp ciph_app/project/linux/dpdk-crypto-app $RPMBUILD/ciph_app/bin
 cp ciph_app/project/linux/ciph_app.xml $RPMBUILD/ciph_app/bin
 cp /usr/lib64/libnuma.so* $RPMBUILD/ciph_app/lib

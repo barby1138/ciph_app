@@ -71,7 +71,6 @@ struct Dpdk_cryptodev_client_stats
     uint32_t burst_total_size;
 };
 
-
 class Dpdk_cryptodev_client
 {
 private:
@@ -162,8 +161,6 @@ private:
 	rte_mempool *_ops_mp;
 	uint32_t _src_buf_offset;
 	uint32_t _dst_buf_offset;
-
-    //Crypto_operation* t_vecs; // data vec pool
 
     // sess per channel
     rte_cryptodev_sym_session* _active_sessions_registry [MAX_CHANNEL_NUM][MAX_DEV_NUM][MAX_SESS_NUM];
