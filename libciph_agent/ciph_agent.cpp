@@ -348,8 +348,9 @@ static void Ciph_comm_agent_client::on_connected (uint32_t memif_conn_id)
 {
     uint32_t conn_id = get_conn_id(memif_conn_id);
 
-    assert(0 == check_conn_id(conn_id));
-  
+    if (0 != check_conn_id(conn_id))
+        return -1;
+
     LOCK_GUARD lock (_conn_m[conn_id]);
 
     printf("on_connected %d", conn_id);
@@ -365,8 +366,9 @@ static void Ciph_comm_agent_client::on_disconnected (uint32_t memif_conn_id)
 {
     uint32_t conn_id = get_conn_id(memif_conn_id);
 
-    assert(0 == check_conn_id(conn_id));
-  
+    if (0 != check_conn_id(conn_id))
+        return -1;
+
     LOCK_GUARD lock (_conn_m[conn_id]);
 
     printf("on_disconnected %d", conn_id);
