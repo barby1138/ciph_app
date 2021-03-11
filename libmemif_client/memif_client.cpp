@@ -521,8 +521,6 @@ int Memif_client::cleanup()
   int err;
   long i;
 
-  // [OT] not needed
-/*
   _op_state = IDLE;
   _host_thread.join();
 
@@ -534,7 +532,6 @@ int Memif_client::cleanup()
       memif_delete(i);
     }
   }
-*/
 
   err = memif_cleanup();
   if (err != MEMIF_ERR_SUCCESS)
