@@ -61,6 +61,10 @@ echo =========== PACK DEVEL ===========================
 cd $ROOT/dist
 tar czf ciph_app_devel-$VER.tar.gz ciph_app_devel
 
+echo =========== DOCKER ==================================
+echo do nothing...
+
+echo =========== LXC ==================================
 echo =========== PREP FILES FOR RPM ===================
 RPMBUILD=~/rpmbuild/BUILD
 cd $ROOT
@@ -72,10 +76,10 @@ mkdir $RPMBUILD/ciph_app/bin
 mkdir $RPMBUILD/ciph_app/lib
 mkdir $RPMBUILD/ciph_app/svc
 cp VERSION $RPMBUILD/ciph_app
-cp lxc/config $RPMBUILD/ciph_app
-cp lxc/build_lxc.sh $RPMBUILD/ciph_app
-cp lxc/ciph_app.service $RPMBUILD/ciph_app/svc
-cp lxc/ciph_app.sh $RPMBUILD/ciph_app/svc
+cp cont/lxc/config $RPMBUILD/ciph_app
+cp cont/lxc/build_lxc.sh $RPMBUILD/ciph_app
+cp cont/ciph_app.service $RPMBUILD/ciph_app/svc
+cp cont/ciph_app.sh $RPMBUILD/ciph_app/svc
 cp ciph_app/project/linux/dpdk-crypto-app $RPMBUILD/ciph_app/bin
 cp ciph_app/project/linux/ciph_app.xml $RPMBUILD/ciph_app/bin
 cp /usr/lib64/libnuma.so* $RPMBUILD/ciph_app/lib
@@ -85,7 +89,7 @@ mkdir $RPMBUILD/ciph_app/lxc
 cp /tmp/rootfs_centos-7-amd64.tar.gz $RPMBUILD/ciph_app/lxc
 
 echo =========== BUILD RPM ============================
-cd $ROOT/lxc
+cd $ROOT/cont/lxc
 rpmbuild -bb --define "_ver $VER" ciph_app.spec
 
 echo =========== PACK RPM =============================
