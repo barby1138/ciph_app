@@ -594,6 +594,7 @@ int Ciph_comm_agent_server::poll_all(uint32_t size)
 
     for (uint32_t i = 0; i < MAX_CONNECTIONS; ++i)
     {
+        if (_is_conn_active[i])
         {
             LOCK_GUARD lock (_conn_m[i]);
 

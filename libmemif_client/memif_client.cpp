@@ -485,6 +485,8 @@ void set_thread_bame(std::thread* thread, const char* name)
 
 int Memif_client::init()
 {
+  INFO("Memif_client::init");
+
   epfd = epoll_create(1);
   add_epoll_fd(0, EPOLLIN);
 
@@ -514,6 +516,8 @@ int Memif_client::init()
 
 int Memif_client::cleanup()
 {
+  INFO("Memif_client::cleanup");
+
   int err;
   long i;
 
@@ -614,6 +618,8 @@ int Memif_client::conn_alloc(long index, const Memif_client::Conn_config_t &conn
 
 int Memif_client::conn_free(long index)
 {
+  INFO("Memif_client::conn_free %d", index);
+
   if (index >= MAX_CONNS)
   {
     ERROR("connection array overflow %d", index);
@@ -679,7 +685,7 @@ int Memif_client::set_rx_mode(long index, long qid, char *mode)
   }
   else
   {
-    INFO("expected rx mode <interrupt|polling>");
+    ERROR("expected rx mode <interrupt|polling>");
   }
 
   return 0;
