@@ -132,7 +132,7 @@ int main(int argc, char** argv)
 			return 1;
 		}
 
-    enum { MAX_STATS_DUMP_TO_SEC = 6000, MIN_STATS_DUMP_TO_SEC = 10 };
+    enum { MAX_STATS_DUMP_TO_SEC = 6000, MIN_STATS_DUMP_TO_SEC = 10, DEFAULT_STATS_DUMP_TO_SEC = 1800 };
 
     int mdret;
     mode_t mode = 0755;
@@ -158,7 +158,7 @@ int main(int argc, char** argv)
                 MIN_STATS_DUMP_TO_SEC,
                 MAX_STATS_DUMP_TO_SEC,
                 stats_dump_to_sec);
-      stats_dump_to_sec = 60;
+      stats_dump_to_sec = DEFAULT_STATS_DUMP_TO_SEC;
     }
 
     uint64_t i = 0;
@@ -204,19 +204,23 @@ int main(int argc, char** argv)
     std::string log_file_name(quark::strings::format("ciph_app_%s.log", date_time_str().c_str()).c_str());
     std::string log_file_full_name(quark::strings::format("%s/%s", path.c_str(), log_file_name.c_str()).c_str());
 
-    TRACE_INFO ("Log %s", log_file_full_name.c_str());
-
 		custom_tracer::instance().setFile(log_file_full_name.c_str());
 
     uint32_t tl = tlWarning;
-    if (level.compare("info") == 0)
-      tl = tlInfo;
     if (level.compare("debug") == 0)
       tl = tlDebug;
+    if (level.compare("info") == 0)
+      tl = tlInfo;
+    if (level.compare("notice") == 0)
+      tl = tlNotice;
+    if (level.compare("error") == 0)
+      tl = tlError;
 
     custom_tracer::instance().setMask(tl);
 
-		TRACE_INFO("Ver: %s", VERSION);
+		TRACE_NOTICE("Ver: %s", VERSION);
+
+    TRACE_INFO ("Log %s", log_file_full_name.c_str());
 
 		res = Dpdk_cryptodev_client_sngl::instance().init(pchar_dpdk_init_str.size(), &pchar_dpdk_init_str[0]);
     if (res)
