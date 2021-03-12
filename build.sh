@@ -61,8 +61,10 @@ echo =========== PACK DEVEL ===========================
 cd $ROOT/dist
 tar czf ciph_app_devel-$VER.tar.gz ciph_app_devel
 
-echo =========== DOCKER ==================================
-echo do nothing...
+echo =========== K8s ==================================
+cd $ROOT/cont/k8s
+chmod -x build_k8s.sh
+./build_k8s.sh
 
 echo =========== LXC ==================================
 echo =========== PREP FILES FOR RPM ===================
@@ -77,7 +79,7 @@ mkdir $RPMBUILD/ciph_app/lib
 mkdir $RPMBUILD/ciph_app/svc
 cp VERSION $RPMBUILD/ciph_app
 cp cont/lxc/config $RPMBUILD/ciph_app
-cp cont/lxc/build_lxc.sh $RPMBUILD/ciph_app
+cp cont/lxc/install_lxc.sh $RPMBUILD/ciph_app
 cp cont/ciph_app.service $RPMBUILD/ciph_app/svc
 cp cont/ciph_app.sh $RPMBUILD/ciph_app/svc
 cp ciph_app/project/linux/dpdk-crypto-app $RPMBUILD/ciph_app/bin

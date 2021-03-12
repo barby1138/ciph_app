@@ -23,7 +23,7 @@ done
 for f in lib/*; do \
 install -v -m 0644 "$f" -D %{buildroot}/tmp/ciph_app/%{version}/lib; \
 done
-install -v -m 0744 build_lxc.sh -D %{buildroot}/tmp/ciph_app/%{version}/build_lxc.sh
+install -v -m 0744 install_lxc.sh -D %{buildroot}/tmp/ciph_app/%{version}/install_lxc.sh
 install -v -m 0644 VERSION -D %{buildroot}/tmp/ciph_app/%{version}/VERSION
 install -v -m 0644 config -D %{buildroot}/tmp/ciph_app/%{version}/config
 
@@ -39,6 +39,6 @@ install -v -m 0644 svc/ciph_app.sh -D %{buildroot}/tmp/ciph_app/%{version}/svc/c
 
 %post
 cd /tmp/ciph_app/%{version}
-./build_lxc.sh
+./install_lxc.sh
 
 %changelog
