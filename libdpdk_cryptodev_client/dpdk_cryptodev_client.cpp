@@ -1520,7 +1520,7 @@ int Dpdk_cryptodev_client::alloc_common_memory(
 
 void Dpdk_cryptodev_client::print_stats()
 {
-    RTE_LOG(INFO, USER1,
+    RTE_LOG(NOTICE, USER1,
 			"proc %" PRIu64 " fail %" PRIu64 " (crs %" PRIu64 " gets %" PRIu64 " rs %" PRIu64 " invd %" PRIu64 " inag %" PRIu64 " opun %" PRIu64 " cip %" PRIu64 " acnp %" PRIu64 ")", 
 			_stats.op_processed,
 			_stats.op_failed_total,
@@ -1534,7 +1534,7 @@ void Dpdk_cryptodev_client::print_stats()
 			_stats.op_failed_after_cipher_not_proc);
 
 
-    RTE_LOG(INFO, USER1, "avbu %" PRIu64 " avpk %u",
+    RTE_LOG(NOTICE, USER1, "avbu %" PRIu64 " avpk %u",
 			_stats.burst_avg_size,
 			_stats.pck_avg_size);
 }
