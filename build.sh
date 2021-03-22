@@ -61,11 +61,6 @@ echo =========== PACK DEVEL ===========================
 cd $ROOT/dist
 tar czf ciph_app_devel-$VER.tar.gz ciph_app_devel
 
-echo =========== K8s ==================================
-cd $ROOT/cont/k8s
-chmod -x build_k8s.sh
-./build_k8s.sh
-
 echo =========== LXC ==================================
 echo =========== PREP FILES FOR RPM ===================
 RPMBUILD=~/rpmbuild/BUILD
@@ -97,3 +92,10 @@ rpmbuild -bb --define "_ver $VER" ciph_app.spec
 echo =========== PACK RPM =============================
 cd $ROOT/dist
 cp ~/rpmbuild/RPMS/x86_64/ciph_app-$VER-rel.x86_64.rpm .
+
+echo =========== K8s ==================================
+echo =========== PREP FILES FOR DOCKER BUILD ==========
+cd $ROOT/cont/k8s
+cp -R $RPMBUILD/ciph_app .
+#chmod -x build_k8s.sh
+#./build_k8s.sh

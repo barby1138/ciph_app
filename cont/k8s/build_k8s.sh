@@ -1,5 +1,4 @@
-ln -s -r ~/rpmbuild/BUILD .
-ls .
+ls ./ciph_app
 
 VER=$(cat VERSION)
 echo $VER
