@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ciph-app-pod
+  labels:
+    app: ciph-app-pod
+
+spec:
+  containers:
+    - name: ciph-app-container1
+      securityContext:
+        privileged: true
+        capabilities:
+          add:
+            - SYS_ADMIN
+            - IPC_LOCK
+            - SYS_NICE
+      image: ciph_app:v1.3.4
+      command:
+        - sleep
+        - infinity
+      resources:
+        requests:
+          memory: "8Gi"
+          hugepages-1Gi: 8Gi
+        limits:
+          memory: "8Gi"
+          hugepages-1Gi: 8Gi
+      volumeMounts:
+        - name: hugepage
+          mountPath: /hugepages
+        - name: varciphapp
+          mountPath: /var/ciph_app
+          readOnly: false
+  volumes:
+    - name: hugepage
+      emptyDir:
+        medium: HugePages
+    - name: varciphapp
+      hostPath:
+        path: "/var/ciph_app"
+

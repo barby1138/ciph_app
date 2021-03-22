@@ -4,14 +4,14 @@ FROM pwartifactory.parallelwireless.net/devops_dockerhub/base-docker-images/devo
 RUN mkdir -p /home/ciph_app
 
 # dpdk-crypto-app, ciph_app.xml
-COPY bin/* /home/ciph_app
+COPY ciph_app/bin/* /home/ciph_app/
 RUN chmod 0755 /home/ciph_app/dpdk-crypto-app
 
-COPY lib/* /usr/lib64
+COPY ciph_app/lib/* /usr/lib64/
 
-COPY svc/ciph_app.service /etc/systemd/system
+COPY ciph_app/svc/ciph_app.service /etc/systemd/system
 
-COPY svc/ciph_app.sh /home/ciph_app
+COPY ciph_app/svc/ciph_app.sh /home/ciph_app
 RUN chmod 0755 /home/ciph_app/ciph_app.sh
 
 # enable

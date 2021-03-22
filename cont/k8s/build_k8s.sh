@@ -1,5 +1,5 @@
 ls ./ciph_app
 
-VER=$(cat VERSION)
+VER=$(cat ciph_app/VERSION)
 echo $VER
-docker build -t ciph_app:v$VER
+docker build -t ciph_app:v$VER .
