@@ -14,6 +14,8 @@ COPY ciph_app/svc/ciph_app.service /etc/systemd/system
 COPY ciph_app/svc/ciph_app.sh /home/ciph_app
 RUN chmod 0755 /home/ciph_app/ciph_app.sh
 
-# enable
-RUN ln -s -r /etc/systemd/system/ciph_app.service /etc/systemd/system/multi-user.target.wants/ciph_app.service
-RUN ls -lrt /etc/systemd/system/multi-user.target.wants/ciph_app.service
+WORKDIR /home/ciph_app
+CMD [ "./ciph_app.sh" ]
+
+
+
