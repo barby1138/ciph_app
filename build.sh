@@ -75,7 +75,7 @@ mkdir $RPMBUILD/ciph_app/svc
 cp VERSION $RPMBUILD/ciph_app
 cp cont/lxc/config $RPMBUILD/ciph_app
 cp cont/lxc/install_lxc.sh $RPMBUILD/ciph_app
-cp cont/ciph_app.service $RPMBUILD/ciph_app/svc
+cp cont/lxc/ciph_app.service $RPMBUILD/ciph_app/svc
 cp cont/ciph_app.sh $RPMBUILD/ciph_app/svc
 cp ciph_app/project/linux/dpdk-crypto-app $RPMBUILD/ciph_app/bin
 cp ciph_app/project/linux/ciph_app.xml $RPMBUILD/ciph_app/bin
@@ -95,8 +95,24 @@ cp ~/rpmbuild/RPMS/x86_64/ciph_app-$VER-rel.x86_64.rpm .
 
 echo =========== K8s ==================================
 echo =========== PREP FILES FOR DOCKER BUILD ==========
-cd $ROOT/cont/k8s
-cp -R $RPMBUILD/ciph_app .
+cd $ROOT
+CONT_K8S_DIR=$ROOT/cont/k8s
+
+mkdir $CONT_K8S_DIR/ciph_app
+mkdir $CONT_K8S_DIR/ciph_app/bin
+mkdir $CONT_K8S_DIR/ciph_app/lib
+mkdir $CONT_K8S_DIR/ciph_app/svc
+
+cp cont/ciph_app.sh $CONT_K8S_DIR/ciph_app/svc
+cp ciph_app/project/linux/dpdk-crypto-app $CONT_K8S_DIR/ciph_app/bin
+cp ciph_app/project/linux/ciph_app.xml $CONT_K8S_DIR/ciph_app/bin
+cp /usr/lib64/libnuma.so* $CONT_K8S_DIR/ciph_app/lib
+cp 3rdparty_artifactory/libIPSec_MB* $CONT_K8S_DIR/ciph_app/lib
+
+mkdir $CONT_K8S_DIR/ciph_app_test
+cp ciph_app/bin/linux/release/ciph_app_test $CONT_K8S_DIR/ciph_app_test
+cp ciph_app/lib/linux/release/libciph_agent.so $CONT_K8S_DIR/ciph_app_test
+
 #chmod +x build_k8s.sh
 #./build_k8s.sh
 

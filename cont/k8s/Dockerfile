@@ -9,8 +9,6 @@ RUN chmod 0755 /home/ciph_app/dpdk-crypto-app
 
 COPY ciph_app/lib/* /usr/lib64/
 
-COPY ciph_app/svc/ciph_app.service /etc/systemd/system
-
 COPY ciph_app/svc/ciph_app.sh /home/ciph_app
 RUN chmod 0755 /home/ciph_app/ciph_app.sh
 
