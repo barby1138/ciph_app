@@ -16,6 +16,3 @@ RUN chmod 0755 /home/ciph_app/ciph_app.sh
 
 WORKDIR /home/ciph_app
 CMD [ "./ciph_app.sh" ]
-
-
-
