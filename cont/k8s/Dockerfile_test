@@ -4,7 +4,7 @@ FROM pwartifactory.parallelwireless.net/devops_dockerhub/base-docker-images/devo
 RUN mkdir -p /home/ciph_app_test
 
 COPY ciph_app_test/* /home/ciph_app_test/
-RUN chmod 0755 /home/ciph_app/ciph_app_test
+RUN chmod 0755 /home/ciph_app_test/ciph_app_test
 
-WORKDIR /home/ciph_app/ciph_app_test
+WORKDIR /home/ciph_app_test
 CMD [ "LD_LIBRARY_PATH=$PWD", "taskset", "0x2", "ciph_app_test" ]
