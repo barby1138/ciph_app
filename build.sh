@@ -97,5 +97,6 @@ echo =========== K8s ==================================
 echo =========== PREP FILES FOR DOCKER BUILD ==========
 cd $ROOT/cont/k8s
 cp -R $RPMBUILD/ciph_app .
-#chmod -x build_k8s.sh
+#chmod +x build_k8s.sh
 #./build_k8s.sh
+

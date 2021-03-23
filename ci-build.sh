@@ -47,9 +47,6 @@ echo "========================================"
 #docker exec -it ${cont_id} /bin/bash
 docker exec ${cont_id} /bin/bash -c 'cd /opt/ciph_app && chmod +x build.sh && ./build.sh'
 
-# build k9s - no need to run inside docker
-cd cont/k8s && chmod +x build_k8s.sh && ./build_k8s.sh
-
 #
 ##################### END OF DEVOPS CONTAINER INFORMTION
 # STOP AND REMOVE THE CONTAINER #
