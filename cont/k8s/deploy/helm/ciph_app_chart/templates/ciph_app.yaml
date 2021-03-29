@@ -6,7 +6,7 @@ spec:
   selector:
     matchLabels:
       app: ciph-app
-  replicas: 1
+  replicas:  {{ .Values.replicas }}
   template:
     metadata:
       labels:
@@ -16,12 +16,7 @@ spec:
        - name: ciph-app-container1
          securityContext:
            privileged: false
-           capabilities:
-             add:
-               - SYS_ADMIN
-               - IPC_LOCK
-               - SYS_NICE
-         image: ciph_app:v1.3.4
+         image: ciph_app:{{ .Values.tag }}
          resources:
            requests:
              memory: "1Gi"
