@@ -114,6 +114,7 @@ mkdir $CONT_K8S_DIR/ciph_app_test
 cp bin/linux/release/ciph_app_test $CONT_K8S_DIR/ciph_app_test
 cp lib/linux/release/libciph_agent.so $CONT_K8S_DIR/ciph_app_test
 
-#chmod +x build_k8s.sh
-#./build_k8s.sh
+cd $CONT_K8S_DIR
+chmod +x build_k8s.sh
+./build_k8s.sh
 
