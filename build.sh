@@ -94,7 +94,7 @@ cd $ROOT/dist
 cp ~/rpmbuild/RPMS/x86_64/ciph_app-$VER-rel.x86_64.rpm .
 
 echo =========== K8s ==================================
-echo =========== PREP FILES FOR DOCKER BUILD ==========
+echo =========== PREP FILES FOR K8s=== BUILD ==========
 cd $ROOT
 CONT_K8S_DIR=$ROOT/cont/k8s
 
@@ -114,7 +114,12 @@ mkdir $CONT_K8S_DIR/ciph_app_test
 cp bin/linux/release/ciph_app_test $CONT_K8S_DIR/ciph_app_test
 cp lib/linux/release/libciph_agent.so $CONT_K8S_DIR/ciph_app_test
 
+echo =========== K8S BUILD ===========================
 cd $CONT_K8S_DIR
 chmod +x build_k8s.sh
 ./build_k8s.sh
 
+echo =========== K8S TO DIST =========================
+cd $ROOT
+cp $CONT_K8S_DIR/deploy/helm/ciph_app_test_chart/ciph_app_test-$VER.tgz dist
+cp $CONT_K8S_DIR/deploy/helm/ciph_app_chart/ciph_app-$VER.tgz dist

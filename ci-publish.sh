@@ -32,8 +32,14 @@ ls -la
 if [ -d dist ]; then
     cd dist
 
-    cont_image=$(ls -a | grep -ie ciph_app*.rpm)
-    upload_to_artifactory $cont_image
+    lxc_image=$(ls -a | grep -ie ciph_app*.rpm)
+    upload_to_artifactory $lxc_image
+
+    k8s_image=$(ls -a | grep -ie ciph_app-*.tgz)
+    upload_to_artifactory $k8s_image
+
+    k8s_test_image=$(ls -a | grep -ie ciph_app_test-*.tgz)
+    upload_to_artifactory $k8s_test_image
 
     devel_image=$(ls -a | grep -ie ciph_app_devel*.tar.gz)
     upload_to_artifactory $devel_image
