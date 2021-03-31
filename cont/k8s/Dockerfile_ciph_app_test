@@ -9,4 +9,4 @@ RUN chmod 0755 /home/ciph_app_test/ciph_app_test
 ENV LD_LIBRARY_PATH /home/ciph_app_test
 
 WORKDIR /home/ciph_app_test
-CMD [ "taskset", "0x2", "./ciph_app_test" ]
+CMD [ "taskset", "0x4", "./ciph_app_test" ]
