@@ -1085,13 +1085,25 @@ int main(int argc, char* argv[])
 
     sigaction(SIGSEGV, &sa, NULL);
 */
+	long instance_id = 0;
+/*
+	const char* s = getenv("INSTANCE_ID");
+	if (NULL == s)
+	{
+		printf("WARN!!! no  INSTANCE_ID var\n");
+	}
+	else
+	{
+		instance_id = strtol(s, NULL, 10);
+	}
+*/
     long cid_0 = 0;
     long cid_1 = 1;
 
 	time_t t;
 	srand((unsigned) time(&t));
 
-    ciph_agent_init(3);
+    ciph_agent_init(instance_id);
 
 	memset(thread_data, 0, THR_CNT * sizeof(thread_data_t));
 
@@ -1140,7 +1152,7 @@ int main(int argc, char* argv[])
 	}
 
 	pthread_create (&thread[cid_1], NULL, send_proc, (void *)&cid_1);
-	printf("cr 1\nn");
+	printf("cr 1\n");
 
 	if (TT_TARGET_TP == test_type)
 	{
