@@ -116,10 +116,10 @@ cp lib/linux/release/libciph_agent.so $CONT_K8S_DIR/ciph_app_test
 
 echo =========== K8S BUILD ===========================
 cd $CONT_K8S_DIR
-chmod +x build_k8s.sh
-./build_k8s.sh
+chmod +x build_k8s.sh && ./build_k8s.sh
 
 echo =========== K8S TO DIST =========================
 cd $ROOT
 cp $CONT_K8S_DIR/deploy/helm/ciph_app_test_chart/ciph_app_test-$VER.tgz dist
 cp $CONT_K8S_DIR/deploy/helm/ciph_app_chart/ciph_app-$VER.tgz dist
+cp $CONT_K8S_DIR/deploy/helm/ciph_app_solution_chart/ciph_app_solution-$VER.tgz dist

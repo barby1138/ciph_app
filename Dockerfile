@@ -29,8 +29,8 @@ ARG UNAME=parallel
 ARG UID=1000
 ARG GID=1000
 RUN echo $UNAME $UID $GID
-RUN groupadd -g $GID -o $UNAME
-RUN useradd -m -u $UID -g $GID -o -s /bin/bash $UNAME
+#RUN groupadd -g $GID -o $UNAME
+#RUN useradd -m -u $UID -g $GID -o -s /bin/bash $UNAME
 RUN usermod -aG root $UNAME
 USER $UNAME
 
