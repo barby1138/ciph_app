@@ -10,7 +10,7 @@ RUN yum install -y rpm-build redhat-rpm-config
 #RUN yum group install -y "Development Tools"
 RUN yum install -y numactl-devel expat-devel
 RUN yum install -y gcc gcc-c++ make
-RUN yum install -y docker-ce docker-ce-cli
+#RUN yum install -y docker-ce docker-ce-cli
 
 RUN mkdir -p /opt/swtools/bin/depot_tools/jfrog_CLI/ && \
     wget https://pwartifactory.parallelwireless.net:443/artifactory/cws-toolschains-remote-cache/jfrog -P /opt/swtools/bin/depot_tools/jfrog_CLI/
@@ -30,14 +30,8 @@ ARG UID=1000
 ARG GID=1000
 RUN echo $UNAME $UID $GID
 RUN groupadd -g $GID -o $UNAME
-RUN groupadd docker
 RUN useradd -m -u $UID -g $GID -o -s /bin/bash $UNAME
 RUN usermod -aG root $UNAME
-RUN usermod -aG docker $UNAME
+#RUN usermod -aG docker $UNAME
 USER $UNAME
-
-sudo groupadd docker
-Add your user to the docker group.
-sudo usermod -aG docker ${USER}
-
 
