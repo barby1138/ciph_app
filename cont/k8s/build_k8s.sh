@@ -13,9 +13,9 @@ docker build -t ciph_app:v$VER -f Dockerfile_ciph_app .
 docker build -t ciph_app_test:v$VER -f Dockerfile_ciph_app_test .
 
 cd $K8S_DEPLOY/ciph_app_chart
-chmod +w gen_chart.sh && ./gen_chart.sh $VER
+chmod +x gen_chart.sh && ./gen_chart.sh $VER
 cd $K8S_DEPLOY/ciph_app_test_chart
-chmod +w gen_chart.sh && ./gen_chart.sh $VER
+chmod +x gen_chart.sh && ./gen_chart.sh $VER
 
 cd $K8S_DEPLOY/ciph_app_chart
 tar czf ciph_app-$VER.tgz ciph_app
@@ -29,7 +29,7 @@ cp ciph_app_chart/ciph_app-$VER.tgz ciph_app_solution_chart/ciph_app_solution/ch
 cp ciph_app_test_chart/ciph_app_test-$VER.tgz ciph_app_solution_chart/ciph_app_solution/charts
 
 cd $K8S_DEPLOY/ciph_app_solution_chart
-chmod +w gen_chart.sh && ./gen_chart.sh $VER
+chmod +x gen_chart.sh && ./gen_chart.sh $VER
 
 cd $K8S_DEPLOY/ciph_app_solution_chart
 tar czf ciph_app_solution-$VER.tgz ciph_app_solution

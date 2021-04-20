@@ -30,8 +30,14 @@ ARG UID=1000
 ARG GID=1000
 RUN echo $UNAME $UID $GID
 RUN groupadd -g $GID -o $UNAME
+RUN groupadd docker
 RUN useradd -m -u $UID -g $GID -o -s /bin/bash $UNAME
 RUN usermod -aG root $UNAME
+RUN usermod -aG docker $UNAME
 USER $UNAME
+
+sudo groupadd docker
+Add your user to the docker group.
+sudo usermod -aG docker ${USER}
 
 
