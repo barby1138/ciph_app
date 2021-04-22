@@ -28,15 +28,15 @@ RUN cd /tmp && \
 ARG UNAME=parallel
 ARG UID=1000
 ARG GID=1000
+ARG DOCKER_GID=994
 
-RUN echo $UNAME $UID $GID
+RUN echo $UNAME $UID $GID $DOCKER_GID
 
 RUN groupadd -g $GID -o $UNAME
 RUN useradd -m -u $UID -g $GID -o -s /bin/bash $UNAME
 
-RUN getent group
-RUN groupmod -g 995 input
-RUN groupmod -g 999 docker
+# map id of docker group on build servers
+RUN groupmod -g $DOCKER_GID docker
 
 RUN usermod -aG docker $UNAME
 RUN usermod -aG root $UNAME
