@@ -28,10 +28,16 @@ RUN cd /tmp && \
 ARG UNAME=parallel
 ARG UID=1000
 ARG GID=1000
-RUN echo $UNAME $UID $GID
-RUN groupadd -g $GID -o $UNAME
-RUN useradd -m -u $UID -g $GID -o -s /bin/bash $UNAME
-RUN usermod -aG root $UNAME
-RUN usermod -aG docker $UNAME
-USER $UNAME
 
+RUN echo $UNAME $UID $GID
+
+#RUN groupadd -g $GID -o $UNAME
+#RUN useradd -m -u $UID -g $GID -o -s /bin/bash $UNAME
+#RUN usermod -aG root $UNAME
+#RUN usermod -aG docker $UNAME
+
+RUN usermod -u $UID $UNAME
+RUN groupmod -g $GID docker
+RUN usermod -aG docker $UNAME
+
+USER $UNAME
