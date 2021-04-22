@@ -12,11 +12,13 @@ spec:
       labels:
         app: ciph-app
     spec:
+      imagePullSecrets:
+       - name: regcred
       containers:
        - name: ciph-app-container1
          securityContext:
            privileged: false
-         image: ciph_app:{{ .Values.tag }}
+         image: {{ .Values.repository }}:{{ .Values.tag }}
          resources:
            requests:
              memory: "1Gi"

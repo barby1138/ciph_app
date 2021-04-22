@@ -5,7 +5,7 @@ cat > ciph_app/values.yaml <<EOF
 # replicaCount number of replicas 
 replicaCount: 1
 # repository docker repo name
-repository: ciph_app
+repository: olitsis/ciph_app
 # tag docker docker image tag 
 tag: $TAG
 EOF

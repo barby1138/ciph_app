@@ -12,11 +12,13 @@ spec:
       labels:
         app: ciph-app-test
     spec:
+      imagePullSecrets:
+       - name: regcred
       containers:
        - name: ciph-app-test-container1
          securityContext:
            privileged: false
-         image: ciph_app_test:{{ .Values.tag }}
+         image: {{ .Values.repository }}:{{ .Values.tag }}
          workingDir: /home/ciph_app_test
          command: ["taskset"]
          args: ["0x4", "./ciph_app_test"]
