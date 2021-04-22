@@ -22,6 +22,9 @@ handle_error () {
   exit 1
 }
 
+# RM
+getent group
+
 # BUILD THE DOCKER #
 docker build --build-arg UID=$(id -u) --build-arg GID=$(id -g) --build-arg UNAME=$(whoami) -f Dockerfile -t ${dockerName} .
 

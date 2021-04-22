@@ -31,13 +31,14 @@ ARG GID=1000
 
 RUN echo $UNAME $UID $GID
 
-#RUN groupadd -g $GID -o $UNAME
-#RUN useradd -m -u $UID -g $GID -o -s /bin/bash $UNAME
-#RUN usermod -aG root $UNAME
-#RUN usermod -aG docker $UNAME
+RUN groupadd -g $GID -o $UNAME
+RUN useradd -m -u $UID -g $GID -o -s /bin/bash $UNAME
 
-RUN usermod -u $UID $UNAME
-RUN groupmod -g $GID docker
+RUN getent group
+RUN groupmod -g 995 input
+RUN groupmod -g 999 docker
+
 RUN usermod -aG docker $UNAME
+RUN usermod -aG root $UNAME
 
 USER $UNAME
