@@ -1,6 +1,7 @@
 #FROM centos:7.4.1708
 FROM pwartifactory.parallelwireless.net/devops_dockerhub/base-docker-images/devops-docker-prod-centos-7.4.1708-base-v2:latest
 
+# service app
 RUN mkdir -p /home/ciph_app
 
 # dpdk-crypto-app, ciph_app.xml
@@ -12,5 +13,16 @@ COPY ciph_app/lib/* /usr/lib64/
 COPY ciph_app/svc/ciph_app.sh /home/ciph_app
 RUN chmod 0755 /home/ciph_app/ciph_app.sh
 
+# test app
+RUN mkdir -p /home/ciph_app_test
+
+COPY ciph_app_test/* /home/ciph_app_test/
+RUN chmod 0755 /home/ciph_app_test/ciph_app_test
+
+ENV LD_LIBRARY_PATH /home/ciph_app_test
+
 WORKDIR /home/ciph_app
 CMD [ "./ciph_app.sh" ]
+
+#WORKDIR /home/ciph_app_test
+#CMD [ "taskset", "0x4", "./ciph_app_test" ]

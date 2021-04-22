@@ -11,7 +11,7 @@ echo $VER
 
 #tmp
 docker build -t olitsis/ciph_app:v$VER -f Dockerfile_ciph_app .
-docker build -t olitsis/ciph_app_test:v$VER -f Dockerfile_ciph_app_test .
+#docker build -t olitsis/ciph_app_test:v$VER -f Dockerfile_ciph_app_test .
 echo "Boris220813" | docker login --username olitsis --password-stdin
 docker push olitsis/ciph_app:v$VER
 

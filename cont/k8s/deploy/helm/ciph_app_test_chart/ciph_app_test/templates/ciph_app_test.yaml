@@ -17,6 +17,9 @@ spec:
          securityContext:
            privileged: false
          image: ciph_app_test:{{ .Values.tag }}
+         workingDir: /home/ciph_app_test
+         command: ["taskset"]
+         args: ["0x4", "./ciph_app_test"]
          volumeMounts:
            - name: varciphapp
              mountPath: /var/ciph_app
