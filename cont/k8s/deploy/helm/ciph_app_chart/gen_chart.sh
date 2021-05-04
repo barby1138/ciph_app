@@ -7,7 +7,7 @@ cat > ciph_app/values.yaml <<EOF
 # replicaCount number of replicas 
 replicaCount: 1
 # repository docker repo name
-repository: pwartifactory.parallelwireless.net/${DOCKER_REPOSITORY}/ciph-app/$BRANCH/ciph-app
+repository: pwartifactory.parallelwireless.net/${DOCKER_REPOSITORY}/ciph-app/$BRANCH/ciph_app
 # tag docker docker image tag 
 tag: $docker_tag
 EOF
