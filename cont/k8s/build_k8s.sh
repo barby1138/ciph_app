@@ -24,15 +24,3 @@ tar czf ciph_app-$VER.tgz ciph_app
 
 cd $K8S_DEPLOY/ciph_app_test_chart
 tar czf ciph_app_test-$VER.tgz ciph_app_test
-
-cd $K8S_DEPLOY
-mkdir ciph_app_solution_chart/ciph_app_solution/charts
-cp ciph_app_chart/ciph_app-$VER.tgz ciph_app_solution_chart/ciph_app_solution/charts
-cp ciph_app_test_chart/ciph_app_test-$VER.tgz ciph_app_solution_chart/ciph_app_solution/charts
-
-cd $K8S_DEPLOY/ciph_app_solution_chart
-chmod +x gen_chart.sh && ./gen_chart.sh $VER
-
-cd $K8S_DEPLOY/ciph_app_solution_chart
-tar czf ciph_app_solution-$VER.tgz ciph_app_solution
-
