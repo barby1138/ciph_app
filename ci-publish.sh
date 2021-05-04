@@ -28,15 +28,15 @@ upload_to_artifactory()
 VER=$(cat VERSION)
 echo ${VER}
 
-DOCKER_REPOSITORY = "pw-docker-images"
-docker_tag = "v${VER}-${BUILD_NUMBER}"
+DOCKER_REPOSITORY=pw-docker-images
+docker_tag=v${VER}-${BUILD_NUMBER}
 
 upload_docker_img_to_artifactory()
 {
-     local CORE_ACCESS_DOCKER_IMAGE = "pwartifactory.parallelwireless.net/${DOCKER_REPOSITORY}/ciph-app/$branch/ciph_app:${docker_tag}"
+     local CORE_ACCESS_DOCKER_IMAGE="pwartifactory.parallelwireless.net/${DOCKER_REPOSITORY}/ciph-app/$branch/ciph_app:${docker_tag}"
+     jfrog rt use pwartifactory
      docker tag ciph_app:${docker_tag} ${CORE_ACCESS_DOCKER_IMAGE}
      docker push ${CORE_ACCESS_DOCKER_IMAGE}
-     jfrog rt use pwartifactory
      jfrog rt dp ${CORE_ACCESS_DOCKER_IMAGE} ${DOCKER_REPOSITORY} --build-name=${JOB_URL} --build-number=${BUILD_NUMBER}
      jfrog rt bp ${JOB_URL} ${BUILD_NUMBER}
 }

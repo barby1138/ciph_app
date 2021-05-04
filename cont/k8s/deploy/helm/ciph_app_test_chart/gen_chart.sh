@@ -1,7 +1,7 @@
 VER=$1
 
-DOCKER_REPOSITORY = "pw-docker-images"
-docker_tag = "v$VER-${BUILD_NUMBER}"
+DOCKER_REPOSITORY=pw-docker-images
+docker_tag=v$VER-${BUILD_NUMBER}
 
 cat > ciph_app_test/values.yaml <<EOF
 # replicaCount number of replicas 

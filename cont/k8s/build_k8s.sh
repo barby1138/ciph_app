@@ -9,7 +9,7 @@ cd $K8S_ROOT
 VER=$(cat ciph_app/VERSION)
 echo $VER
 
-docker_tag = "v${VER}-${BUILD_NUMBER}"
+docker_tag=v${VER}-${BUILD_NUMBER}
 
 #tmp
 docker build -t ciph_app:${docker_tag} -f Dockerfile_ciph_app .
