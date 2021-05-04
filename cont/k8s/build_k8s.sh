@@ -9,11 +9,10 @@ cd $K8S_ROOT
 VER=$(cat ciph_app/VERSION)
 echo $VER
 
+docker_tag = "v${VER}-${BUILD_NUMBER}"
+
 #tmp
-docker build -t olitsis/ciph_app:v$VER -f Dockerfile_ciph_app .
-#docker build -t olitsis/ciph_app_test:v$VER -f Dockerfile_ciph_app_test .
-echo "Boris220813" | docker login --username olitsis --password-stdin
-docker push olitsis/ciph_app:v$VER
+docker build -t ciph_app:${docker_tag} -f Dockerfile_ciph_app .
 
 cd $K8S_DEPLOY/ciph_app_chart
 chmod +x gen_chart.sh && ./gen_chart.sh $VER

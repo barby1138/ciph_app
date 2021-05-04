@@ -25,6 +25,22 @@ upload_to_artifactory()
         ${p_image_name} ${p_folder_to_upload}
 }
 
+VER=$(cat VERSION)
+echo ${VER}
+
+DOCKER_REPOSITORY = "pw-docker-images"
+docker_tag = "v${VER}-${BUILD_NUMBER}"
+
+upload_docker_img_to_artifactory()
+{
+     local CORE_ACCESS_DOCKER_IMAGE = "pwartifactory.parallelwireless.net/${DOCKER_REPOSITORY}/ciph-app/$branch/ciph_app:${docker_tag}"
+     docker tag ciph_app:${docker_tag} ${CORE_ACCESS_DOCKER_IMAGE}
+     docker push ${CORE_ACCESS_DOCKER_IMAGE}
+     jfrog rt use pwartifactory
+     jfrog rt dp ${CORE_ACCESS_DOCKER_IMAGE} ${DOCKER_REPOSITORY} --build-name=${JOB_URL} --build-number=${BUILD_NUMBER}
+     jfrog rt bp ${JOB_URL} ${BUILD_NUMBER}
+}
+
 echo "Checking current folder and content"
 pwd
 ls -la
@@ -43,6 +59,8 @@ if [ -d dist ]; then
 
     devel_image=$(ls -a | grep -ie ciph_app_devel*.tar.gz)
     upload_to_artifactory $devel_image
+
+    upload_docker_img_to_artifactory
 fi
 
 echo "Done ci-publish.sh"

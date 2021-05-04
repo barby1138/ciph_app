@@ -1,13 +1,15 @@
 VER=$1
-TAG=v$1
+
+DOCKER_REPOSITORY = "pw-docker-images"
+docker_tag = "v$VER-${BUILD_NUMBER}"
 
 cat > ciph_app/values.yaml <<EOF
 # replicaCount number of replicas 
 replicaCount: 1
 # repository docker repo name
-repository: olitsis/ciph_app
+repository: pwartifactory.parallelwireless.net/${DOCKER_REPOSITORY}/ciph-app/$branch/ciph-app
 # tag docker docker image tag 
-tag: $TAG
+tag: $docker_tag
 EOF
 
 cat > ciph_app/Chart.yaml <<EOF
