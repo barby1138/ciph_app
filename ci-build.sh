@@ -23,7 +23,7 @@ handle_error () {
 }
 
 # BUILD THE DOCKER #
-docker build --build-arg BUILD_NUMBER=${BUILD_NUMBER} --build-arg UID=$(id -u) --build-arg GID=$(id -g) --build-arg UNAME=$(whoami) --build-arg DOCKER_GID=$(cut -d: -f3 < <(getent group docker)) -f Dockerfile -t ${dockerName} .
+docker build --build-arg BUILD_NUMBER=${BUILD_NUMBER} --build-arg BRANCH=${branch} --build-arg UID=$(id -u) --build-arg GID=$(id -g) --build-arg UNAME=$(whoami) --build-arg DOCKER_GID=$(cut -d: -f3 < <(getent group docker)) -f Dockerfile -t ${dockerName} .
 
 echo "===================="
 echo "Docker image created"
