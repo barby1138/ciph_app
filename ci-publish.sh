@@ -9,7 +9,6 @@ shortHash=$(git rev-parse --short HEAD)
 buildNumber=$BUILD_NUMBER
 
 branch=${push_changes_0_new_name}
-#branch=develop
 
 export PATH=$PATH:/opt/swtools/bin/depot_tools/jfrog_CLI/
 
