@@ -6,7 +6,7 @@
 
 GIT_COMMIT_SHORT=`git rev-parse --short HEAD`
 uname=$(whoami)
-branch=`git rev-parse --abbrev-ref HEAD`
+branch=${push_changes_0_new_name}
 repo=`basename $(git rev-parse --show-toplevel)`
 hostname=$(hostname)
 homedir=$(getent passwd $uname | cut -d: -f6)
