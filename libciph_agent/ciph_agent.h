@@ -67,7 +67,7 @@ private:
     static int32_t _client_id;
 };
 
-class Ciph_comm_agent_server : public Ciph_comm_agent_base<20>
+class Ciph_comm_agent_server : public Ciph_comm_agent_base<32>
 {
 public:
     enum { MAX_CONN = MAX_CONNECTIONS };

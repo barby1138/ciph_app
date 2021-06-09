@@ -1085,7 +1085,7 @@ int main(int argc, char* argv[])
 
     sigaction(SIGSEGV, &sa, NULL);
 */
-	long instance_id = 0;
+	long instance_id = 12;
 /*
 	const char* s = getenv("INSTANCE_ID");
 	if (NULL == s)
