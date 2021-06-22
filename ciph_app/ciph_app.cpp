@@ -201,7 +201,8 @@ int main(int argc, char** argv)
       }
     }
 
-    std::string log_file_name(quark::strings::format("ciph_app_%s.log", date_time_str().c_str()).c_str());
+//    std::string log_file_name(quark::strings::format("ciph_app_%s.log", date_time_str().c_str()).c_str());
+    std::string log_file_name("ciph_app.log");
     std::string log_file_full_name(quark::strings::format("%s/%s", path.c_str(), log_file_name.c_str()).c_str());
 
 		custom_tracer::instance().setFile(log_file_full_name.c_str());
