@@ -1,5 +1,5 @@
 <properties>
-	<logger level="notice" path="/var/log/ciph_app" />
+	<logger level="notice" path="/var/log" />
 	<stats dump_to_sec="1800" />
 	<dpdk init_str="ciph_app --vdev crypto_aesni_mb_pmd --vdev crypto_snow3g --" />
 	<memif conn_ids="1,2,3,4,5,6,7,8,9,10,11,12" />

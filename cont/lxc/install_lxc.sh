@@ -30,12 +30,20 @@ cd $LXCPATH/ciph_app/rootfs
 cp $DEPLPATH/svc/ciph_app.service etc/systemd/system
 cp $DEPLPATH/svc/ciph_app.sh home/ciph_app
 chmod 0755 home/ciph_app/ciph_app.sh
+
+echo =========== PREPARE LOGROTATE ==============
+cp $DEPLPATH/log/syslog etc/logrotate.d/
+
 # enable
 #if [ ! -L etc/systemd/system/ciph_app.service ]; then
 echo "create ciph_app.service link"
 ln -s -r etc/systemd/system/ciph_app.service etc/systemd/system/multi-user.target.wants/ciph_app.service
 #fi
 ls -lrt etc/systemd/system/multi-user.target.wants/ciph_app.service
+
+echo =========== CREATE DIRs AT HOST ==============
+mkdir /var/ciph_app
+mkdir /var/log/ciph_app
 
 echo =========== START ==============
 lxc-start -n ciph_app

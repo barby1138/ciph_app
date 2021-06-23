@@ -134,6 +134,8 @@ int main(int argc, char** argv)
 
     enum { MAX_STATS_DUMP_TO_SEC = 6000, MIN_STATS_DUMP_TO_SEC = 10, DEFAULT_STATS_DUMP_TO_SEC = 1800 };
 
+    // "/var/ciph_app" should exist
+/*
     int mdret;
     mode_t mode = 0755;
 
@@ -141,7 +143,7 @@ int main(int argc, char** argv)
     {
       throw std::runtime_error(quark::strings::format("mkdir failed errno %d ret %d", errno, mdret).c_str());
     }
-
+*/
     //TRACE_INFO ("init mkdir OK: errno %d ret %d", errno, mdret);
 
 		props::instance().load("ciph_app.xml");
@@ -201,13 +203,15 @@ int main(int argc, char** argv)
       }
     }
 
+    // path should exist
+/*
     if ((mdret = mkdir(path.c_str(), mode)) && errno != EEXIST)
     {
       throw std::runtime_error(quark::strings::format("mkdir failed errno %d ret %d", errno, mdret).c_str());
     }
-
-//    std::string log_file_name(quark::strings::format("ciph_app_%s.log", date_time_str().c_str()).c_str());
-    std::string log_file_name("ciph_app.log");
+*/
+    std::string log_file_name(quark::strings::format("ciph_app_%s.log", date_time_str().c_str()).c_str());
+    //std::string log_file_name("ciph_app.log");
     std::string log_file_full_name(quark::strings::format("%s/%s", path.c_str(), log_file_name.c_str()).c_str());
 
 		custom_tracer::instance().setFile(log_file_full_name.c_str());
