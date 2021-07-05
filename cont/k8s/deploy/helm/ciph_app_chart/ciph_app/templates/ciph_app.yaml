@@ -29,14 +29,20 @@ spec:
          volumeMounts:
            - name: hugepage
              mountPath: /hugepages
-           - name: varciphapp
+           - name: varciphappsock
              mountPath: /var/ciph_app
+             readOnly: false
+           - name: varciphapplog
+             mountPath: /var/log
              readOnly: false
       volumes:
        - name: hugepage
          emptyDir:
            medium: HugePages
-       - name: varciphapp
+       - name: varciphappsock
          hostPath:
            path: "/var/ciph_app"
+       - name: varciphapplog
+         hostPath:
+           path: "/var/log/ciph_app"
 

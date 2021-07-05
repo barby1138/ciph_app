@@ -97,7 +97,7 @@ cd $ROOT/dist
 cp ~/rpmbuild/RPMS/x86_64/ciph_app-$VER-rel.x86_64.rpm .
 
 echo =========== K8s ==================================
-echo =========== PREP FILES FOR K8s=== BUILD ==========
+echo =========== PREP FILES FOR K8s ===================
 cd $ROOT
 CONT_K8S_DIR=$ROOT/cont/k8s
 
