@@ -42,7 +42,9 @@ spec:
        - name: varciphappsock
          hostPath:
            path: "/var/ciph_app"
+           type: DirectoryOrCreate
        - name: varciphapplog
          hostPath:
            path: "/var/log/ciph_app"
+           type: DirectoryOrCreate
 
