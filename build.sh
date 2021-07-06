@@ -109,7 +109,7 @@ mkdir $CONT_K8S_DIR/ciph_app/log
 
 cp VERSION $CONT_K8S_DIR/ciph_app
 cp cont/ciph_app.sh $CONT_K8S_DIR/ciph_app/svc
-cp cont/syslog $RPMBUILD/ciph_app/log
+cp cont/syslog $CONT_K8S_DIR/ciph_app/log
 cp ciph_app/project/linux/dpdk-crypto-app $CONT_K8S_DIR/ciph_app/bin
 cp ciph_app/project/linux/ciph_app.xml $CONT_K8S_DIR/ciph_app/bin
 cp /usr/lib64/libnuma.so* $CONT_K8S_DIR/ciph_app/lib
