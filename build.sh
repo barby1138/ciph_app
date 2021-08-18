@@ -127,3 +127,4 @@ echo =========== K8S TO DIST =========================
 cd $ROOT
 cp $CONT_K8S_DIR/deploy/helm/ciph_app_test_chart/ciph_app_test-$VER.tgz dist
 cp $CONT_K8S_DIR/deploy/helm/ciph_app_chart/ciph_app-$VER.tgz dist
+

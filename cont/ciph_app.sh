@@ -8,8 +8,10 @@ CPU_NUM=$(grep -c ^processor /proc/cpuinfo)
 echo $CPU_NUM
 
 if [[ $CPU_NUM -eq 48 ]]; then
-    # CPU23
-    taskset 0x800000 ./dpdk-crypto-app cfg
+    # CPU23 v6.1
+    #taskset 0x800000 ./dpdk-crypto-app cfg
+    # CPU22 && CPU46 v6.2
+    taskset 0x400000400000 ./dpdk-crypto-app cfg
 elif [[ $CPU_NUM -eq 28 ]]; then
     # CPU1 & CPU15
     taskset 0x8002 ./dpdk-crypto-app cfg
