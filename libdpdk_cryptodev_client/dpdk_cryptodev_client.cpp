@@ -237,6 +237,8 @@ void print_buff1(uint8_t* data, int len)
 	}
 }
 
+const int MAX_PRINT_LEN = 4;
+
 void print_buff_dbg(uint8_t* data, int len)
 {
 	enum { BUFF_STR_MAX_LEN = 16 * 3 };
@@ -244,9 +246,12 @@ void print_buff_dbg(uint8_t* data, int len)
 	char buff_str[BUFF_STR_MAX_LEN];
 
 	int i = 0;
-  	while(i < len)
+
+	int print_len = (len > MAX_PRINT_LEN) ? MAX_PRINT_LEN : len;
+
+  	while(i < print_len)
 	{
-		int lim = (len - i > 16) ? 16 : len - i;
+		int lim = (print_len - i > 16) ? 16 : print_len - i;
 		
 		for(int j = 0; j < lim; ++j)
 	  		snprintf(buff_str + j*3, BUFF_STR_MAX_LEN, "%02X%s", data[i + j], (( j + 1 ) % 16 == 0) ? " " : " ");
@@ -257,6 +262,7 @@ void print_buff_dbg(uint8_t* data, int len)
 	}
 
 	RTE_LOG(DEBUG, USER1, " ");
+
 }
 
 int Dpdk_cryptodev_client::fill_session_pool_socket(int32_t socket_id, uint32_t session_priv_size, uint32_t nb_sessions)
