@@ -17,6 +17,7 @@ install -d  %{buildroot}/tmp/ciph_app/%{version}/
 install -d  %{buildroot}/tmp/ciph_app/%{version}/bin/
 install -d  %{buildroot}/tmp/ciph_app/%{version}/lib/
 install -d  %{buildroot}/tmp/ciph_app/%{version}/svc/
+install -d  %{buildroot}/tmp/ciph_app/%{version}/log/
 for f in bin/*; do \
 install -v -m 0644 "$f" -D %{buildroot}/tmp/ciph_app/%{version}/bin; \
 done
@@ -31,6 +32,8 @@ install -v -m 0644 lxc/rootfs_centos-7-amd64.tar.gz -D %{buildroot}/tmp/ciph_app
 
 install -v -m 0644 svc/ciph_app.service -D %{buildroot}/tmp/ciph_app/%{version}/svc/ciph_app.service
 install -v -m 0644 svc/ciph_app.sh -D %{buildroot}/tmp/ciph_app/%{version}/svc/ciph_app.sh
+
+install -v -m 0644 log/syslog -D %{buildroot}/tmp/ciph_app/%{version}/log/syslog
 
 %files
 /tmp/ciph_app/%{version}/
