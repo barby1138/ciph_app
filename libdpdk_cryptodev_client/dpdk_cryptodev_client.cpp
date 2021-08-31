@@ -17,6 +17,8 @@
 
 #include "memcpy_fast.h"
 
+#include "CRC.h"
+
 // use external fridmon logger
 #define _EXTERNAL_TRACER_
 #ifdef _EXTERNAL_TRACER_
@@ -237,7 +239,7 @@ void print_buff1(uint8_t* data, int len)
 	}
 }
 
-const int MAX_PRINT_LEN = 4;
+const int MAX_PRINT_LEN = 16;
 
 void print_buff_dbg(uint8_t* data, int len)
 {
@@ -247,7 +249,7 @@ void print_buff_dbg(uint8_t* data, int len)
 
 	int i = 0;
 
-	int print_len = (len > MAX_PRINT_LEN) ? MAX_PRINT_LEN : len;
+	int print_len = ( MAX_PRINT_LEN != 0 && len > MAX_PRINT_LEN ) ? MAX_PRINT_LEN : len;
 
   	while(i < print_len)
 	{
@@ -519,6 +521,8 @@ int Dpdk_cryptodev_client::verify_devices_capabilities(Dpdk_cryptodev_options *o
 	return 0;
 }
 
+
+
 int Dpdk_cryptodev_client::init(int argc, char **argv)
 {
 	uint8_t i;
@@ -702,6 +706,16 @@ int Dpdk_cryptodev_client::preprocess_jobs(int ch_id,
 						print_buff_dbg(jobs[i].cipher_buff_list.buffs[0].data, jobs[i].cipher_buff_list.buffs[0].length);
 						RTE_LOG(DEBUG, USER1, "IV %d", jobs[i].cipher_iv.length);
 						print_buff_dbg(jobs[i].cipher_iv.data, jobs[i].cipher_iv.length);
+
+						std::uint32_t crc = CRC::Calculate(jobs[i].cipher_buff_list.buffs[0].data, 
+															jobs[i].cipher_buff_list.buffs[0].length, 
+															CRC::CRC_32());
+						RTE_LOG(DEBUG, USER1, "IN DATA CRC 0x%X", crc);
+
+						std::uint32_t iv_crc = CRC::Calculate(jobs[i].cipher_iv.data, 
+															jobs[i].cipher_iv.length, 
+															CRC::CRC_32());
+						RTE_LOG(DEBUG, USER1, "IV CRC 0x%X", iv_crc);
 					}
 /*
 					if (jobs[i].op.cipher_op == CRYPTO_CIPHER_OP_ENCRYPT)
@@ -767,6 +781,16 @@ int Dpdk_cryptodev_client::postprocess_jobs(int ch_id, Crypto_operation* jobs, u
 				print_buff_dbg(jobs[i].cipher_buff_list.buffs[0].data, jobs[i].cipher_buff_list.buffs[0].length);
 				RTE_LOG(DEBUG, USER1, "IV len %d", jobs[i].cipher_iv.length);
 				print_buff_dbg(jobs[i].cipher_iv.data, jobs[i].cipher_iv.length);
+
+				std::uint32_t crc = CRC::Calculate(jobs[i].cipher_buff_list.buffs[0].data, 
+													jobs[i].cipher_buff_list.buffs[0].length, 
+													CRC::CRC_32());
+				RTE_LOG(DEBUG, USER1, "OUT DATA CRC 0x%X", crc);
+
+				std::uint32_t iv_crc = CRC::Calculate(jobs[i].cipher_iv.data, 
+													jobs[i].cipher_iv.length, 
+													CRC::CRC_32());
+				RTE_LOG(DEBUG, USER1, "IV CRC 0x%X", iv_crc);
 			}
 			;
 		}

@@ -21,6 +21,7 @@ TARGET=$(DESTDIR)/$(LIBNAME).a
 DEFINE=-D_LINUX -D_REDHAT
 
 INCLUDE=-I$(ROOTDIR) \
+		-I$(ROOTDIR)/CRCpp/inc \
 		-I$(ROOTDIR)/libmemcpy \
 		-I$(ROOTDIR)/3rdparty/fridmon-0.1.10/quark_1_0_1 \
 		-I$(ROOTDIR)/3rdparty/fridmon-0.1.10/meson_1_0_1 \

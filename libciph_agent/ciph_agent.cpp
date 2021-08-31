@@ -15,6 +15,29 @@ typedef struct Data_lengths {
     uint32_t cipher_iv_length;
 }Data_lengths;
 
+const int MAX_PRINT_LEN = 0;
+
+void print_buff(uint8_t* data, uint32_t len)
+{
+  	printf("test app length %d\n", len);
+	
+  	//uint32_t c = 0;
+	uint32_t i;
+
+  	//printf("%03d ", c++);
+	int print_len = ( MAX_PRINT_LEN != 0 && len > MAX_PRINT_LEN ) ? MAX_PRINT_LEN : len;
+
+  	for (i = 0; i < print_len; ++i)
+  	{
+    	fprintf(stderr, "%02X%s", data[i], ( i + 1 ) % 16 == 0 ? ",\r\n" : ", " );
+
+    	//if (( i + 1 ) % 16 == 0)
+      	//	printf("%03d ", c++);
+  	}
+
+  	fprintf(stderr, "\r\n");
+}
+
 void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len,  Crypto_operation* vec)
 {
     *len = 0;
@@ -82,6 +105,10 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len,  Crypto_operation* vec
     uint8_t* buffer_next = buffer + BUFF_SIZE; // n * 16
     uint32_t len_next = *len + BUFF_SIZE;
 
+  	fprintf(stderr, "crypto_job_to_buffer\r\n");
+    print_buff( vec->cipher_buff_list.buffs[0].data,  vec->cipher_buff_list.buffs[0].length);
+
+    uint8_t* data_buff = buffer;
     for (int i = 0; i < vec->cipher_buff_list.buff_list_length; i++)
     {
         if (vec->cipher_buff_list.buffs[i].length)
@@ -99,6 +126,8 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len,  Crypto_operation* vec
             *len += vec->cipher_buff_list.buffs[i].length;
         }
     }
+
+    print_buff(data_buff, data_len.ciphertext_length);
 
     buffer = buffer_next;
     *len = len_next;

@@ -5,12 +5,6 @@
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
 
-#include "config.h"
-#include <hyperon/gen_attributes.h>
-#include <hyperon/element.h>
-#include <hyperon/properties.h>
-#include <hyperon/storage/expat_storage.h>
-
 namespace
 {
 	class logger_element : public element
