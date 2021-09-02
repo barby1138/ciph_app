@@ -703,9 +703,9 @@ int Dpdk_cryptodev_client::preprocess_jobs(int ch_id,
 					{
 						RTE_LOG(DEBUG, USER1, "sess_id %d ch %d", jobs[i].op.sess_id, ch_id);
 						RTE_LOG(DEBUG, USER1, "IN DATA len %d ind %d", jobs[i].cipher_buff_list.buffs[0].length, i);
-						print_buff_dbg(jobs[i].cipher_buff_list.buffs[0].data, jobs[i].cipher_buff_list.buffs[0].length);
+						//print_buff_dbg(jobs[i].cipher_buff_list.buffs[0].data, jobs[i].cipher_buff_list.buffs[0].length);
 						RTE_LOG(DEBUG, USER1, "IV %d", jobs[i].cipher_iv.length);
-						print_buff_dbg(jobs[i].cipher_iv.data, jobs[i].cipher_iv.length);
+						//print_buff_dbg(jobs[i].cipher_iv.data, jobs[i].cipher_iv.length);
 
 						std::uint32_t crc = CRC::Calculate(jobs[i].cipher_buff_list.buffs[0].data, 
 															jobs[i].cipher_buff_list.buffs[0].length, 
@@ -778,9 +778,9 @@ int Dpdk_cryptodev_client::postprocess_jobs(int ch_id, Crypto_operation* jobs, u
 			{
 				RTE_LOG(DEBUG, USER1, "sess_id %d ch %d", jobs[i].op.sess_id, ch_id);
 				RTE_LOG(DEBUG, USER1, "OUT DATA len %d ind %d", jobs[i].cipher_buff_list.buffs[0].length, i);
-				print_buff_dbg(jobs[i].cipher_buff_list.buffs[0].data, jobs[i].cipher_buff_list.buffs[0].length);
+				//print_buff_dbg(jobs[i].cipher_buff_list.buffs[0].data, jobs[i].cipher_buff_list.buffs[0].length);
 				RTE_LOG(DEBUG, USER1, "IV len %d", jobs[i].cipher_iv.length);
-				print_buff_dbg(jobs[i].cipher_iv.data, jobs[i].cipher_iv.length);
+				//print_buff_dbg(jobs[i].cipher_iv.data, jobs[i].cipher_iv.length);
 
 				std::uint32_t crc = CRC::Calculate(jobs[i].cipher_buff_list.buffs[0].data, 
 													jobs[i].cipher_buff_list.buffs[0].length, 

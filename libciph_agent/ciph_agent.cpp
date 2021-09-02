@@ -105,8 +105,8 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len,  Crypto_operation* vec
     uint8_t* buffer_next = buffer + BUFF_SIZE; // n * 16
     uint32_t len_next = *len + BUFF_SIZE;
 
-  	fprintf(stderr, "crypto_job_to_buffer\r\n");
-    print_buff( vec->cipher_buff_list.buffs[0].data,  vec->cipher_buff_list.buffs[0].length);
+  	//fprintf(stderr, "crypto_job_to_buffer\r\n");
+    //print_buff( vec->cipher_buff_list.buffs[0].data,  vec->cipher_buff_list.buffs[0].length);
 
     uint8_t* data_buff = buffer;
     for (int i = 0; i < vec->cipher_buff_list.buff_list_length; i++)
@@ -127,7 +127,7 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len,  Crypto_operation* vec
         }
     }
 
-    print_buff(data_buff, data_len.ciphertext_length);
+    //print_buff(data_buff, data_len.ciphertext_length);
 
     buffer = buffer_next;
     *len = len_next;
