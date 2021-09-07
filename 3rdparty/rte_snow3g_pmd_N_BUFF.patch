@@ -1,0 +1,73 @@
+--- rte_snow3g_pmd.c	2020-05-26 17:41:39.000000000 +0200
++++ rte_snow3g_pmd_fix.c	2021-09-06 13:29:07.932926339 +0200
+@@ -180,6 +180,28 @@
+ 	return sess;
+ }
+ 
++#ifdef DEBUG_N_BUFFER_PROB
++void print_buff(uint8_t* data, uint32_t len)
++{
++  	printf("test app length %d\n", len);
++	
++  	//uint32_t c = 0;
++	uint32_t i;
++
++  	//printf("%03d ", c++);
++
++  	for (i = 0; i < len; ++i)
++  	{
++    	printf("0x%02X%s", data[i], ( i + 1 ) % 16 == 0 ? ",\r\n" : ", " );
++
++    	//if (( i + 1 ) % 16 == 0)
++      	//	printf("%03d ", c++);
++  	}
++
++  	printf("\r\n");
++}
++#endif
++
+ /** Encrypt/decrypt mbufs with same cipher key. */
+ static uint8_t
+ process_snow3g_cipher_op(struct snow3g_qp *qp, struct rte_crypto_op **ops,
+@@ -193,6 +215,10 @@
+ 	const void *iv[SNOW3G_MAX_BURST];
+ 	uint32_t num_bytes[SNOW3G_MAX_BURST];
+ 
++#ifdef DEBUG_N_BUFFER_PROB
++	printf("process_snow3g_cipher_op\n", i);
++#endif
++
+ 	for (i = 0; i < num_ops; i++) {
+ 		src[i] = rte_pktmbuf_mtod(ops[i]->sym->m_src, uint8_t *) +
+ 				(ops[i]->sym->cipher.data.offset >> 3);
+@@ -205,11 +231,30 @@
+ 				session->cipher_iv_offset);
+ 		num_bytes[i] = ops[i]->sym->cipher.data.length >> 3;
+ 
++#ifdef DEBUG_N_BUFFER_PROB
++		printf("IN %d\n", i);
++		print_buff(src[i], 16);
++		print_buff(iv[i], 16);
++#endif
++
+ 		processed_ops++;
+ 	}
+ 
++/*
+ 	IMB_SNOW3G_F8_N_BUFFER(qp->mgr, &session->pKeySched_cipher, iv,
+ 			src, dst, num_bytes, processed_ops);
++*/
++
++	for (i = 0; i < processed_ops; i++) {
++		IMB_SNOW3G_F8_1_BUFFER(qp->mgr, &session->pKeySched_cipher, iv[i],
++			  src[i], dst[i], num_bytes[i]);
++
++#ifdef DEBUG_N_BUFFER_PROB
++		printf("1 buff OUT %d\n", i);
++		print_buff(src[i], 16);
++		print_buff(iv[i], 16);
++#endif
++	}
+ 
+ 	return processed_ops;
+ }
