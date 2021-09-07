@@ -42,7 +42,7 @@ unzip 3rdparty/intel-ipsec-mb-$IPSECVER.zip -d ./3rdparty
 cd 3rdparty/intel-ipsec-mb-$IPSECVER
 ./configure
 make SAFE_DATA=y SAFE_PARAM=y
-make install PREFIX=$PWD/intel-ipsec-mb-$(IPSECVER)-install NOLDCONFIG=y
+make install PREFIX=$PWD/intel-ipsec-mb-$IPSECVER-install NOLDCONFIG=y
 
 echo ============== DPDK =====================
 DPDKVER=20.05
