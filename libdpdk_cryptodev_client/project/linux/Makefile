@@ -20,12 +20,14 @@ TARGET=$(DESTDIR)/$(LIBNAME).a
 
 DEFINE=-D_LINUX -D_REDHAT
 
+DPDK_VER=20.05
+
 INCLUDE=-I$(ROOTDIR) \
 		-I$(ROOTDIR)/CRCpp/inc \
 		-I$(ROOTDIR)/libmemcpy \
 		-I$(ROOTDIR)/3rdparty/fridmon-0.1.10/quark_1_0_1 \
 		-I$(ROOTDIR)/3rdparty/fridmon-0.1.10/meson_1_0_1 \
-		-I$(ROOTDIR)/3rdparty/dpdk-20.05/x86_64-native-linuxapp-gcc/include 
+		-I$(ROOTDIR)/3rdparty/dpdk-$(DPDK_VER)/x86_64-native-linuxapp-gcc/include 
 
 ifndef CFG
 CFG=debug

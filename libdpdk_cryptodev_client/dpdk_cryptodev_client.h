@@ -148,6 +148,7 @@ public:
 private:
     int32_t test_create_session(long cid, uint64_t seq, Crypto_cipher_algorithm algo, Crypto_cipher_operation op_type);
     int32_t test_cipher(long cid, uint64_t seq, uint64_t sess_id, Crypto_cipher_operation op_type);
+    int32_t test_cipher_burst(long cid, uint64_t seq, uint64_t sess_id, Crypto_cipher_operation op_type);
 
 private:
     Dpdk_cryptodev_options _opts; // = {0};

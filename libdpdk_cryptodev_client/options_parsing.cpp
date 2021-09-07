@@ -426,7 +426,7 @@ cperf_options_default(struct Dpdk_cryptodev_options *opts)
 	 * Will be parsed from command line or set to
 	 * maximum buffer size + digest, later
 	 */
-	opts->segment_sz = 0;
+	opts->segment_sz = 0; //2048;
 
 	strncpy(opts->device_type, "crypto_aesni_mb", sizeof(opts->device_type));
 	opts->nb_qps = 1;

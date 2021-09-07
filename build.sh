@@ -1,27 +1,51 @@
 
 ROOT=$PWD 
 echo $ROOT
+
 VER=$(cat VERSION)
 echo ${VER}
 
-echo ============== COPY ARTIFACTORY ==================
-cd $ROOT
-mkdir 3rdparty_artifactory
-cp /tmp/dpdk-20.05-x86_64-native-linuxapp-gcc.tar.gz 3rdparty_artifactory
+DPDK_VER=20.05
+echo $DPDK_VER
+
+#echo ============== COPY ARTIFACTORY ==================
+#cd $ROOT
+#mkdir 3rdparty_artifactory
+#cp /tmp/dpdk-20.05-x86_64-native-linuxapp-gcc.tar.gz 3rdparty_artifactory
 #cp /tmp/rootfs_centos-7-amd64.tar.gz 3rdparty_artifactory
-cp /tmp/libIPSec_MB.0.54.0.tar.gz 3rdparty_artifactory
+#cp /tmp/libIPSec_MB.0.54.0.tar.gz 3rdparty_artifactory
 
 # done in Dockerfile
 #echo ============== PREP IPSec ========================
-cd $ROOT
-cd 3rdparty_artifactory
-tar zxf libIPSec_MB.0.54.0.tar.gz
+#cd $ROOT
+#cd 3rdparty_artifactory
+#tar zxf libIPSec_MB.0.54.0.tar.gz
 #cp -f libIPSec_MB* /usr/lib
 
-echo ============== PREP DPDK =========================
+#echo ============== PREP DPDK =========================
+#cd $ROOT
+#cd 3rdparty_artifactory
+#tar zxf dpdk-20.05-x86_64-native-linuxapp-gcc.tar.gz -C $ROOT/3rdparty
+
+echo ============== NASM =====================
 cd $ROOT
-cd 3rdparty_artifactory
-tar zxf dpdk-20.05-x86_64-native-linuxapp-gcc.tar.gz -C $ROOT/3rdparty
+tar -xf 3rdparty/nasm_2.15.02.orig.tar.xz -C ./3rdparty
+cd 3rdparty/nasm-2.15.02
+export PATH=$PWD/nasm_install/bin:$PATH
+./configure --prefix=$PWD/nasm_install
+make
+make install
+
+echo ============== DPDK =====================
+cd $ROOT
+tar -xf 3rdparty/dpdk-$DPDK_VER.tar.gz -C ./3rdparty
+cp 3rdparty/enable_PMD_AESNI_MB.patch 3rdparty/dpdk-$DPDK_VER/config
+cp 3rdparty/rte_snow3g_pmd_N_BUFF.patch 3rdparty/dpdk-$DPDK_VER/drivers/crypto/snow3g
+cd 3rdparty/dpdk-$DPDK_VER
+patch config/common_base < config/enable_PMD_AESNI_MB.patch
+patch drivers/crypto/snow3g/rte_snow3g_pmd.c < drivers/crypto/snow3g/rte_snow3g_pmd_N_BUFF.patch
+export DESTDIR=$ROOT/3rdparty/dpdk-$DPDK_VER/distr/x86_64-native-linuxapp-gcc
+make install T=x86_64-native-linuxapp-gcc
 
 echo ============== BUILD FRIDMON =====================
 cd $ROOT

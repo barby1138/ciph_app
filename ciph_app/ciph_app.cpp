@@ -241,15 +241,15 @@ int main(int argc, char** argv)
     Dpdk_cryptodev_client_sngl::instance().set_print_dbg((tl == tlDebug) ? 1 : 0) ;
     
     // local test TP
-    /*
+    
     Dpdk_cryptodev_client_sngl::instance().test(CRYPTO_CIPHER_SNOW3G_UEA2, CRYPTO_CIPHER_OP_ENCRYPT);
 
-    Dpdk_cryptodev_client_sngl::instance().test(CRYPTO_CIPHER_AES_CBC, CRYPTO_CIPHER_OP_ENCRYPT);
+//    Dpdk_cryptodev_client_sngl::instance().test(CRYPTO_CIPHER_AES_CTR, CRYPTO_CIPHER_OP_ENCRYPT);
 
-    Dpdk_cryptodev_client_sngl::instance().test(CRYPTO_CIPHER_SNOW3G_UEA2, CRYPTO_CIPHER_OP_DECRYPT);
+//    Dpdk_cryptodev_client_sngl::instance().test(CRYPTO_CIPHER_SNOW3G_UEA2, CRYPTO_CIPHER_OP_DECRYPT);
 
-    Dpdk_cryptodev_client_sngl::instance().test(CRYPTO_CIPHER_AES_CBC, CRYPTO_CIPHER_OP_DECRYPT);
-*/    
+//    Dpdk_cryptodev_client_sngl::instance().test(CRYPTO_CIPHER_AES_CBC, CRYPTO_CIPHER_OP_DECRYPT);
+    
     Ciph_agent_server_sngl::instance().init(-1);
 
     for (uint32_t i : uint_client_ids)

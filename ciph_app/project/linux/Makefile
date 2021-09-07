@@ -6,7 +6,9 @@
 
 ROOTDIR=../../..
 
-RTE_SDK=$(ROOTDIR)/3rdparty/dpdk-20.05
+DPDK_VER=20.05
+
+RTE_SDK=$(ROOTDIR)/3rdparty/dpdk-$(DPDK_VER)
 RTE_TARGET=x86_64-native-linuxapp-gcc
 
 include $(RTE_SDK)/mk/rte.vars.mk
