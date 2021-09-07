@@ -46,7 +46,7 @@ cd 3rdparty/intel-ipsec-mb-$IPSEC_VER
 export PATH=$PWD/intel-ipsec-mb-$(IPSEC_VER)_install/include:$PATH
 export PATH=$PWD/intel-ipsec-mb-$(IPSEC_VER)_install/lib:$PATH
 ./configure
-make
+make SAFE_DATA=y SAFE_PARAM=y
 make install PREFIX=$PWD/intel-ipsec-mb-$(IPSEC_VER)_install NOLDCONFIG=y
 
 echo ============== DPDK =====================
