@@ -5,9 +5,6 @@ echo $ROOT
 VER=$(cat VERSION)
 echo ${VER}
 
-DPDK_VER=20.05
-echo $DPDK_VER
-
 #echo ============== COPY ARTIFACTORY ==================
 #cd $ROOT
 #mkdir 3rdparty_artifactory
@@ -31,33 +28,36 @@ echo ============== NASM =====================
 cd $ROOT
 tar -xf 3rdparty/nasm_2.15.02.orig.tar.xz -C ./3rdparty
 cd 3rdparty/nasm-2.15.02
-export PATH=$PWD/nasm_install/bin:$PATH
-./configure --prefix=$PWD/nasm_install
+export PATH=$PWD/nasm-install/bin:$PATH
+./configure --prefix=$PWD/nasm-install
 make
 make install
 
 echo ============== IPSEC =====================
-IPSEC_VER=0.54
-echo $IPSEC_VER
+IPSECVER=0.54
+echo $IPSECVER
 
 cd $ROOT
-unzip 3rdparty/intel-ipsec-mb-$IPSEC_VER.zip -d ./3rdparty
-cd 3rdparty/intel-ipsec-mb-$IPSEC_VER
-export PATH=$PWD/intel-ipsec-mb-$(IPSEC_VER)_install/include:$PATH
-export PATH=$PWD/intel-ipsec-mb-$(IPSEC_VER)_install/lib:$PATH
+unzip 3rdparty/intel-ipsec-mb-$IPSECVER.zip -d ./3rdparty
+cd 3rdparty/intel-ipsec-mb-$IPSECVER
+export PATH=$PWD/intel-ipsec-mb-$(IPSECVER)-install/include:$PATH
+export PATH=$PWD/intel-ipsec-mb-$(IPSECVER)-install/lib:$PATH
 ./configure
 make SAFE_DATA=y SAFE_PARAM=y
-make install PREFIX=$PWD/intel-ipsec-mb-$(IPSEC_VER)_install NOLDCONFIG=y
+make install PREFIX=$PWD/intel-ipsec-mb-$(IPSECVER)-install NOLDCONFIG=y
 
 echo ============== DPDK =====================
+DPDKVER=20.05
+echo $DPDKVER
+
 cd $ROOT
-tar -xf 3rdparty/dpdk-$DPDK_VER.tar.gz -C ./3rdparty
-cp 3rdparty/enable_PMD_AESNI_MB.patch 3rdparty/dpdk-$DPDK_VER/config
-cp 3rdparty/rte_snow3g_pmd_N_BUFF.patch 3rdparty/dpdk-$DPDK_VER/drivers/crypto/snow3g
-cd 3rdparty/dpdk-$DPDK_VER
+tar -xf 3rdparty/dpdk-$DPDKVER.tar.gz -C ./3rdparty
+cp 3rdparty/enable_PMD_AESNI_MB.patch 3rdparty/dpdk-$DPDKVER/config
+cp 3rdparty/rte_snow3g_pmd_N_BUFF.patch 3rdparty/dpdk-$DPDKVER/drivers/crypto/snow3g
+cd 3rdparty/dpdk-$DPDKVER
 patch config/common_base < config/enable_PMD_AESNI_MB.patch
 patch drivers/crypto/snow3g/rte_snow3g_pmd.c < drivers/crypto/snow3g/rte_snow3g_pmd_N_BUFF.patch
-export DESTDIR=$ROOT/3rdparty/dpdk-$DPDK_VER/distr/x86_64-native-linuxapp-gcc
+export DESTDIR=$ROOT/3rdparty/dpdk-$DPDKVER/distr/x86_64-native-linuxapp-gcc
 make install T=x86_64-native-linuxapp-gcc
 
 echo ============== BUILD FRIDMON =====================
