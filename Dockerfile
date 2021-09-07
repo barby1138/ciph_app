@@ -1,4 +1,5 @@
-FROM pwartifactory.parallelwireless.net/pw-docker-images/ciph-app/imgc/ciph_app_imgc:v88
+#FROM pwartifactory.parallelwireless.net/pw-docker-images/ciph-app/imgc/ciph_app_imgc:v88
+FROM pwartifactory.parallelwireless.net/devops_dockerhub/base-docker-images/devops-docker-prod-centos-7.4.1708-base-v2:latest
 
 #creating user
 ARG UNAME=parallel

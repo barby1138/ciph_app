@@ -121,7 +121,7 @@ cp cont/syslog $RPMBUILD/ciph_app/log
 cp ciph_app/project/linux/dpdk-crypto-app $RPMBUILD/ciph_app/bin
 cp ciph_app/project/linux/ciph_app.xml $RPMBUILD/ciph_app/bin
 cp /usr/lib64/libnuma.so* $RPMBUILD/ciph_app/lib
-cp 3rdparty_artifactory/libIPSec_MB* $RPMBUILD/ciph_app/lib
+cp 3rdparty/intel-ipsec-mb-$IPSECVER/intel-ipsec-mb-$IPSECVER-install/lib $RPMBUILD/ciph_app/lib
 
 mkdir $RPMBUILD/ciph_app/lxc
 cp /tmp/rootfs_centos-7-amd64.tar.gz $RPMBUILD/ciph_app/lxc
@@ -151,7 +151,7 @@ cp cont/syslog $CONT_K8S_DIR/ciph_app/log
 cp ciph_app/project/linux/dpdk-crypto-app $CONT_K8S_DIR/ciph_app/bin
 cp ciph_app/project/linux/ciph_app.xml $CONT_K8S_DIR/ciph_app/bin
 cp /usr/lib64/libnuma.so* $CONT_K8S_DIR/ciph_app/lib
-cp 3rdparty_artifactory/libIPSec_MB* $CONT_K8S_DIR/ciph_app/lib
+cp 3rdparty/intel-ipsec-mb-$IPSECVER/intel-ipsec-mb-$IPSECVER-install/lib $CONT_K8S_DIR/ciph_app/lib
 
 mkdir $CONT_K8S_DIR/ciph_app_test
 cp bin/linux/release/ciph_app_test $CONT_K8S_DIR/ciph_app_test
