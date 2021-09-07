@@ -36,6 +36,19 @@ export PATH=$PWD/nasm_install/bin:$PATH
 make
 make install
 
+echo ============== IPSEC =====================
+IPSEC_VER=0.54
+echo $DPDK_VER
+
+cd $ROOT
+unzip 3rdparty/intel-ipsec-mb-$IPSEC_VER.zip -d ./3rdparty
+cd 3rdparty/intel-ipsec-mb-$IPSEC_VER
+export PATH=$PWD/$PWD/intel-ipsec-mb-$IPSEC_VER_install/include:$PATH
+export PATH=$PWD/$PWD/intel-ipsec-mb-$IPSEC_VER_install/lib:$PATH
+./configure
+make
+make install PREFIX=$PWD/intel-ipsec-mb-$IPSEC_VER_install NOLDCONFIG=y
+
 echo ============== DPDK =====================
 cd $ROOT
 tar -xf 3rdparty/dpdk-$DPDK_VER.tar.gz -C ./3rdparty
