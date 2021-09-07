@@ -40,8 +40,6 @@ echo $IPSECVER
 cd $ROOT
 unzip 3rdparty/intel-ipsec-mb-$IPSECVER.zip -d ./3rdparty
 cd 3rdparty/intel-ipsec-mb-$IPSECVER
-export PATH=$PWD/intel-ipsec-mb-$(IPSECVER)-install/include:$PATH
-export PATH=$PWD/intel-ipsec-mb-$(IPSECVER)-install/lib:$PATH
 ./configure
 make SAFE_DATA=y SAFE_PARAM=y
 make install PREFIX=$PWD/intel-ipsec-mb-$(IPSECVER)-install NOLDCONFIG=y
@@ -58,7 +56,9 @@ cd 3rdparty/dpdk-$DPDKVER
 patch config/common_base < config/enable_PMD_AESNI_MB.patch
 patch drivers/crypto/snow3g/rte_snow3g_pmd.c < drivers/crypto/snow3g/rte_snow3g_pmd_N_BUFF.patch
 export DESTDIR=$ROOT/3rdparty/dpdk-$DPDKVER/distr/x86_64-native-linuxapp-gcc
-make install T=x86_64-native-linuxapp-gcc
+make install T=x86_64-native-linuxapp-gcc \
+    EXTRA_CFLAGS=-I$ROOT/3rdparty/intel-ipsec-mb-$IPSECVER/intel-ipsec-mb-$IPSECVER-install/include \
+    EXTRA_LDFLAGS=-L$ROOT/3rdparty/intel-ipsec-mb-$IPSECVER/intel-ipsec-mb-$IPSECVER-install/lib
 
 echo ============== BUILD FRIDMON =====================
 cd $ROOT
@@ -74,7 +74,8 @@ make CFG=release
 echo ============== BUILD CIPH_APP ====================
 cd $ROOT
 cd project/linux
-make CFG=release
+make CFG=release \
+    EXTRA_LDFLAGS=-L$ROOT/3rdparty/intel-ipsec-mb-$IPSECVER/intel-ipsec-mb-$IPSECVER-install/lib
 
 echo ============== PREP DEVEL ========================
 cd $ROOT
