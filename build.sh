@@ -38,16 +38,16 @@ make install
 
 echo ============== IPSEC =====================
 IPSEC_VER=0.54
-echo $DPDK_VER
+echo $IPSEC_VER
 
 cd $ROOT
 unzip 3rdparty/intel-ipsec-mb-$IPSEC_VER.zip -d ./3rdparty
 cd 3rdparty/intel-ipsec-mb-$IPSEC_VER
-export PATH=$PWD/$PWD/intel-ipsec-mb-$IPSEC_VER_install/include:$PATH
-export PATH=$PWD/$PWD/intel-ipsec-mb-$IPSEC_VER_install/lib:$PATH
+export PATH=$PWD/intel-ipsec-mb-$(IPSEC_VER)_install/include:$PATH
+export PATH=$PWD/intel-ipsec-mb-$(IPSEC_VER)_install/lib:$PATH
 ./configure
 make
-make install PREFIX=$PWD/intel-ipsec-mb-$IPSEC_VER_install NOLDCONFIG=y
+make install PREFIX=$PWD/intel-ipsec-mb-$(IPSEC_VER)_install NOLDCONFIG=y
 
 echo ============== DPDK =====================
 cd $ROOT
