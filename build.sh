@@ -121,7 +121,6 @@ cp cont/syslog $RPMBUILD/ciph_app/log
 cp ciph_app/project/linux/dpdk-crypto-app $RPMBUILD/ciph_app/bin
 cp ciph_app/project/linux/ciph_app.xml $RPMBUILD/ciph_app/bin
 cp /usr/lib64/libnuma.so* $RPMBUILD/ciph_app/lib
-#cp 3rdparty_artifactory/libIPSec_MB* $RPMBUILD/ciph_app/lib
 cp 3rdparty/intel-ipsec-mb-$IPSECVER/intel-ipsec-mb-$IPSECVER-install/lib/libIPSec_MB* $RPMBUILD/ciph_app/lib
 
 mkdir $RPMBUILD/ciph_app/lxc
@@ -154,7 +153,6 @@ cp cont/syslog $CONT_K8S_DIR/ciph_app/log
 cp ciph_app/project/linux/dpdk-crypto-app $CONT_K8S_DIR/ciph_app/bin
 cp ciph_app/project/linux/ciph_app.xml $CONT_K8S_DIR/ciph_app/bin
 cp /usr/lib64/libnuma.so* $CONT_K8S_DIR/ciph_app/lib
-#cp 3rdparty_artifactory/libIPSec_MB* $CONT_K8S_DIR/ciph_app/lib
 cp 3rdparty/intel-ipsec-mb-$IPSECVER/intel-ipsec-mb-$IPSECVER-install/lib/libIPSec_MB* $CONT_K8S_DIR/ciph_app/lib
 
 mkdir $CONT_K8S_DIR/ciph_app_test
@@ -167,6 +165,10 @@ chmod +x build_k8s.sh && ./build_k8s.sh
 
 echo =========== K8S TO DIST =========================
 cd $ROOT
-cp $CONT_K8S_DIR/deploy/helm/ciph_app_test_chart/ciph_app_test-$VER-${BUILD_NUMBER}.tgz dist
-cp $CONT_K8S_DIR/deploy/helm/ciph_app_chart/ciph_app-$VER-${BUILD_NUMBER}.tgz dist
+cp $CONT_K8S_DIR/deploy/helm/ciph_app_test_chart/ciph_app_test-$VER.tgz dist
+cp $CONT_K8S_DIR/deploy/helm/ciph_app_chart/ciph_app-$VER.tgz dist
 
+#rename
+cd dist
+mv ciph_app_test-$VER.tgz ciph_app_test-$VER-${BUILD_NUMBER}.tgz
+mv ciph_app-$VER.tgz ciph_app-$VER-${BUILD_NUMBER}.tgz
