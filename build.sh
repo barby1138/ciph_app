@@ -97,7 +97,7 @@ cp dist/readme dist/ciph_app_devel
 
 echo =========== PACK DEVEL ===========================
 cd $ROOT/dist
-tar czf ciph_app_devel-$VER.tar.gz ciph_app_devel
+tar czf ciph_app_devel-$VER-${BUILD_NUMBER}.tar.gz ciph_app_devel
 
 echo =========== LXC ==================================
 echo =========== PREP FILES FOR RPM ===================
@@ -134,6 +134,8 @@ rpmbuild -bb --define "_ver $VER" ciph_app.spec
 echo =========== PACK RPM =============================
 cd $ROOT/dist
 cp ~/rpmbuild/RPMS/x86_64/ciph_app-$VER-rel.x86_64.rpm .
+#rename
+mv ciph_app-$VER-rel.x86_64.rpm ciph_app-$VER-${BUILD_NUMBER}.x86_64.rpm
 
 echo =========== K8s ==================================
 echo =========== PREP FILES FOR K8s ===================
@@ -165,6 +167,6 @@ chmod +x build_k8s.sh && ./build_k8s.sh
 
 echo =========== K8S TO DIST =========================
 cd $ROOT
-cp $CONT_K8S_DIR/deploy/helm/ciph_app_test_chart/ciph_app_test-$VER.tgz dist
-cp $CONT_K8S_DIR/deploy/helm/ciph_app_chart/ciph_app-$VER.tgz dist
+cp $CONT_K8S_DIR/deploy/helm/ciph_app_test_chart/ciph_app_test-$VER-${BUILD_NUMBER}.tgz dist
+cp $CONT_K8S_DIR/deploy/helm/ciph_app_chart/ciph_app-$VER-${BUILD_NUMBER}.tgz dist
 
