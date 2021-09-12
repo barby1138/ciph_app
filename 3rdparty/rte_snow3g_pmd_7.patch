@@ -1,0 +1,11 @@
+--- rte_snow3g_pmd.c	2020-05-26 17:41:39.000000000 +0200
++++ rte_snow3g_pmd_7.c	2021-09-12 11:27:04.382841836 +0200
+@@ -13,7 +13,7 @@
+ #include "snow3g_pmd_private.h"
+ 
+ #define SNOW3G_IV_LENGTH 16
+-#define SNOW3G_MAX_BURST 8
++#define SNOW3G_MAX_BURST 7
+ #define BYTE_LEN 8
+ 
+ int snow3g_logtype_driver;

@@ -11,8 +11,8 @@ echo $ROOT
 #make install
 
 #echo ============== IPSEC =====================
-#IPSEC_VER=0.54
-#echo $DPDK_VER
+IPSECVER=0.54
+echo $DPDKVER
 
 #cd $ROOT
 #unzip 3rdparty/intel-ipsec-mb-$IPSEC_VER.zip -d ./3rdparty
@@ -20,6 +20,15 @@ echo $ROOT
 #./configure
 #make
 #make install
+
+#IPSECVER=0.54
+#echo $IPSECVER
+
+#cd $ROOT
+#cd 3rdparty/intel-ipsec-mb-$IPSECVER
+#export VPATH=$PWD/intel-ipsec-mb-$IPSECVER-install/include:$VPATH
+#export VPATH=$PWD/intel-ipsec-mb-$IPSECVER-install/lib:$VPATH
+#make install PREFIX=$PWD/intel-ipsec-mb-$IPSECVER-install NOLDCONFIG=y
 
 echo ============== DPDK =====================
 #20.05
@@ -29,13 +38,17 @@ echo $DPDK_VER
 cd $ROOT
 tar -xf 3rdparty/dpdk-$DPDK_VER.tar.gz -C ./3rdparty
 cp 3rdparty/enable_PMD_AESNI_MB.patch 3rdparty/dpdk-$DPDK_VER/config
-cp 3rdparty/rte_snow3g_pmd_N_BUFF.patch 3rdparty/dpdk-$DPDK_VER/drivers/crypto/snow3g
+#cp 3rdparty/rte_snow3g_pmd_N_BUFF.patch 3rdparty/dpdk-$DPDK_VER/drivers/crypto/snow3g
+cp 3rdparty/rte_snow3g_pmd_7.patch 3rdparty/dpdk-$DPDK_VER/drivers/crypto/snow3g
 cd 3rdparty/dpdk-$DPDK_VER
 patch config/common_base < config/enable_PMD_AESNI_MB.patch
-patch drivers/crypto/snow3g/rte_snow3g_pmd.c < drivers/crypto/snow3g/rte_snow3g_pmd_N_BUFF.patch
+#patch drivers/crypto/snow3g/rte_snow3g_pmd.c < drivers/crypto/snow3g/rte_snow3g_pmd_N_BUFF.patch
+patch drivers/crypto/snow3g/rte_snow3g_pmd.c < drivers/crypto/snow3g/rte_snow3g_pmd_7.patch
 export DESTDIR=$ROOT/3rdparty/dpdk-$DPDK_VER/distr/x86_64-native-linuxapp-gcc
-make install T=x86_64-native-linuxapp-gcc
-
+make install T=x86_64-native-linuxapp-gcc \
+    EXTRA_CFLAGS=-I$ROOT/3rdparty/intel-ipsec-mb-$IPSECVER/intel-ipsec-mb-$IPSECVER-install/include \
+    EXTRA_LDFLAGS=-L$ROOT/3rdparty/intel-ipsec-mb-$IPSECVER/intel-ipsec-mb-$IPSECVER-install/lib
+    
 #echo ============== FRIDMON =====================
 #cd $ROOT
 #unzip 3rdparty/fridmon-0.1.10.zip -d ./3rdparty
@@ -51,4 +64,5 @@ echo ============== CIPH_APP =====================
 cd $ROOT
 cd project/linux
 make CFG=release clean
-make CFG=release
+make CFG=release \
+    EXTRA_LDFLAGS=-L$ROOT/3rdparty/intel-ipsec-mb-$IPSECVER/intel-ipsec-mb-$IPSECVER-install/lib
