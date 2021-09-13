@@ -5,25 +5,6 @@ echo $ROOT
 VER=$(cat VERSION)
 echo ${VER}
 
-#echo ============== COPY ARTIFACTORY ==================
-#cd $ROOT
-#mkdir 3rdparty_artifactory
-#cp /tmp/dpdk-20.05-x86_64-native-linuxapp-gcc.tar.gz 3rdparty_artifactory
-#cp /tmp/rootfs_centos-7-amd64.tar.gz 3rdparty_artifactory
-#cp /tmp/libIPSec_MB.0.54.0.tar.gz 3rdparty_artifactory
-
-# done in Dockerfile
-#echo ============== PREP IPSec ========================
-#cd $ROOT
-#cd 3rdparty_artifactory
-#tar zxf libIPSec_MB.0.54.0.tar.gz
-#cp -f libIPSec_MB* /usr/lib
-
-#echo ============== PREP DPDK =========================
-#cd $ROOT
-#cd 3rdparty_artifactory
-#tar zxf dpdk-20.05-x86_64-native-linuxapp-gcc.tar.gz -C $ROOT/3rdparty
-
 echo ============== NASM =====================
 cd $ROOT
 tar -xf 3rdparty/nasm_2.15.02.orig.tar.xz -C ./3rdparty
@@ -40,7 +21,6 @@ echo $IPSECVER
 cd $ROOT
 unzip 3rdparty/intel-ipsec-mb-$IPSECVER.zip -d ./3rdparty
 cd 3rdparty/intel-ipsec-mb-$IPSECVER
-./configure
 make SAFE_DATA=y SAFE_PARAM=y
 make install PREFIX=$PWD/intel-ipsec-mb-$IPSECVER-install NOLDCONFIG=y
 
@@ -51,12 +31,12 @@ echo $DPDKVER
 cd $ROOT
 tar -xf 3rdparty/dpdk-$DPDKVER.tar.gz -C ./3rdparty
 cp 3rdparty/enable_PMD_AESNI_MB.patch 3rdparty/dpdk-$DPDKVER/config
-#cp 3rdparty/rte_snow3g_pmd_N_BUFF.patch 3rdparty/dpdk-$DPDKVER/drivers/crypto/snow3g
-cp 3rdparty/rte_snow3g_pmd_7.patch 3rdparty/dpdk-$DPDKVER/drivers/crypto/snow3g
+cp 3rdparty/rte_snow3g_pmd_N_BUFF.patch 3rdparty/dpdk-$DPDKVER/drivers/crypto/snow3g
+#cp 3rdparty/rte_snow3g_pmd_7.patch 3rdparty/dpdk-$DPDKVER/drivers/crypto/snow3g
 cd 3rdparty/dpdk-$DPDKVER
 patch config/common_base < config/enable_PMD_AESNI_MB.patch
-#patch drivers/crypto/snow3g/rte_snow3g_pmd.c < drivers/crypto/snow3g/rte_snow3g_pmd_N_BUFF.patch
-patch drivers/crypto/snow3g/rte_snow3g_pmd.c < drivers/crypto/snow3g/rte_snow3g_pmd_7.patch
+patch drivers/crypto/snow3g/rte_snow3g_pmd.c < drivers/crypto/snow3g/rte_snow3g_pmd_N_BUFF.patch
+#patch drivers/crypto/snow3g/rte_snow3g_pmd.c < drivers/crypto/snow3g/rte_snow3g_pmd_7.patch
 export DESTDIR=$ROOT/3rdparty/dpdk-$DPDKVER/distr/x86_64-native-linuxapp-gcc
 make install T=x86_64-native-linuxapp-gcc \
     EXTRA_CFLAGS=-I$ROOT/3rdparty/intel-ipsec-mb-$IPSECVER/intel-ipsec-mb-$IPSECVER-install/include \
