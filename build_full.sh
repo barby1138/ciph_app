@@ -16,9 +16,9 @@ echo $IPSECVER
 
 cd $ROOT
 unzip 3rdparty/intel-ipsec-mb-$IPSECVER.zip -d ./3rdparty
-#cp 3rdparty/snow3g_common_NO_8.patch 3rdparty/intel-ipsec-mb-$IPSECVER/include
+cp 3rdparty/snow3g_common_NO_8.patch 3rdparty/intel-ipsec-mb-$IPSECVER/include
 cd 3rdparty/intel-ipsec-mb-$IPSECVER
-#patch include/snow3g_common.h < include/snow3g_common_NO_8.patch
+patch include/snow3g_common.h < include/snow3g_common_NO_8.patch
 make SAFE_DATA=y SAFE_PARAM=y
 make install PREFIX=$PWD/intel-ipsec-mb-$IPSECVER-install NOLDCONFIG=y
 
@@ -30,11 +30,11 @@ echo $DPDK_VER
 cd $ROOT
 tar -xf 3rdparty/dpdk-$DPDK_VER.tar.gz -C ./3rdparty
 cp 3rdparty/enable_PMD_AESNI_MB.patch 3rdparty/dpdk-$DPDK_VER/config
-cp 3rdparty/rte_snow3g_pmd_N_BUFF.patch 3rdparty/dpdk-$DPDK_VER/drivers/crypto/snow3g
+#cp 3rdparty/rte_snow3g_pmd_N_BUFF.patch 3rdparty/dpdk-$DPDK_VER/drivers/crypto/snow3g
 #cp 3rdparty/rte_snow3g_pmd_7.patch 3rdparty/dpdk-$DPDK_VER/drivers/crypto/snow3g
 cd 3rdparty/dpdk-$DPDK_VER
 patch config/common_base < config/enable_PMD_AESNI_MB.patch
-patch drivers/crypto/snow3g/rte_snow3g_pmd.c < drivers/crypto/snow3g/rte_snow3g_pmd_N_BUFF.patch
+#patch drivers/crypto/snow3g/rte_snow3g_pmd.c < drivers/crypto/snow3g/rte_snow3g_pmd_N_BUFF.patch
 #patch drivers/crypto/snow3g/rte_snow3g_pmd.c < drivers/crypto/snow3g/rte_snow3g_pmd_7.patch
 export DESTDIR=$ROOT/3rdparty/dpdk-$DPDK_VER/distr/x86_64-native-linuxapp-gcc
 make install T=x86_64-native-linuxapp-gcc \
