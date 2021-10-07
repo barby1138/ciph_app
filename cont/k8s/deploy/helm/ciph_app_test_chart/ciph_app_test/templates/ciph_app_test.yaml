@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ciph-app-test-deployment
+  namespace: {{ .Values.namespace }}
 spec:
   selector:
     matchLabels:

@@ -10,6 +10,7 @@ replicaCount: 1
 repository: pwartifactory.parallelwireless.net/${DOCKER_REPOSITORY}/ciph-app/$BRANCH/ciph_app
 # tag docker docker image tag 
 tag: $docker_tag
+namespace: parallelwireless
 EOF
 
 cat > ciph_app/Chart.yaml <<EOF
