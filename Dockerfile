@@ -18,7 +18,9 @@ RUN groupadd -g $GID -o $UNAME
 RUN useradd -m -u $UID -g $GID -o -s /bin/bash $UNAME
 
 # map id of docker group on build servers
-RUN groupmod -g $DOCKER_GID docker
+#TODO check if exists
+#RUN groupmod -g $DOCKER_GID docker
+RUN if [ $(getent group $DOCKER_GID | cut -d: -f1) ]; then getent group $DOCKER_GID | cut -d: -f1; else groupmod -g $DOCKER_GID docker; fi
 
 RUN usermod -aG docker $UNAME
 RUN usermod -aG root $UNAME

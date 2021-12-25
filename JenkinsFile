@@ -1,4 +1,5 @@
 node('docker_build'){
+//node('k8s && small && usnh'){
    withCredentials([usernameColonPassword(credentialsId: 'BuildStatus', variable: 'BuildStatus')]) {
       properties([
            [$class: 'JiraProjectProperty', siteName: 'https://jira.parallelwireless.net/'],

@@ -32,7 +32,7 @@ docker_tag=v${VER}-${BUILD_NUMBER}
 
 upload_docker_img_to_artifactory()
 {
-     local CORE_ACCESS_DOCKER_IMAGE="pwartifactory.parallelwireless.net/${DOCKER_REPOSITORY}/ciph-app/$branch/ciph_app:${docker_tag}"
+     local CORE_ACCESS_DOCKER_IMAGE="pwartifactory.parallelwireless.net/${DOCKER_REPOSITORY}/ciph-app/$branch/${commit_hash_date}/ciph_app:${docker_tag}"
      jfrog rt use pwartifactory
      docker tag ciph_app:${docker_tag} ${CORE_ACCESS_DOCKER_IMAGE}
      docker push ${CORE_ACCESS_DOCKER_IMAGE}
@@ -47,6 +47,8 @@ ls -la
 if [ -d dist ]; then
     cd dist
 
+    upload_docker_img_to_artifactory
+
     lxc_image=$(ls -a | grep -ie ciph_app*.rpm)
     upload_to_artifactory $lxc_image
 
@@ -58,8 +60,6 @@ if [ -d dist ]; then
 
     devel_image=$(ls -a | grep -ie ciph_app_devel*.tar.gz)
     upload_to_artifactory $devel_image
-
-    upload_docker_img_to_artifactory
 fi
 
 echo "Done ci-publish.sh"

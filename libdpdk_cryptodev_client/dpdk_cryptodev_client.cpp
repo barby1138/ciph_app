@@ -484,6 +484,28 @@ int Dpdk_cryptodev_client::init_inner()
 	_enabled_cdevs[enabled_cdev_count - 1].algo = crypto2rte_cipher_algo_map[CRYPTO_CIPHER_SNOW3G_UEA2];
 	algo2cdev_id_map[CRYPTO_CIPHER_SNOW3G_UEA2] = enabled_cdevs_id[enabled_cdev_count - 1];
 
+
+//////////////////////////
+	cdev_nb = rte_cryptodev_devices_get("crypto_null", 
+													enabled_cdevs_id + enabled_cdev_count, 
+													RTE_CRYPTO_MAX_DEVS - enabled_cdev_count);
+	if (cdev_nb == 0) 
+	{
+		RTE_LOG(ERR, USER1, "No crypto devices type crypto_null available");
+		return -EINVAL;
+	}
+	if (cdev_nb > 1)
+	{
+		printf("WARN!!! crypto_null dev_nb > 1 %d - use last\n", cdev_nb);
+	}
+	enabled_cdev_count += 1;
+	printf("enabled_cdev id: %d\n", enabled_cdevs_id[enabled_cdev_count - 1]);
+	_enabled_cdevs[enabled_cdev_count - 1].cdev_id = enabled_cdevs_id[enabled_cdev_count - 1];
+	_enabled_cdevs[enabled_cdev_count - 1].algo = crypto2rte_cipher_algo_map[CRYPTO_CIPHER_NULL];
+	algo2cdev_id_map[CRYPTO_CIPHER_NULL] = enabled_cdevs_id[enabled_cdev_count - 1];
+
+////////////////////////
+
 	nb_lcores = 1;
 
 	// Create a mempool shared by all the devices 
@@ -646,9 +668,9 @@ int Dpdk_cryptodev_client::init(int argc, char **argv)
 	int ret;
 	uint32_t lcore_id;
 
-	//crypto2rte_cipher_algo_map[CRYPTO_CIPHER_AES_CBC] = RTE_CRYPTO_CIPHER_AES_CBC;
 	crypto2rte_cipher_algo_map[CRYPTO_CIPHER_AES_CTR] = RTE_CRYPTO_CIPHER_AES_CTR;
 	crypto2rte_cipher_algo_map[CRYPTO_CIPHER_SNOW3G_UEA2] = RTE_CRYPTO_CIPHER_SNOW3G_UEA2;
+	crypto2rte_cipher_algo_map[CRYPTO_CIPHER_NULL] = RTE_CRYPTO_CIPHER_NULL;
 
 	crypto2rte_cipher_op_map[CRYPTO_CIPHER_OP_ENCRYPT] = RTE_CRYPTO_CIPHER_OP_ENCRYPT;
 	crypto2rte_cipher_op_map[CRYPTO_CIPHER_OP_DECRYPT] = RTE_CRYPTO_CIPHER_OP_DECRYPT;
@@ -1744,8 +1766,17 @@ int32_t Dpdk_cryptodev_client::test_create_session(long cid,
     op_sess.op.op_type = CRYPTO_OP_TYPE_SESS_CREATE;
     op_sess.op.cipher_algo = algo;
     op_sess.op.cipher_op = op_type;
-    op_sess.cipher_key.data = cipher_key;
-    op_sess.cipher_key.length = 16;
+
+	if (algo != CRYPTO_CIPHER_NULL)
+	{
+	    op_sess.cipher_key.data = cipher_key;
+	    op_sess.cipher_key.length = 16;
+	}
+	else
+	{
+	    op_sess.cipher_key.data = NULL;
+	    op_sess.cipher_key.length = 0;
+	}
 
     run_jobs(0, &op_sess, 1);
 
@@ -1919,12 +1950,12 @@ int Dpdk_cryptodev_client::test(Crypto_cipher_algorithm a, Crypto_cipher_operati
 
 	uint32_t retries;
 
-  	uint32_t num_pck = 32;//10000000;
+  	uint32_t num_pck = 10000000;
   	uint32_t num_pck_per_batch = 32;
   	uint32_t pck_size = 200;
 
-	TRACE_INFO("a: %s ot: %s", (algo == CRYPTO_CIPHER_SNOW3G_UEA2)? "SNOW" : "AES",
-								(op_type == CRYPTO_CIPHER_OP_ENCRYPT)? "ENC" : "DEC");
+	// TODO algo to str
+	TRACE_INFO("a: %d ot: %s", algo, (op_type == CRYPTO_CIPHER_OP_ENCRYPT)? "ENC" : "DEC");
     
 	// create 3 sessions
 	res = test_create_session(0, seq, algo, op_type);
@@ -1950,7 +1981,7 @@ int Dpdk_cryptodev_client::test(Crypto_cipher_algorithm a, Crypto_cipher_operati
 			//test_cipher(0, ++seq, g_setup_sess_id, op_type);
 			test_cipher_burst(0, ++seq, g_setup_sess_id, op_type);
       	}
-/*
+
 		cc++;
 		// control pps
 		if (cc > 1000) 
@@ -1959,9 +1990,9 @@ int Dpdk_cryptodev_client::test(Crypto_cipher_algorithm a, Crypto_cipher_operati
       		timespec_get (&end, TIME_UTC);
 
       		double tmp = 1000.0 * seq / get_delta_usec(start, end);
-	  		printf ("Curr pps %ld %f\n", cid, tmp);
+	  		printf ("Curr pps %ld %f\n", 0, tmp);
 		}
-*/
+
     	//printf ("num %ld %ld ...\n", cid, send_to_usec);
     }
 

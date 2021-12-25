@@ -822,22 +822,37 @@ int32_t create_session(long cid, uint16_t qid, uint64_t seq, uint32_t algo, uint
 	// sess
     op_sess.op.op_type = CRYPTO_OP_TYPE_SESS_CREATE;
     op_sess.op.cipher_algo = algo;
-    op_sess.op.cipher_op = op;
-	
+    
 	if (USE_RND)
 	{
 		op_sess.op.cipher_op = rand() % 2;
 	}
-
-    op_sess.cipher_key.data = cipher_key;
-    op_sess.cipher_key.length = 16;
-    
-	if (USE_RND)
+	else
 	{
-		// fill with random data
-		for(size_t i = 0; i < op_sess.cipher_key.length; i++)
-    		op_sess.cipher_key.data[i] = rand() % 256;
+		op_sess.op.cipher_op = op;
 	}
+
+	if (thread_data[cid].cipher_algo != CRYPTO_CIPHER_NULL)
+	{
+		op_sess.cipher_key.length = 16;
+    
+		if (USE_RND)
+		{
+			// fill with random data
+			for(size_t i = 0; i < op_sess.cipher_key.length; i++)
+    			op_sess.cipher_key.data[i] = rand() % 256;
+		}
+		else
+		{
+			op_sess.cipher_key.data = cipher_key;
+		}
+	}
+	else
+	{
+		op_sess.cipher_key.data = NULL;
+    	op_sess.cipher_key.length = 0;
+	}
+	
 
     memset(&thread_data[cid].setup_sess_ctx, 0, sizeof(setup_sess_ctx_t));
 	thread_data[cid].setup_sess_ctx.setup_sess_id = -1;
@@ -1313,8 +1328,9 @@ int main(int argc, char* argv[])
     memset (&thread_data[cid_0].end, 0, sizeof (thread_data[cid_0].end));
 	thread_data[cid_0].total_size = 0;
 	thread_data[cid_0].cb = (TT_VERIFY == test_type) ? on_ops_complete_cb_0_v : on_ops_complete_cb_0;
-	thread_data[cid_0].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
+	//thread_data[cid_0].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
 	//thread_data[cid_0].cipher_algo = CRYPTO_CIPHER_AES_CTR;
+	thread_data[cid_0].cipher_algo = CRYPTO_CIPHER_NULL;
     thread_data[cid_0].cipher_op = CRYPTO_CIPHER_OP_DECRYPT;
 	
 	thread_data[cid_1].index = cid_1;
@@ -1326,11 +1342,12 @@ int main(int argc, char* argv[])
     memset (&thread_data[cid_1].end, 0, sizeof (thread_data[cid_1].end));
 	thread_data[cid_1].total_size = 0;
 	thread_data[cid_1].cb = (TT_VERIFY == test_type) ? on_ops_complete_cb_0_v : on_ops_complete_cb_0;
-	thread_data[cid_1].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
+	//thread_data[cid_1].cipher_algo = CRYPTO_CIPHER_SNOW3G_UEA2;
 	//thread_data[cid_1].cipher_algo = CRYPTO_CIPHER_AES_CTR;
+	thread_data[cid_1].cipher_algo = CRYPTO_CIPHER_NULL;
 	if (TT_VERIFY == test_type)
 	{
-		thread_data[cid_1].cipher_algo = ( (rand() % 2) == 0 ) ? CRYPTO_CIPHER_AES_CTR : CRYPTO_CIPHER_SNOW3G_UEA2;
+		thread_data[cid_1].cipher_algo = ( rand() % CRYPTO_CIPHER_ALGO_LAST );
 	}
 
     thread_data[cid_1].cipher_op = CRYPTO_CIPHER_OP_DECRYPT;
