@@ -1018,9 +1018,9 @@ enum TEST_TYPE
 	TT_VERIFY
 };
 
-enum TEST_TYPE test_type = TT_VERIFY;
+//enum TEST_TYPE test_type = TT_VERIFY;
 //enum TEST_TYPE test_type = TT_MAX_TP;
-//enum TEST_TYPE test_type = TT_TARGET_TP;
+enum TEST_TYPE test_type = TT_TARGET_TP;
 
 // TODO negative cases
 // bad sessid, too big buffer
@@ -1248,7 +1248,7 @@ int *a;
 	printf ("data_failed %d\n", thread_data[cid].data_failed);
     printf ("op_failed %d\n", thread_data[cid].op_failed);
 
-    ciph_agent_conn_free(cid);
+    //ciph_agent_conn_free(cid);
 
 	pthread_exit (NULL);
 }
@@ -1281,6 +1281,15 @@ static void signal_segv(int signum, struct siginfo_t * info, void *ptr)
 }
 */
 
+#include <unistd.h>
+
+pid_t get_thread_id_by_name(const char* th_name)
+{
+	pid_t pid = getpid();
+
+	execlp(	"ps","-T", "-p", pid, "|", "grep",  th_name, "|", "awk", "'{print $2}'");
+}
+
 int main(int argc, char* argv[])
 {
 /*
@@ -1307,6 +1316,7 @@ int main(int argc, char* argv[])
 		instance_id = strtol(s, NULL, 10);
 	}
 */
+
     long cid_0 = 0;
     long cid_1 = 1;
 
@@ -1317,7 +1327,7 @@ int main(int argc, char* argv[])
 
 	memset(thread_data, 0, THR_CNT * sizeof(thread_data_t));
 
-	while(1)
+	//while(1)
 	{
 	thread_data[cid_0].index = cid_0;
 	thread_data[cid_0].packet_size = 200;
@@ -1380,4 +1390,5 @@ int main(int argc, char* argv[])
 
     return 0;
 }
+
 

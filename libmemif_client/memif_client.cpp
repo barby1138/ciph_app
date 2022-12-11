@@ -529,7 +529,8 @@ int Memif_client::cleanup()
     memif_connection_t *c = &memif_connection[i];
     if (c->conn)
     {
-      memif_delete(i);
+      INFO("Memif_client::cleanup %d", i);
+      memif_delete(&c->conn);
     }
   }
 

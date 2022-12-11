@@ -210,7 +210,7 @@ void crypto_job_from_buffer(uint8_t* buffer, uint32_t len, Crypto_operation* vec
             }
             else
             {
-                vec->op.op_status == CRYPTO_OP_STATUS_FAILED;
+                vec->op.op_status = CRYPTO_OP_STATUS_FAILED;
 
                 printf("ERROR!!! BAD buff or len ptr %x, %d <= %d\n", vec->op.outbuff_ptr, 
                                     vec->cipher_buff_list.buffs[0].length,
