@@ -2,12 +2,10 @@
 
 enum { CA_MODE_SLAVE = 0, CA_MODE_MASTER = 1 };
 
-//const uint32_t BLOCK_LENGTH = 16;
 const uint32_t BUFF_HEADROOM = 32;
-const uint32_t BUFF_SIZE = 1600; // aligned to BLOCK_LENGTH
+const uint32_t BUFF_SIZE = 9000; 
 
 const uint32_t CIFER_IV_LENGTH = 16;
-const uint32_t MAX_PCK_LEN = 1504; // 1500 aligned to BLOCK_LENGTH
 
 typedef struct Data_lengths {
     uint32_t ciphertext_length;
@@ -69,9 +67,9 @@ void crypto_job_to_buffer(uint8_t* buffer, uint32_t* len,  Crypto_operation* vec
     for (int i = 0; i < vec->cipher_buff_list.buff_list_length; i++)
         data_len.ciphertext_length += vec->cipher_buff_list.buffs[i].length;
 
-    if (data_len.ciphertext_length > MAX_PCK_LEN)
+    if (data_len.ciphertext_length > BUFF_SIZE)
     {
-        printf("WARNING!!! data_len.ciphertext_length > MAX_PCK_LEN %d\n", data_len.ciphertext_length);
+        printf("WARNING!!! data_len.ciphertext_length > BUFF_SIZE %d\n", data_len.ciphertext_length);
 
         buffer_op->op_status = CRYPTO_OP_STATUS_FAILED;
 
@@ -301,6 +299,12 @@ void copy_buffer_to_buffer(uint8_t* in_buffer, uint32_t in_len, uint8_t* out_buf
 	out_buffer_op->cipher_op = in_buffer_op->cipher_op;
 	out_buffer_op->reserved_1 = in_buffer_op->reserved_1;
 
+    if (in_buffer_op->op_type > 2)
+    {
+        printf("++++++++++++ WARNING!!! BAD pck %d\n", in_buffer_op->op_type);
+        printf("++++++++++++ WARNING!!! BAD pck %d\n", in_buffer_op->seq);
+    }
+
     in_buffer += sizeof(Crypto_operation_context);
     out_buffer += sizeof(Crypto_operation_context);
 
@@ -338,6 +342,7 @@ void copy_buffer_to_buffer(uint8_t* in_buffer, uint32_t in_len, uint8_t* out_buf
         clib_memcpy_fast(out_buffer, 
 					in_buffer, 
 					in_pData_len->cipher_iv_length);
+
 }
 
 typedef std::lock_guard<std::recursive_mutex> LOCK_GUARD;

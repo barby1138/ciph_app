@@ -48,9 +48,9 @@
 /* maximum tx/rx memif buffers */
 #define MAX_MEMIF_BUFS 64
 #define MAX_CONNS 100
-#define ICMPR_HEADROOM 64
+#define BUFF_HEADROOM 0
 
-#define BUFF_SIZE 2048 - ICMPR_HEADROOM
+#define BUFF_SIZE 16384 - BUFF_HEADROOM
 
 #define INFO
 #define ERROR
@@ -221,7 +221,7 @@ int on_connect(memif_conn_handle_t conn, void *private_ctx)
       return -1;
     }
 
-    memif_refill_queue(conn, i, -1, ICMPR_HEADROOM);
+    memif_refill_queue(conn, i, -1, BUFF_HEADROOM);
   }
 
   c->connected = 1;
@@ -359,7 +359,7 @@ int on_interrupt00_poll(long index, uint16_t qid, cpoy_buffer_to_buffer_fn_t cpy
     }
     //////////////////////////
 
-    err = memif_refill_queue(c->conn, qid, rx, ICMPR_HEADROOM);
+    err = memif_refill_queue(c->conn, qid, rx, BUFF_HEADROOM);
     if (err != MEMIF_ERR_SUCCESS)
       ERROR("memif_buffer_free: %s\n", memif_strerror(err));
     c->buffs[qid].rx_buf_num -= rx;
@@ -381,7 +381,7 @@ int on_interrupt00_poll(long index, uint16_t qid, cpoy_buffer_to_buffer_fn_t cpy
   return 0;
 
 error:
-  err = memif_refill_queue(c->conn, qid, rx, ICMPR_HEADROOM);
+  err = memif_refill_queue(c->conn, qid, rx, BUFF_HEADROOM);
   if (err != MEMIF_ERR_SUCCESS)
     ERROR("memif_buffer_free: %s", memif_strerror(err));
   c->buffs[qid].rx_buf_num -= rx;
@@ -438,7 +438,7 @@ int on_interrupt02_poll(long index, uint16_t qid)
 
     c->on_recv_cb_fn(index, qid, c->buffs[qid].rx_bufs, rx);
 
-    err = memif_refill_queue(c->conn, qid, rx, ICMPR_HEADROOM);
+    err = memif_refill_queue(c->conn, qid, rx, BUFF_HEADROOM);
     if (err != MEMIF_ERR_SUCCESS)
       ERROR("memif_buffer_free: %s\n", memif_strerror(err));
     c->buffs[qid].rx_buf_num -= rx;
@@ -447,7 +447,7 @@ int on_interrupt02_poll(long index, uint16_t qid)
   return 0;
 
 error:
-  err = memif_refill_queue(c->conn, qid, rx, ICMPR_HEADROOM);
+  err = memif_refill_queue(c->conn, qid, rx, BUFF_HEADROOM);
   if (err != MEMIF_ERR_SUCCESS)
     ERROR("memif_buffer_free: %s", memif_strerror(err));
   c->buffs[qid].rx_buf_num -= rx;
@@ -561,7 +561,7 @@ int Memif_client::conn_alloc(long index, const Memif_client::Conn_config_t &conn
   memset(&args, 0, sizeof(args));
   args.is_master = conn_config._mode;
   args.log2_ring_size = 10;
-  args.buffer_size = 2048;
+  args.buffer_size = (BUFF_SIZE + BUFF_HEADROOM);
   args.num_s2m_rings = 2; //conn_config._q_nb;
   args.num_m2s_rings = 2; //conn_config._q_nb;
   strncpy((char *)args.interface_name, IF_NAME, strlen(IF_NAME));

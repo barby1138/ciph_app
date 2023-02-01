@@ -32,7 +32,7 @@ enum Crypto_cipher_operation
 };
 
 enum { 
-	MAX_CYPTO_BUFF_TOTAL_LEN_BYTES = 1500,
+	MAX_CYPTO_BUFF_TOTAL_LEN_BYTES = 9000,
 	MAX_CYPTO_BUFF_LIST_SIZE = 100 
 };
 
