@@ -17,10 +17,9 @@ enum Crypto_operation_status
 
 enum Crypto_cipher_algorithm
 {
-//	CRYPTO_CIPHER_AES_CBC = 0,
 	CRYPTO_CIPHER_AES_CTR = 0,
 	CRYPTO_CIPHER_SNOW3G_UEA2,
-	CRYPTO_CIPHER_NULL,
+//	CRYPTO_CIPHER_NULL,
 	CRYPTO_CIPHER_ALGO_LAST
 };
 
