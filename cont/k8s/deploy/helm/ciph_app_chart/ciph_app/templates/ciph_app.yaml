@@ -18,7 +18,7 @@ spec:
       containers:
        - name: ciph-app-container1
          securityContext:
-           privileged: false
+           privileged: true
          image: {{ .Values.repository }}:{{ .Values.tag }}
          resources:
            requests:

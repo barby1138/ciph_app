@@ -6,6 +6,7 @@ vmname=$(hostname)
 uname=$(whoami)
 commit_hash_date=$(git log --format=format:%cd-%h --date=format:%Y%m%d.%H%M -n 1)
 shortHash=$(git rev-parse --short HEAD)
+longHash=$(git rev-parse HEAD)
 buildNumber=$BUILD_NUMBER
 
 branch=${push_changes_0_new_name}
@@ -16,10 +17,10 @@ upload_to_artifactory()
 {
     local p_image_name="${1}"
     local p_folder_to_upload="pw-products/ciph-app/${branch}/${commit_hash_date}/"
-    echo "Upload ${p_image_name} to folder ${p_folder_to_upload} with the tag $shortHash"
+    echo "Upload ${p_image_name} to folder ${p_folder_to_upload} with the tag $longHash"
     jfrog rt use pwartifactory
     jfrog rt u --insecure-tls \
-        --props "commitID=$shortHash;build.number=$buildNumber;branch=$branch" \
+        --props "commitID=$longHash;type=release;build.number=$buildNumber;branch=$branch" \
         --include-dirs=true \
         ${p_image_name} ${p_folder_to_upload}
 }
@@ -47,19 +48,24 @@ ls -la
 if [ -d dist ]; then
     cd dist
 
-    upload_docker_img_to_artifactory
+    ls -la
 
-    lxc_image=$(ls -a | grep -ie ciph_app*.rpm)
-    upload_to_artifactory $lxc_image
+    #upload_docker_img_to_artifactory
 
-    k8s_image=$(ls -a | grep -ie ciph_app-*.tgz)
-    upload_to_artifactory $k8s_image
+    lxc_rpm=$(ls -a | grep -ie ciph_app*.rpm)
+    upload_to_artifactory $lxc_rpm
 
-    k8s_test_image=$(ls -a | grep -ie ciph_app_test-*.tgz)
-    upload_to_artifactory $k8s_test_image
+    k8s_img=$(ls -a | grep -ie ciph_app-img-*.tgz)
+    upload_to_artifactory $k8s_img
 
-    devel_image=$(ls -a | grep -ie ciph_app_devel*.tar.gz)
-    upload_to_artifactory $devel_image
+    k8s_helm=$(ls -a | grep -ie ciph_app-helm-*.tgz)
+    upload_to_artifactory $k8s_helm
+
+    k8s_test_helm=$(ls -a | grep -ie ciph_app_test-helm-*.tgz)
+    upload_to_artifactory $k8s_test_helm
+
+    devel_pkg=$(ls -a | grep -ie ciph_app_devel*.tar.gz)
+    upload_to_artifactory $devel_pkg
 fi
 
 echo "Done ci-publish.sh"

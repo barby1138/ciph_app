@@ -366,7 +366,7 @@ int32_t create_session(long cid, uint16_t qid, uint64_t seq, uint32_t algo, uint
 		op_sess.op.cipher_op = op;
 	}
 
-	if (thread_data[cid].cipher_algo != CRYPTO_CIPHER_NULL)
+//	if (thread_data[cid].cipher_algo != CRYPTO_CIPHER_NULL)
 	{
 		op_sess.cipher_key.length = 16;
     
@@ -381,12 +381,13 @@ int32_t create_session(long cid, uint16_t qid, uint64_t seq, uint32_t algo, uint
 			op_sess.cipher_key.data = cipher_key;
 		}
 	}
+/*
 	else
 	{
 		op_sess.cipher_key.data = NULL;
     	op_sess.cipher_key.length = 0;
 	}
-	
+*/	
 
     memset(&thread_data[cid].setup_sess_ctx, 0, sizeof(setup_sess_ctx_t));
 	thread_data[cid].setup_sess_ctx.setup_sess_id = -1;

@@ -112,13 +112,14 @@ cp /tmp/rootfs_centos-7-amd64.tar.gz $RPMBUILD/ciph_app/lxc
 
 echo =========== BUILD RPM ============================
 cd $ROOT/cont/lxc
-rpmbuild -bb --define "_ver $VER" ciph_app.spec
+rpmbuild -bb --define "_ver $VER" --define "_rel ${BUILD_NUMBER}" ciph_app.spec
 
 echo =========== PACK RPM =============================
 cd $ROOT/dist
-cp ~/rpmbuild/RPMS/x86_64/ciph_app-$VER-rel.x86_64.rpm .
+ls -la ~/rpmbuild/RPMS/x86_64
+cp ~/rpmbuild/RPMS/x86_64/ciph_app-$VER-${BUILD_NUMBER}.x86_64.rpm .
 #rename
-mv ciph_app-$VER-rel.x86_64.rpm ciph_app-$VER-${BUILD_NUMBER}.x86_64.rpm
+#mv ciph_app-$VER-rel.x86_64.rpm ciph_app-$VER-${BUILD_NUMBER}.x86_64.rpm
 
 echo =========== K8s ==================================
 echo =========== PREP FILES FOR K8s ===================
@@ -149,10 +150,6 @@ chmod +x build_k8s.sh && ./build_k8s.sh
 
 echo =========== K8S TO DIST =========================
 cd $ROOT
-cp $CONT_K8S_DIR/deploy/helm/ciph_app_test_chart/ciph_app_test-$VER.tgz dist
-cp $CONT_K8S_DIR/deploy/helm/ciph_app_chart/ciph_app-$VER.tgz dist
-
-#rename
-cd dist
-mv ciph_app_test-$VER.tgz ciph_app_test-$VER-${BUILD_NUMBER}.tgz
-mv ciph_app-$VER.tgz ciph_app-$VER-${BUILD_NUMBER}.tgz
+cp $CONT_K8S_DIR/deploy/helm/ciph_app_test_chart/ciph_app_test-helm-$VER-${BUILD_NUMBER}.tgz dist
+cp $CONT_K8S_DIR/deploy/helm/ciph_app_chart/ciph_app-helm-$VER-${BUILD_NUMBER}.tgz dist
+cp $CONT_K8S_DIR/ciph_app-img-$VER-${BUILD_NUMBER}.tgz dist

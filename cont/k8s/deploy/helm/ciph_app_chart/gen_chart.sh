@@ -1,7 +1,7 @@
-VER=$1
+tag=$1
 
 DOCKER_REPOSITORY=pw-docker-images
-docker_tag=v$VER-${BUILD_NUMBER}
+docker_tag=v$tag
 
 cat > ciph_app/values.yaml <<EOF
 # replicaCount number of replicas 
@@ -17,5 +17,5 @@ cat > ciph_app/Chart.yaml <<EOF
 apiVersion: v2
 name: ciph_app
 description: A Helm chart for Kubernetes
-version: $VER
+version: $tag
 EOF

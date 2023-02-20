@@ -15,7 +15,19 @@ tar zxf rootfs_centos-7-amd64.tar.gz -C $LXCPATH/ciph_app
 
 echo =========== PREPARE APP ==============
 cd $DEPLPATH
+CPU_NUM=$(grep -c ^processor /proc/cpuinfo)
+echo $CPU_NUM
+if [[ $CPU_NUM -eq 64 ]]; then
+    echo "lxc.cgroup.cpuset.cpus = 30,62" >> config
+elif [[ $CPU_NUM -eq 48 ]]; then
+    echo "lxc.cgroup.cpuset.cpus = 22,46" >> config
+elif [[ $CPU_NUM -eq 28 ]]; then
+    echo "lxc.cgroup.cpuset.cpus = 1,15" >> config
+else
+    echo "WARNING: unknown arch - do nothing"
+fi
 cp -f config $LXCPATH/ciph_app
+
 cp VERSION $LXCPATH/ciph_app
 mkdir $LXCPATH/ciph_app/rootfs/home/ciph_app
 mkdir $LXCPATH/ciph_app/rootfs/var/ciph_app

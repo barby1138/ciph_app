@@ -400,7 +400,7 @@ int Dpdk_cryptodev_client::init_inner()
 	_enabled_cdevs[enabled_cdev_count - 1].algo = crypto2rte_cipher_algo_map[CRYPTO_CIPHER_SNOW3G_UEA2];
 	algo2cdev_id_map[CRYPTO_CIPHER_SNOW3G_UEA2] = enabled_cdevs_id[enabled_cdev_count - 1];
 
-
+#ifdef DEV_NULL
 	cdev_nb = rte_cryptodev_devices_get("crypto_null", 
 													enabled_cdevs_id + enabled_cdev_count, 
 													RTE_CRYPTO_MAX_DEVS - enabled_cdev_count);
@@ -418,6 +418,7 @@ int Dpdk_cryptodev_client::init_inner()
 	_enabled_cdevs[enabled_cdev_count - 1].cdev_id = enabled_cdevs_id[enabled_cdev_count - 1];
 	_enabled_cdevs[enabled_cdev_count - 1].algo = crypto2rte_cipher_algo_map[CRYPTO_CIPHER_NULL];
 	algo2cdev_id_map[CRYPTO_CIPHER_NULL] = enabled_cdevs_id[enabled_cdev_count - 1];
+#endif //DEV_NULL
 
 	nb_lcores = 1;
 
@@ -583,7 +584,9 @@ int Dpdk_cryptodev_client::init(int argc, char **argv)
 
 	crypto2rte_cipher_algo_map[CRYPTO_CIPHER_AES_CTR] = RTE_CRYPTO_CIPHER_AES_CTR;
 	crypto2rte_cipher_algo_map[CRYPTO_CIPHER_SNOW3G_UEA2] = RTE_CRYPTO_CIPHER_SNOW3G_UEA2;
+#ifdef DEV_NULL
 	crypto2rte_cipher_algo_map[CRYPTO_CIPHER_NULL] = RTE_CRYPTO_CIPHER_NULL;
+#endif //DEV_NULL
 
 	crypto2rte_cipher_op_map[CRYPTO_CIPHER_OP_ENCRYPT] = RTE_CRYPTO_CIPHER_OP_ENCRYPT;
 	crypto2rte_cipher_op_map[CRYPTO_CIPHER_OP_DECRYPT] = RTE_CRYPTO_CIPHER_OP_DECRYPT;
@@ -1271,6 +1274,7 @@ int Dpdk_cryptodev_client::create_session(int ch_id, const Crypto_operation& vec
 
 	print_buff1(vec.cipher_key.data, vec.cipher_key.length);
 
+#ifdef DEV_NULL
 	if (cipher_xform.cipher.algo != RTE_CRYPTO_CIPHER_NULL) 
 	{
 		cipher_xform.cipher.key.data = vec.cipher_key.data;
@@ -1283,6 +1287,11 @@ int Dpdk_cryptodev_client::create_session(int ch_id, const Crypto_operation& vec
 		cipher_xform.cipher.key.length = 0;
 		cipher_xform.cipher.iv.length = 0;
 	}
+#else
+	cipher_xform.cipher.key.data = vec.cipher_key.data;
+	cipher_xform.cipher.key.length = vec.cipher_key.length;
+	cipher_xform.cipher.iv.length = 16;
+#endif //DEV_NULL
 
     if (0 == rte_cryptodev_sym_session_init(cdev_id, s, &cipher_xform, _priv_mp))
 	{
@@ -1680,6 +1689,7 @@ int32_t Dpdk_cryptodev_client::test_create_session(long cid,
     op_sess.op.cipher_algo = algo;
     op_sess.op.cipher_op = op_type;
 
+#ifdef DEV_NULL
 	if (algo != CRYPTO_CIPHER_NULL)
 	{
 	    op_sess.cipher_key.data = cipher_key;
@@ -1690,6 +1700,10 @@ int32_t Dpdk_cryptodev_client::test_create_session(long cid,
 	    op_sess.cipher_key.data = NULL;
 	    op_sess.cipher_key.length = 0;
 	}
+#else
+	op_sess.cipher_key.data = cipher_key;
+	op_sess.cipher_key.length = 16;
+#endif //DEV_NULL
 
     run_jobs(0, &op_sess, 1);
 
