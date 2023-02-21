@@ -465,8 +465,8 @@ int32_t cipher(long cid, uint16_t qid, uint64_t seq, uint64_t sess_id, uint32_t 
 
 	uint32_t BUFFER_TOTAL_LEN = 1 + rand() % 500;
 
-//	if (cnt % 100 == 0) 
-//		BUFFER_TOTAL_LEN = 300 + rand() % 8500;
+	if (cnt % 100 == 0) 
+		BUFFER_TOTAL_LEN = 300 + rand() % 8500;
 	// TODO kills server
 	if (cnt % 1000000 == 0) 
 		BUFFER_TOTAL_LEN = 10000; // too large
