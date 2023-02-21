@@ -460,27 +460,27 @@ int32_t cipher(long cid, uint16_t qid, uint64_t seq, uint64_t sess_id, uint32_t 
 	// 1% 300 - 1500 bytes
 	++cnt;
 
-	uint32_t BUFFER_TOTAL_LEN = TEST_BUFF_SIZE; //1 + rand() % 300;
+	//uint32_t BUFFER_TOTAL_LEN = TEST_BUFF_SIZE;
 	//printf("len %d\n", BUFFER_TOTAL_LEN);
-/*
-	uint32_t BUFFER_TOTAL_LEN = 1 + rand() % 300;
 
-	if (cnt % 100 == 0) 
-		BUFFER_TOTAL_LEN = 300 + rand() % 1200;
+	uint32_t BUFFER_TOTAL_LEN = 1 + rand() % 500;
+
+//	if (cnt % 100 == 0) 
+//		BUFFER_TOTAL_LEN = 300 + rand() % 8500;
 	// TODO kills server
 	if (cnt % 1000000 == 0) 
-		BUFFER_TOTAL_LEN = 1550; // too large
-*/
+		BUFFER_TOTAL_LEN = 10000; // too large
+
 	//uint32_t BUFFER_TOTAL_LEN = 1 + rand() % 15;
 
 	uint32_t BUFFER_SEGMENT_NUM = 1 + rand() % 15;
 	BUFFER_SEGMENT_NUM = (BUFFER_SEGMENT_NUM > BUFFER_TOTAL_LEN) ? 
 												BUFFER_TOTAL_LEN : 
 												BUFFER_SEGMENT_NUM;
-	BUFFER_SEGMENT_NUM = 1;
-	op.cipher_buff_list.buff_list_length = BUFFER_SEGMENT_NUM;
+	//BUFFER_SEGMENT_NUM = 1;
 
-	/*
+	op.cipher_buff_list.buff_list_length = BUFFER_SEGMENT_NUM;
+	
 	uint32_t total_len = 0;
 	uint32_t step = BUFFER_TOTAL_LEN / BUFFER_SEGMENT_NUM;
 	for (uint32_t i = 0; i < op.cipher_buff_list.buff_list_length; ++i)
@@ -502,9 +502,9 @@ int32_t cipher(long cid, uint16_t qid, uint64_t seq, uint64_t sess_id, uint32_t 
 		if (i == op.cipher_buff_list.buff_list_length - 1)
 			op.cipher_buff_list.buffs[i].length += (BUFFER_TOTAL_LEN - total_len);
 	}
-	*/
-	op.cipher_buff_list.buffs[0].data = ((cipher_op == CRYPTO_CIPHER_OP_ENCRYPT) ? plaintext : ciphertext);
-	op.cipher_buff_list.buffs[0].length = TEST_BUFF_SIZE;
+	
+	//op.cipher_buff_list.buffs[0].data = ((cipher_op == CRYPTO_CIPHER_OP_ENCRYPT) ? plaintext : ciphertext);
+	//op.cipher_buff_list.buffs[0].length = BUFFER_TOTAL_LEN;
 
 	//printf ("BUFFER_TOTAL_LEN %d BUFFER_SEGMENT_NUM %d\n", BUFFER_TOTAL_LEN, BUFFER_SEGMENT_NUM);
 
